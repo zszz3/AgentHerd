@@ -110,6 +110,10 @@ the sources and the env of each; `packages/host/src/runtimes.ts` checks the publ
 `current.json`. Lookup: `AGENTHERD_<ID>`, the download, `PATH`, then the DSH app. On Windows the DSH
 app (install folder from its uninstall entry, `resources\runtime\cli\bin\dsh.cmd`) comes
 before `PATH`: the npm `dsh` launcher there serves ACP only with its own `acp` profile bundle.
+On Windows, when OpenAI's Codex (ChatGPT) desktop app is installed (package folder from
+`HKCU\...\AppModel\Repository\Packages\OpenAI.Codex_*`, `app\resources\codex.exe`, newest first),
+Codex runs with `CODEX_PATH` naming that CLI, and its download leaves out npm's optional
+dependencies (the platform CLI build, over 100 MB). An owner's own `CODEX_PATH` wins.
 移除 deletes the download.
 
 A task runs with a model from the owner's list: the Herder picks it and the agent gets it through

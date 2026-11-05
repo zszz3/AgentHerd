@@ -52,6 +52,8 @@ export interface NpmRelease {
   package: string;
   /** Path of the entry script inside the install folder (node_modules/…). */
   executable: string;
+  /** Leave out optional dependencies (an agent's platform build the machine already has). */
+  omitOptional?: boolean;
 }
 
 export type Release = ArchiveRelease | NpmRelease;
@@ -237,6 +239,7 @@ async function npmInstall(release: NpmRelease, staging: string, opts: InstallOpt
     staging,
     "--ignore-scripts",
     "--omit=dev",
+    ...(release.omitOptional === true ? ["--omit=optional"] : []),
     "--no-audit",
     "--no-fund",
     "--no-save",

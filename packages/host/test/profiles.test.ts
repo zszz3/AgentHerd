@@ -1,7 +1,10 @@
 import { delimiter } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
+  agentEnv,
   availableProfiles,
+  codexAppClis,
+  codexPackageRoots,
   commandCandidates,
   DSH_APP_BIN,
   dshAppBins,
@@ -203,6 +206,59 @@ describe("DSH app on Windows", () => {
     });
     expect(asked.map((k) => k.slice(0, 4))).toEqual(["HKCU", "HKLM"]);
     expect(bins).toEqual(["G:\\Program File\\DSH\\resources\\runtime\\cli\\bin\\dsh.cmd"]);
+  });
+});
+
+describe("Codex app on Windows", () => {
+  // `reg query HKCU\...\AppModel\Repository\Packages /s /v PackageRootFolder`, shortened.
+  const KEY =
+    "HKEY_CURRENT_USER\\Software\\Classes\\Local Settings\\Software\\Microsoft\\Windows\\CurrentVersion\\AppModel\\Repository\\Packages";
+  const OUTPUT = [
+    "",
+    `${KEY}\\Microsoft.WindowsCalculator_11.2502.2.0_x64__8wekyb3d8bbwe`,
+    "    PackageRootFolder    REG_SZ    C:\\Program Files\\WindowsApps\\Microsoft.WindowsCalculator_11.2502.2.0_x64__8wekyb3d8bbwe",
+    "",
+    `${KEY}\\OpenAI.Codex_26.927.100.0_x64__2p2nqsd0c76g0`,
+    "    PackageRootFolder    REG_SZ    C:\\Program Files\\WindowsApps\\OpenAI.Codex_26.927.100.0_x64__2p2nqsd0c76g0",
+    "",
+    `${KEY}\\OpenAI.Codex_26.1027.6604.0_x64__2p2nqsd0c76g0`,
+    "    PackageRootFolder    REG_SZ    D:\\Apps\\OpenAI.Codex_26.1027.6604.0_x64__2p2nqsd0c76g0",
+    "",
+    "End of search: 3 match(es) found.",
+  ].join("\r\n");
+  const NEW = "D:\\Apps\\OpenAI.Codex_26.1027.6604.0_x64__2p2nqsd0c76g0\\app\\resources\\codex.exe";
+
+  it("reads the app's package folders, newest first", () => {
+    expect(codexPackageRoots(OUTPUT)).toEqual([
+      "D:\\Apps\\OpenAI.Codex_26.1027.6604.0_x64__2p2nqsd0c76g0",
+      "C:\\Program Files\\WindowsApps\\OpenAI.Codex_26.927.100.0_x64__2p2nqsd0c76g0",
+    ]);
+  });
+  it("points at the CLI inside each folder", () => {
+    expect(codexAppClis("win32", () => OUTPUT)[0]).toBe(NEW);
+    expect(codexAppClis("darwin", () => OUTPUT)).toEqual([]);
+    expect(
+      codexAppClis("win32", () => {
+        throw new Error("ERROR");
+      }),
+    ).toEqual([]);
+  });
+  it("hands the first installed CLI to codex-acp unless CODEX_PATH is set", () => {
+    const clis = () => ["C:\\gone\\codex.exe", NEW];
+    const exists = (p: string) => p === NEW;
+    expect(agentEnv("codex", {}, exists, "win32", clis)).toEqual({ CODEX_PATH: NEW });
+    expect(agentEnv("codex", { CODEX_PATH: "C:\\mine.exe" }, exists, "win32", clis)).toEqual({});
+    expect(agentEnv("codex", {}, () => false, "win32", clis)).toEqual({});
+    expect(agentEnv("dsh", {}, exists, "win32", clis)).toEqual({});
+  });
+  it("puts it in the Codex profile", () => {
+    const profiles = availableProfiles({
+      configured: [],
+      find: (id) => (id === "codex" ? "C:\\rt\\codex-acp\\dist\\index.js" : undefined),
+      agentEnv: (id): Record<string, string> => (id === "codex" ? { CODEX_PATH: NEW } : {}),
+    });
+    expect(profiles.map((p) => p.id)).toEqual(["codex"]);
+    expect(profiles[0]?.env).toMatchObject({ CODEX_PATH: NEW, INITIAL_AGENT_MODE: "read-only" });
   });
 });
 

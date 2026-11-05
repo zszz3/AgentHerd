@@ -151,6 +151,59 @@ export function dshAppBins(
   return [...new Set(bins)];
 }
 
+/** The Codex CLI inside the package folder of OpenAI's Codex (ChatGPT) desktop app. */
+export const CODEX_WINDOWS_CLI = "app\\resources\\codex.exe";
+
+/** Where Windows records the folder of each Store app the user has installed. */
+const APPX_PACKAGES =
+  "HKCU\\Software\\Classes\\Local Settings\\Software\\Microsoft\\Windows\\CurrentVersion\\AppModel\\Repository\\Packages";
+
+/**
+ * Package folders of the Codex desktop app from `reg query <packages> /s /v PackageRootFolder`
+ * output, newest version first. Keys are `OpenAI.Codex_<version>_<arch>__<publisher>`.
+ */
+export function codexPackageRoots(output: string): string[] {
+  const found: { version: number[]; root: string }[] = [];
+  let version: number[] | undefined;
+  for (const line of output.split(/\r?\n/)) {
+    if (line.startsWith("HKEY_")) {
+      const key = /\\OpenAI\.Codex_(\d+(?:\.\d+)*)_[^\\]*$/.exec(line.trim());
+      version = key === null ? undefined : (key[1] ?? "").split(".").map(Number);
+      continue;
+    }
+    const value = /^\s+PackageRootFolder\s+REG_(?:EXPAND_)?SZ\s+(.*)$/.exec(line);
+    if (value !== null && version !== undefined) {
+      found.push({ version, root: (value[1] ?? "").trim() });
+    }
+  }
+  const newer = (a: number[], b: number[]) => {
+    for (let i = 0; i < Math.max(a.length, b.length); i++) {
+      const d = (b[i] ?? 0) - (a[i] ?? 0);
+      if (d !== 0) return d;
+    }
+    return 0;
+  };
+  return found.sort((a, b) => newer(a.version, b.version)).map((f) => f.root);
+}
+
+/**
+ * Where the Codex desktop app may keep its CLI (Windows only, newest first). codex-acp can run
+ * it through `CODEX_PATH` instead of the large CLI build npm would download.
+ */
+export function codexAppClis(
+  platform: NodeJS.Platform = process.platform,
+  query: RegQuery = regQuery,
+): string[] {
+  if (platform !== "win32") return [];
+  let output: string;
+  try {
+    output = query(["query", APPX_PACKAGES, "/s", "/v", "PackageRootFolder"]);
+  } catch {
+    return [];
+  }
+  return codexPackageRoots(output).map((root) => win32.join(root, CODEX_WINDOWS_CLI));
+}
+
 /** The built-in `mock` profile plays a YAML script. */
 export function mockProfile(script: string): AgentProfile {
   return {
@@ -215,10 +268,28 @@ export function builtinProfile(
   id: string,
   bin: string,
   piModelEnv: Record<string, string> = {},
+  extraEnv: Record<string, string> = {},
 ): AgentProfile | undefined {
   if (id === "pi") return piProfile(bin, piModelEnv);
   const def = agentDef(id);
-  return def === undefined ? undefined : agentProfile(def, bin);
+  return def === undefined ? undefined : agentProfile(def, bin, extraEnv);
+}
+
+/**
+ * Env an agent needs from the machine besides its catalog env: for Codex, `CODEX_PATH` naming
+ * the Codex desktop app's CLI when there is one and the owner set none, so codex-acp runs it.
+ * @param clis Default: codexAppClis(platform), asked only for Codex.
+ */
+export function agentEnv(
+  id: string,
+  env: NodeJS.ProcessEnv = process.env,
+  exists: (path: string) => boolean = existsSync,
+  platform: NodeJS.Platform = process.platform,
+  clis: () => string[] = () => codexAppClis(platform),
+): Record<string, string> {
+  if (id !== "codex" || (env.CODEX_PATH ?? "") !== "") return {};
+  const cli = clis().find((p) => exists(p));
+  return cli === undefined ? {} : { CODEX_PATH: cli };
 }
 
 export interface ResolveOptions {
@@ -228,6 +299,8 @@ export interface ResolveOptions {
   find?: (id: string) => string | undefined;
   /** Env for the `pi` profile's model (see piProfile). */
   piModelEnv?: Record<string, string>;
+  /** Machine-specific env of an agent. Default: agentEnv(). */
+  agentEnv?: (id: string) => Record<string, string>;
 }
 
 /**
@@ -249,7 +322,8 @@ export function resolveProfile(id: string, opts: ResolveOptions): AgentProfile {
         `${def.name} not found. Download it on the Agent page of the desktop app, or set ${def.envVar}.`,
       );
     }
-    return builtinProfile(id, bin, opts.piModelEnv) as AgentProfile;
+    const extra = (opts.agentEnv ?? ((x: string) => agentEnv(x)))(id);
+    return builtinProfile(id, bin, opts.piModelEnv, extra) as AgentProfile;
   }
   const known = ["mock", ...AGENTS.map((a) => a.id), ...opts.configured.map((p) => p.id)];
   throw new Error(`unknown profile "${id}" (known: ${known.join(", ")})`);
@@ -263,10 +337,14 @@ export function availableProfiles(opts: ResolveOptions): AgentProfile[] {
   const profiles = [...opts.configured];
   const has = (id: string) => profiles.some((p) => p.id === id);
   const find = opts.find ?? ((x: string) => findAgent(x));
+  const extraEnv = opts.agentEnv ?? ((x: string) => agentEnv(x));
   for (const def of AGENTS) {
     if (has(def.id)) continue;
     const bin = find(def.id);
-    const profile = bin === undefined ? undefined : builtinProfile(def.id, bin, opts.piModelEnv);
+    const profile =
+      bin === undefined
+        ? undefined
+        : builtinProfile(def.id, bin, opts.piModelEnv, extraEnv(def.id));
     if (profile !== undefined) profiles.push(profile);
   }
   if (!has("mock") && opts.script !== undefined) profiles.push(mockProfile(opts.script));

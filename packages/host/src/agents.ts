@@ -5,7 +5,7 @@ import { existsSync } from "node:fs";
 import type { AgentProfile } from "@agentherd/protocol";
 import type { AgentSource, AgentView } from "./api.ts";
 import { AGENTS, type AgentDef, type Fetchers, httpFetchers, npmRuntime } from "./catalog.ts";
-import { dshAppBins, onPath } from "./profiles.ts";
+import { agentEnv, codexAppClis, dshAppBins, onPath } from "./profiles.ts";
 import { currentTarget, type InstallProgress, type RuntimeStore } from "./runtimes.ts";
 
 export interface AgentsOptions {
@@ -20,6 +20,8 @@ export interface AgentsOptions {
   platform?: NodeJS.Platform;
   /** The DeepSeek Harness desktop app's CLI, when installed. */
   dshApp?: string;
+  /** The Codex desktop app's CLI candidates. Default: codexAppClis(platform). */
+  codexApps?: string[];
   onChange: () => void;
   log?: (line: string) => void;
 }
@@ -90,6 +92,23 @@ export class Agents {
     if (this.opts.dshApp !== undefined) return [this.opts.dshApp];
     this.appBins ??= dshAppBins(platform);
     return this.appBins;
+  }
+
+  private codexClis: string[] | undefined;
+
+  /** Machine-specific env of agent `id` (agentEnv); the registry is read once per host. */
+  extraEnv(id: string): Record<string, string> {
+    const platform = this.opts.platform ?? process.platform;
+    return agentEnv(
+      id,
+      this.env,
+      (p) => this.exists(p),
+      platform,
+      () => {
+        this.codexClis ??= this.opts.codexApps ?? codexAppClis(platform);
+        return this.codexClis;
+      },
+    );
   }
 
   views(configured: AgentProfile[], modelRefs: Record<string, string>): AgentView[] {
@@ -187,11 +206,16 @@ export class Agents {
       const npm = await npmRuntime(fetchers);
       npmCli = (await this.opts.store.install(npm, { signal })).path;
     }
-    const installed = await this.opts.store.install(release, {
-      onProgress,
-      signal,
-      ...(npmCli === undefined ? {} : { npmCli }),
-    });
+    // With the Codex app's CLI at hand, skip the CLI build npm would add (over 100 MB).
+    const local = release.kind === "npm" && "CODEX_PATH" in this.extraEnv(def.id);
+    const installed = await this.opts.store.install(
+      local ? { ...release, omitOptional: true } : release,
+      {
+        onProgress,
+        signal,
+        ...(npmCli === undefined ? {} : { npmCli }),
+      },
+    );
     return installed.path;
   }
 

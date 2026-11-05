@@ -256,6 +256,7 @@ export class Host implements HostApi {
       script: this.opts.script,
       configured: config.profiles ?? [],
       find: (id) => this.agentList.find(id)?.path,
+      agentEnv: (id) => this.agentList.extraEnv(id),
       ...("env" in pi ? { piModelEnv: pi.env } : {}),
     });
   }

@@ -11,11 +11,12 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { FakeChannel } from "@agentherd/channel-fake";
 import { afterEach, describe, expect, it } from "vitest";
+import { Agents } from "../src/agents.ts";
 import type { HostEvent } from "../src/api.ts";
 import { type AgentDef, agentProfile, parseDshFeed } from "../src/catalog.ts";
 import { writeConfig } from "../src/config.ts";
 import { Host } from "../src/host.ts";
-import { type ArchiveRelease, RuntimeStore } from "../src/runtimes.ts";
+import { type ArchiveRelease, type Release, RuntimeStore } from "../src/runtimes.ts";
 import { verifyProfile } from "../src/verify.ts";
 
 const SCRIPT = fileURLToPath(new URL("../../mock-agent/scripts/approve.yaml", import.meta.url));
@@ -180,6 +181,65 @@ describe("catalog", () => {
     expect(script.env).toMatchObject({ INITIAL_AGENT_MODE: "read-only" });
     const bin = agentProfile({ ...def, acpArgs: ["acp"] }, "/r/opencode");
     expect(bin.command).toEqual(["/r/opencode", "acp"]);
+  });
+});
+
+describe("Codex with the Codex app's CLI", () => {
+  const CLI = "C:\\Apps\\OpenAI.Codex\\app\\resources\\codex.exe";
+  const codex: AgentDef = {
+    id: "codex",
+    name: "Codex",
+    envVar: "AGENTHERD_CODEX",
+    systemNames: [],
+    acpArgs: [],
+    env: {},
+    latest: async () => ({
+      kind: "npm",
+      id: "codex",
+      version: "2.5.0",
+      package: "codex-acp",
+      executable: "node_modules/codex-acp/dist/index.js",
+    }),
+    npm: true,
+  };
+  const fetchers = {
+    json: async () => ({ version: "12.0.0", dist: { tarball: "t", integrity: "sha512-x" } }),
+    text: async () => "",
+  };
+
+  async function installWith(codexApps: string[], env: NodeJS.ProcessEnv = {}) {
+    const installed: Release[] = [];
+    const store = {
+      installed: () => undefined,
+      install: async (r: Release) => {
+        installed.push(r);
+        return { id: r.id, version: r.version, path: r.id };
+      },
+    } as unknown as RuntimeStore;
+    const agents = new Agents({
+      store,
+      env,
+      catalog: [codex],
+      fetchers,
+      platform: "win32",
+      exists: (p) => p === CLI,
+      codexApps,
+      onChange() {},
+    });
+    agents.install("codex");
+    await agents.idle();
+    return { agents, release: installed.find((r) => r.id === "codex") };
+  }
+
+  it("skips the CLI build npm would download and hands codex-acp the app's CLI", async () => {
+    const { agents, release } = await installWith([CLI]);
+    expect(release).toMatchObject({ kind: "npm", omitOptional: true });
+    expect(agents.extraEnv("codex")).toEqual({ CODEX_PATH: CLI });
+  });
+  it("installs everything without the app, or when the owner names a CLI", async () => {
+    expect((await installWith([])).release).not.toHaveProperty("omitOptional");
+    const own = await installWith([CLI], { CODEX_PATH: "C:\\mine\\codex.exe" });
+    expect(own.release).not.toHaveProperty("omitOptional");
   });
 });
 
