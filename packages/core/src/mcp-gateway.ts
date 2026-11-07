@@ -51,7 +51,10 @@ export const HERD_REPORT_TOOL = {
   description:
     "Tell AgentHerd (and the owner) where this task stands. Call it when you finish, get stuck, " +
     "need the owner, or give up. state: progress | waiting (need the owner) | ready (done) | " +
-    "blocked | failed | dropped. summary: one short paragraph for the owner, at most 600 characters.",
+    "blocked | failed | dropped. summary: one short paragraph for the owner, at most 600 characters. " +
+    "waiting, blocked and failed reach the owner at once. If you end your turn while work you " +
+    "started still runs in the background (a build, a test run, a subagent), call it with state " +
+    "progress last: AgentHerd then checks back with you later instead of reporting the task done.",
   inputSchema: {
     type: "object",
     properties: {
@@ -63,6 +66,22 @@ export const HERD_REPORT_TOOL = {
       links: stringList,
     },
     required: ["state", "summary"],
+    additionalProperties: false,
+  },
+} as const;
+
+export const ACK_MAX = 200;
+
+export const HERD_ACK_TOOL = {
+  name: "herd_ack",
+  description:
+    "Tell the owner in one short line what you are about to do, before you start real work on " +
+    'a new request (e.g. "Running the core tests, then fixing what fails"). At most once per ' +
+    "turn. Not for progress or results: use herd_report for those.",
+  inputSchema: {
+    type: "object",
+    properties: { text: { type: "string", maxLength: ACK_MAX } },
+    required: ["text"],
     additionalProperties: false,
   },
 } as const;
@@ -127,6 +146,8 @@ export interface GatewayOptions {
   approve?: (taskId: string, calls: AppCall[]) => Promise<boolean>;
   /** Tool error text for calls the owner did not allow. */
   denied?: (title: string) => string;
+  /** Sends an agent's `herd_ack` line to the owner; returns why it was not sent. */
+  ack?: (taskId: string, text: string) => string | undefined;
 }
 
 /** Meta tools that only search or describe tools: no approval. */
@@ -220,8 +241,22 @@ export class McpGateway {
       case "ping":
         return answer({});
       case "tools/list":
-        return answer({ tools: [HERD_REPORT_TOOL, ...(await this.appList())] });
+        return answer({
+          tools: [
+            HERD_REPORT_TOOL,
+            ...(this.opts.ack === undefined ? [] : [HERD_ACK_TOOL]),
+            ...(await this.appList()),
+          ],
+        });
       case "tools/call": {
+        if (params.name === HERD_ACK_TOOL.name && this.opts.ack !== undefined) {
+          const text = (params.arguments as { text?: unknown } | undefined)?.text;
+          if (typeof text !== "string" || text.trim() === "") {
+            return answer(toolText("text is required", true));
+          }
+          const why = this.opts.ack(taskId, text.trim().slice(0, ACK_MAX));
+          return answer(why === undefined ? toolText("sent") : toolText(why, true));
+        }
         if (params.name !== HERD_REPORT_TOOL.name) {
           return answer(await this.callApp(taskId, params.name, params.arguments));
         }
@@ -244,7 +279,12 @@ export class McpGateway {
     if (apps === undefined) return [];
     try {
       const tools = await apps.list();
-      return tools.filter((t) => t.name !== HERD_REPORT_TOOL.name && !HIDDEN_META.has(t.name));
+      return tools.filter(
+        (t) =>
+          t.name !== HERD_REPORT_TOOL.name &&
+          t.name !== HERD_ACK_TOOL.name &&
+          !HIDDEN_META.has(t.name),
+      );
     } catch {
       return [];
     }

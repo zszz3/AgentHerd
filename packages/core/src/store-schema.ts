@@ -70,7 +70,21 @@ export const MESSAGE_TASKS_TABLE_SQL = `CREATE TABLE IF NOT EXISTS message_tasks
   at TEXT NOT NULL
 );`;
 
-export const LATEST_SCHEMA_VERSION = 7;
+/**
+ * Schema 8: messages for the owner that are stored before they are sent and kept until the
+ * channel took them (docs/spec/04-herder.md "Delivery").
+ */
+export const OUTBOX_TABLE_SQL = `CREATE TABLE IF NOT EXISTS outbox(
+  id TEXT PRIMARY KEY,
+  view_json TEXT NOT NULL,
+  task_id TEXT,
+  attempts INTEGER NOT NULL DEFAULT 0,
+  next_at TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  error TEXT
+);`;
+
+export const LATEST_SCHEMA_VERSION = 8;
 
 export const SCHEMA_SQL = `
 CREATE TABLE sessions(
@@ -129,4 +143,5 @@ ${MEMORY_TABLES_SQL}
 ${TASKS_TABLE_SQL}
 ${TASK_WORKSPACE_SQL}
 ${MESSAGE_TASKS_TABLE_SQL}
+${OUTBOX_TABLE_SQL}
 `;

@@ -34,6 +34,12 @@ export interface CoreTexts {
   tookTaskVersion(files: string[]): string;
   /** The task's changes could not be copied into the project folder. */
   workspaceSyncFailed(message: string): string;
+  /** Board line: the turn ended but work the agent started still runs in the background. */
+  backgroundRunning(summary: string): string;
+  /** Prompt that wakes an agent to check on its background work. */
+  backgroundCheck(minutes: number): string;
+  /** Sent as soon as an agent reports it needs the owner, is stuck, or failed. */
+  reportNotice(state: "waiting" | "blocked" | "failed", summary: string): string;
   unknownAgent(agent: string, known: string): string;
   notDirectory(path: string): string;
   taskEnded: string;
@@ -156,6 +162,11 @@ const zh: CoreTexts = {
   useTaskVersion: "用任务的版本",
   tookTaskVersion: (f) => `已换成任务的版本：\n${f.map((x) => `· ${x}`).join("\n")}`,
   workspaceSyncFailed: (m) => `任务的改动没能放进项目文件夹：${m}`,
+  backgroundRunning: (s) => `后台还在运行：${s}`,
+  backgroundCheck: (m) =>
+    `（AgentHerd）上一轮结束时你还有工作在后台运行，已经过去 ${m} 分钟。请查看它现在怎样了：如果还在运行，先调用 herd_report（state 为 progress）再结束这一轮；如果已经结束，照常回复结果。`,
+  reportNotice: (state, s) =>
+    `${state === "waiting" ? "需要你：" : state === "blocked" ? "卡住了：" : "失败了："}${s}`,
   queued: "已排队：Agent 这一轮结束后会收到这条消息。",
   unknownAgent: (a, known) => `没有叫"${a}"的 Agent。可用的有：${known}。`,
   notDirectory: (p) => `不是一个目录：${p}`,
@@ -265,6 +276,11 @@ const en: CoreTexts = {
   useTaskVersion: "Use the task's version",
   tookTaskVersion: (f) => `Now the task's version:\n${f.map((x) => `- ${x}`).join("\n")}`,
   workspaceSyncFailed: (m) => `The task's changes could not be put into the project folder: ${m}`,
+  backgroundRunning: (s) => `Still running in the background: ${s}`,
+  backgroundCheck: (m) =>
+    `(AgentHerd) When your last turn ended, work you started was still running in the background. ${m} minutes have passed. Check on it: if it is still running, call herd_report with state progress, then end the turn; if it has finished, reply with the result as usual.`,
+  reportNotice: (state, s) =>
+    `${state === "waiting" ? "Needs you: " : state === "blocked" ? "Stuck: " : "Failed: "}${s}`,
   queued: "Queued: the agent gets this when its turn ends.",
   unknownAgent: (a, known) => `Unknown agent "${a}". Known: ${known}.`,
   notDirectory: (p) => `Not a directory: ${p}`,

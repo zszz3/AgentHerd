@@ -27,6 +27,10 @@ import type { CoreTexts } from "./texts.ts";
 import type { TaskWorkspace } from "./workspace.ts";
 
 export const SESSION_IDLE_MINUTES = 60;
+/** Minutes between checks on work an agent left running in the background. */
+export const BACKGROUND_CHECK_MINUTES = 5;
+/** Checks before the task is reported anyway (about half an hour). */
+export const BACKGROUND_MAX_CHECKS = 6;
 /** At most this many models are tried for one task before it fails. */
 export const MAX_MODEL_SWITCHES = 3;
 /** Saved tasks loaded when AgentHerd starts (ADR 0039). */
@@ -478,6 +482,7 @@ export class TaskRunner {
     f.endedAt = ctx.clock.now().toISOString();
     f.idleTimer?.cancel();
     ctx.watchdog.untrack(taskId);
+    this.stopBackground(f);
     for (const off of f.offs) off();
     f.offs = [];
     for (const queued of f.queue.splice(0)) queued.reject(new Error(`the task ended: ${why}`));
@@ -565,7 +570,7 @@ export class TaskRunner {
     f.busy = true;
     f.idleTimer?.cancel();
     try {
-      next.resolve(await this.runTurn(f, next.text, next.images));
+      next.resolve(await this.runTurn(f, next.text, next.images, next.wake === true));
     } catch (error) {
       next.reject(error as Error);
     } finally {
@@ -651,7 +656,78 @@ export class TaskRunner {
     return true;
   }
 
-  private async runTurn(f: Following, text: string, images: OwnerImage[]): Promise<RunResult> {
+  /**
+   * The agent's `herd_ack`: one line to the owner about what it is starting, once per turn.
+   * @returns why it was not sent.
+   */
+  ack(taskId: string, text: string): string | undefined {
+    const { ctx } = this;
+    const f = ctx.following.get(taskId);
+    if (f === undefined || f.ended || !f.busy) return "no turn is running";
+    if (f.acked === true) return "already sent in this turn";
+    f.acked = true;
+    ctx.store.audit("task.ack", { taskId, text });
+    void say(ctx, text, f.task.title, undefined, taskId);
+    return undefined;
+  }
+
+  /**
+   * The turn ended with the agent's last word a `progress` report and no tool call after it:
+   * work it started still runs in the background. Nothing is reported; the agent is asked again
+   * later, up to BACKGROUND_MAX_CHECKS times (docs/spec/04-herder.md "Background work").
+   */
+  private stillRunning(f: Following, wake: boolean): boolean {
+    const { ctx } = this;
+    const report = f.report;
+    const checks = wake ? (f.background?.checks ?? 0) : 0;
+    this.stopBackground(f);
+    if (
+      !f.finished ||
+      report?.state !== "progress" ||
+      f.reportAt !== f.turn.toolCalls ||
+      checks >= BACKGROUND_MAX_CHECKS
+    ) {
+      return false;
+    }
+    const minutes = ctx.opts.backgroundCheckMinutes ?? BACKGROUND_CHECK_MINUTES;
+    f.finished = false;
+    f.background = {
+      checks: checks + 1,
+      timer: ctx.clock.after(minutes * 60_000, () => this.wake(f, minutes)),
+    };
+    ctx.registry.set(f.task.id, "working");
+    setReport(ctx, f, ctx.texts.backgroundRunning(report.summary));
+    ctx.store.audit("task.background", { taskId: f.task.id, checks: checks + 1 });
+    return true;
+  }
+
+  /** Asks the agent about its background work, unless the owner's prompt is already running. */
+  private wake(f: Following, minutes: number): void {
+    const background = f.background;
+    if (f.ended || background === undefined) return;
+    delete background.timer;
+    if (f.busy || f.queue.length > 0) return;
+    f.queue.push({
+      text: this.ctx.texts.backgroundCheck(minutes),
+      images: [],
+      wake: true,
+      resolve: () => {},
+      reject: () => {},
+    });
+    void this.pump(f);
+  }
+
+  private stopBackground(f: Following): void {
+    f.background?.timer?.cancel();
+    delete f.background;
+  }
+
+  private async runTurn(
+    f: Following,
+    text: string,
+    images: OwnerImage[],
+    wake = false,
+  ): Promise<RunResult> {
     const { ctx } = this;
     const sessionId = f.task.id;
     const { connection, agentSessionId } = f;
@@ -659,8 +735,14 @@ export class TaskRunner {
       throw new Error(`task ${sessionId} has no session`);
     }
     await this.syncIn(f);
+    // The owner's prompt ends the wait for background work; a check keeps the count.
+    if (!wake) this.stopBackground(f);
+    else f.background?.timer?.cancel();
     // A herd_report speaks for the turn it came in; the next turn starts without one.
     delete f.report;
+    delete f.reportAt;
+    delete f.notified;
+    f.acked = false;
     f.turn = { text: "", toolCalls: 0 };
     f.pending = "";
     // Read before this prompt is added, so the history holds only the earlier conversation.
@@ -696,8 +778,16 @@ export class TaskRunner {
         setReport(ctx, f, ctx.texts.relayed(firstLine(reply)));
         await say(ctx, reply.trim() === "" ? ctx.texts.noReply : reply, f.task.title);
         ctx.store.audit("relay.reply", { taskId: sessionId, stopReason });
-      } else {
-        await sendReport(ctx, f, reply, () => askSummary(ctx, connection, agentSessionId, f));
+      } else if (!this.stillRunning(f, wake)) {
+        // The owner already got the agent's own report of this turn when it came.
+        const told = f.report !== undefined && f.notified === f.report;
+        await sendReport(
+          ctx,
+          f,
+          reply,
+          () => askSummary(ctx, connection, agentSessionId, f),
+          !told,
+        );
       }
       await this.tellConflicts(f, conflicts);
       return { sessionId, stopReason };
@@ -708,6 +798,7 @@ export class TaskRunner {
       ctx.watchdog.turnEnded(sessionId);
       flushReply(ctx, f);
       ctx.store.addTranscript(sessionId, "note", message);
+      this.stopBackground(f);
       if (await this.switchModel(f, message)) return this.runTurn(f, text, images);
       const conflicts = await this.syncOut(f);
       if (ctx.registry.get(sessionId)?.state !== "ended") ctx.registry.set(sessionId, "error");

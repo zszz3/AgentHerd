@@ -29,6 +29,7 @@ import {
 } from "./herder-port.ts";
 import { Inbox } from "./inbox.ts";
 import { type JsonRpcMessage, McpGateway } from "./mcp-gateway.ts";
+import { Outbox } from "./outbox.ts";
 import { OwnerCommands } from "./owner-commands.ts";
 import { Registry } from "./registry.ts";
 import { Relay, type RelayState } from "./relay.ts";
@@ -120,8 +121,10 @@ export class Herd {
           ...(opts.apps === undefined ? {} : { apps: opts.apps }),
           approve: (taskId, calls) => approveAppCalls(this.ctx, taskId, calls),
           denied: (title) => this.texts.appDenied(title),
+          ack: (taskId, text) => this.runner.ack(taskId, text),
         },
       ),
+      outbox: new Outbox(opts.channel, this.store, this.clock),
       workspaces: new Workspaces(opts.home),
       herder: () => this.herder,
       mode: () => this.mode,
@@ -261,6 +264,8 @@ export class Herd {
     this.relays.reset();
     await this.opts.channel.start(this.opts.binding, (inbound) => this.handle(inbound));
     this.store.audit("herd.started", { mode: this.mode, channel: this.opts.channel.id });
+    // What the last run could not send goes out now.
+    this.ctx.outbox.start();
     await this.endOldRelay(relay?.taskId);
     await this.askToResume();
     if (this.opts.closeStaleTasks !== false) {
@@ -388,6 +393,7 @@ export class Herd {
     }
     if (cut.length > 0) this.store.setState(INTERRUPTED_STATE, cut);
     await this.ctx.inbox.stop();
+    this.ctx.outbox.stop();
     if (this.started) await this.opts.channel.stop();
     this.store.audit("herd.stopped", {});
     if (this.opts.store === undefined) this.store.close();
