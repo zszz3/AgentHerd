@@ -55,6 +55,11 @@ async function setup(script: string) {
     binding: { channelId: "fake", ownerId: "owner", data: {} },
     mode: "assist",
     profiles: [profile(script)],
+    agentModels: {
+      list: () => [{ ref: "test/default", agents: ["mock"] }],
+      launchFor: () => ({ env: {} }),
+      check: async () => ({ ok: true }),
+    },
     store,
     boardDebounceMs: 10,
     herder: (host) => {

@@ -81,12 +81,19 @@ Tested 2026-11-04 with DSH 0.0.1 ACP (`/Applications/DeepSeek Harness.app/.../ru
   shows the justification.
 - DSH writes two harmless stderr lines: `Node.js environment variables are disabled because
   this process is invoked by other apps.` and `Got response to unknown request null`.
-- Model ([ADR 0042](../adr/0042-dsh-runs-the-owners-models.md)): DSH's own settings (the `acp`
-  profile, default `deepseek-official`) unless the task runs a model from the owner's list. Then
-  the host writes `<home>/run/dsh-model-<hash>.json`, a patch overlay with one provider
+- Model ([ADR 0042](../adr/0042-dsh-runs-the-owners-models.md)): tasks use a model from the
+  owner's AgentHerd list, never DSH's native default. Without an explicit choice, AgentHerd
+  selects an available configured model; without one, it refuses to start. The host writes `<home>/run/dsh-model-<hash>.json`, a patch overlay with one provider
   `agentherd` (`llm-pi-ai`) and the `acp` route pointed at it, appends `--patch <file>` to the
   command, and passes the key in `AGENTHERD_DSH_KEY`. Only `openai-completions`,
   `openai-responses` and `anthropic-messages` models run in DSH.
+
+All Host-managed task agents use AgentHerd's configured models. The Herder chooses an
+available model in the owner's tier order when none is specified. Direct starts choose an
+available model compatible with the requested profile. Continued legacy tasks without a model
+also select from this list; tasks with a saved model keep it only while it remains configured
+and compatible. Automatic switches cannot leave the list. An empty or unusable list stops the
+task before an agent starts, rather than using the agent's native defaults.
 
 ### Pi
 
@@ -128,6 +135,13 @@ dependencies (the platform CLI build, over 100 MB). An owner's own `CODEX_PATH` 
 A task runs with a model from the owner's list: the Herder picks it and the agent gets it through
 env (Pi, Codex; see [ADR 0025](../adr/0025-herder-picks-model-per-task.md)). When Codex does not
 start or its first turn breaks before acting, the task moves to Pi with the same model.
+Codex can run GPT models on any OpenAI-style service and every model of the owner's own
+OpenAI-compatible services (relays usually offer the Responses API for all their models); other
+built-in providers without Responses stay with Pi ([ADR 0044](../adr/0044-codex-runs-relay-models.md),
+`codexCanRun` in `packages/herder/src/agent-models.ts`). Without a model named by the owner the
+default stays GPT → Codex. These runs get `CODEX_HOME=<home>/run/codex-<hash>` whose
+`config.toml` names the `agentherd` provider (no key): Codex 0.166 refuses a turn whose provider
+differs from its global config's (`packages/host/src/codex-home.ts`).
 
 验证 starts the agent in an empty temporary folder, runs `initialize` and `session/new`, and
 reports its name and version, a needed sign-in, or the error. Local API: `agents()`,

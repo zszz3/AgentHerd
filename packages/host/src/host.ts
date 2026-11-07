@@ -65,6 +65,7 @@ import type {
 } from "./api.ts";
 import { Apps, newComposioUserId } from "./apps.ts";
 import type { AgentDef, Fetchers } from "./catalog.ts";
+import { withCodexHome } from "./codex-home.ts";
 import { type CliConfig, readConfig, writeConfig } from "./config.ts";
 import { dshPatchArgs, writeDshPatch } from "./dsh-patch.ts";
 import { LocalEmbedder } from "./embedder.ts";
@@ -318,9 +319,11 @@ export class Host implements HostApi {
             ref,
             this.opts.env,
           );
-          if (launch.dshPatch === undefined) return { env: launch.env };
+          const env =
+            profileId === "codex" ? withCodexHome(this.opts.home, launch.env) : launch.env;
+          if (launch.dshPatch === undefined) return { env };
           return {
-            env: launch.env,
+            env,
             args: dshPatchArgs(writeDshPatch(this.opts.home, launch.dshPatch)),
           };
         },

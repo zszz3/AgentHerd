@@ -47,3 +47,4 @@ Format and rules: [ADR 0001](0001-record-architecture-decisions.md).
 | [0041](0041-agent-tools-through-a-local-mcp-gateway.md) | Agents get herd_report and the owner's Composio apps through a local stdio MCP gateway; app calls go through approvals | Accepted |
 | [0042](0042-dsh-runs-the-owners-models.md) | DSH runs the owner's models through a `--patch` overlay; `envFor` becomes `launchFor` | Accepted |
 | [0043](0043-tasks-work-on-hidden-copies.md) | Tasks in a git project work on a hidden copy synced each turn; a project named once starts without asking; replies reach their task | Accepted |
+| [0044](0044-codex-runs-relay-models.md) | Codex runs any model of the owner's own OpenAI-compatible services, with its own CODEX_HOME | Accepted |

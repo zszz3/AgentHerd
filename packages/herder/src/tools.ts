@@ -8,7 +8,7 @@ import type { AgentTool, AgentToolResult } from "@agentherd/herder-loop";
 import { arr, obj, opt, str } from "@earendil-works/pi-schema";
 import { agentForModel } from "./agent-models.ts";
 import { lessonsText, ownerPrefsText, pastLessons } from "./memory.ts";
-import { TIERS, type TierPlacement, tiersText } from "./model-guide.ts";
+import { placeModels, TIERS, type TierPlacement, tiersText } from "./model-guide.ts";
 import { findProjects, foundText, nameKey } from "./project-find.ts";
 import { composeTaskPrompt, HERDER_LABEL } from "./prompt.ts";
 
@@ -195,7 +195,7 @@ const sessionStartSchema = obj({
   model: opt(
     str({
       description:
-        "Model name from session_list (e.g. deepseek-v4-pro); AgentHerd uses the first service offering it that answers. service/model picks one service. Omit to use the agent's own settings.",
+        "Model name from session_list (e.g. deepseek-v4-pro); AgentHerd uses the first service offering it that answers. service/model picks one service. Omit to select from AgentHerd's configured models in tier order.",
     }),
   ),
 });
@@ -294,10 +294,25 @@ export function herderTools(
         if (named !== undefined && !ids.includes(named)) {
           throw new Error(`unknown profile "${named}"`);
         }
-        const asked = args.model?.trim() || undefined;
-        const picked =
-          asked === undefined ? undefined : await pickService(host, asked, named, modelTiers?.());
-        const model = picked?.ref;
+        const models = host
+          .models()
+          .filter((m) =>
+            named === undefined ? m.agents.includes(agentForModel(m.ref, ids)) : true,
+          );
+        const tiers = modelTiers?.() ?? placeModels(modelsByName(models).map((m) => m.name));
+        const preferred = TIERS.flatMap((tier) => tiers[tier]).find((entry) =>
+          models.some(
+            (m) =>
+              m.ref.slice(m.ref.indexOf("/") + 1) === entry.model &&
+              (named === undefined ? m.agents.length > 0 : m.agents.includes(named)),
+          ),
+        );
+        const asked = args.model?.trim() || preferred?.model;
+        if (asked === undefined) {
+          throw new Error("no configured model can run this task; configure models in AgentHerd");
+        }
+        const picked = await pickService(host, asked, named, tiers, models);
+        const model = picked.ref;
         const profile = named ?? agentForModel(model, ids);
         const given = args.project?.trim() || undefined;
         const cwd = given === undefined ? undefined : resolveProject(host, given);
@@ -329,7 +344,6 @@ export function herderTools(
           t.images.length === 0
             ? await host.startTask(profile, cwd, title, prompt, model)
             : await host.startTask(profile, cwd, title, prompt, model, t.images);
-        const using = model === undefined ? "its own model settings" : model;
         const switched =
           picked?.switched === undefined
             ? ""
@@ -340,7 +354,7 @@ export function herderTools(
             : `\nGave the agent ${lessons.length} past record(s): ${lessons.map((l) => l.abstract).join("; ")}`;
         const where = cwd === undefined ? "a folder of its own (no project)" : cwd;
         return ok(
-          `started task ${taskId.slice(0, 8)} in ${where} with ${profile}, ${using}${switched}${gave}`,
+          `started task ${taskId.slice(0, 8)} in ${where} with ${profile}, ${model}${switched}${gave}`,
         );
       },
     },
@@ -546,9 +560,10 @@ async function pickService(
   host: HerderHost,
   asked: string,
   profile: string | undefined,
-  tiers?: TierPlacement,
+  tiers: TierPlacement | undefined,
+  models: ReturnType<HerderHost["models"]>,
 ): Promise<PickedModel> {
-  const runnable = fallbackOrder(host.models(), asked, profile, tiers);
+  const runnable = fallbackOrder(models, asked, profile, tiers);
   const failures: string[] = [];
   for (const ref of runnable) {
     const check = await host.checkModel(ref);
@@ -563,7 +578,7 @@ async function pickService(
 
 function modelLines(host: HerderHost, modelTiers?: () => TierPlacement): string[] {
   const models = modelsByName(host.models());
-  if (models.length === 0) return ["(none; agents use their own settings)"];
+  if (models.length === 0) return ["(none; configure models in AgentHerd before starting a task)"];
   const lines = models.map(
     (m) =>
       `- ${m.name}: ${m.services.join(", ")}${m.agents.length === 0 ? " (no agent can run it)" : ""}`,

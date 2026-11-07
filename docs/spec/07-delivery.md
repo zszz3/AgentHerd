@@ -40,6 +40,7 @@ Each milestone is split into plans under [`plans/`](../../plans/README.md).
 | E2E-APPROVE | Mock agent requests approval; card is sent; owner taps Allow; the agent receives allow; card shows final state | M1 | `packages/core/test/e2e/approval.e2e.test.ts` |
 | E2E-REMIND | An open item gets a reminder after `remindMinutes`; nothing is decided by time | M1 | `packages/core/test/e2e/approval.e2e.test.ts` |
 | E2E-CHANNEL-DOWN | Channel disconnected; a new item waits in the inbox and is sent after reconnect | M2 | |
+| E2E-CONFIGURED-MODEL | New and continued tasks select a configured model when none was specified; an empty list or unlisted choice cannot start an agent; automatic switches stay in the list | M2 | `packages/core/test/e2e/model.e2e.test.ts`, `packages/herder/test/tools.test.ts` |
 | E2E-OWNER-ONLY | A non-owner taps a button; nothing changes; event is logged | M1 | `packages/core/test/e2e/approval.e2e.test.ts` |
 | E2E-DUPLICATE-ACTION | Owner taps Allow twice; the decision is applied once | M1 | `packages/core/test/e2e/approval.e2e.test.ts` |
 | E2E-APP-SEARCH | In app connections, typing filters names/slugs immediately; unrelated Composio matches, late replies and connection events do not bring back nonmatching apps; clearing restores the default list before the remote refresh answers | M2 | `apps/desktop/test/apps-search.test.ts`, `packages/host/test/apps.test.ts` |

@@ -72,6 +72,7 @@ export class TaskRunner {
     const { ctx } = this;
     const found = ctx.opts.profiles.find((p) => p.id === profileId);
     if (found === undefined) throw new Error(`unknown agent profile "${profileId}"`);
+    model = await this.configuredModel(profileId, model);
     let profile = found;
     if (model !== undefined) {
       if (ctx.opts.agentModels === undefined) throw new Error("no model list to choose from");
@@ -133,6 +134,30 @@ export class TaskRunner {
     this.listen(f, f.connection, f.agentSessionId);
     this.started(f, model);
     return { taskId: sessionId, turn: this.ops.promptTask(sessionId, prompt, images) };
+  }
+
+  /** Hosts with a model list never launch an agent with its native defaults. */
+  private async configuredModel(profileId: string, asked?: string): Promise<string | undefined> {
+    const models = this.ctx.opts.agentModels;
+    // Bare core integrations without a model provider retain their existing contract.
+    if (models === undefined) {
+      if (asked !== undefined) throw new Error("no model list to choose from");
+      return undefined;
+    }
+    if (asked !== undefined) {
+      if (!models.list().some((m) => m.ref === asked && m.agents.includes(profileId))) {
+        throw new Error(`cannot run ${asked} with ${profileId}: not in the configured model list`);
+      }
+      return asked;
+    }
+    for (const choice of models.list()) {
+      if (!choice.agents.includes(profileId)) continue;
+      if (models.check !== undefined && !(await models.check(choice.ref)).ok) continue;
+      return choice.ref;
+    }
+    throw new Error(
+      `no configured model available for ${profileId}; configure a model in AgentHerd`,
+    );
   }
 
   /**
@@ -366,7 +391,6 @@ export class TaskRunner {
   private async reopen(f: Following): Promise<void> {
     const { ctx } = this;
     const taskId = f.task.id;
-    const model = f.task.model;
     const errors: string[] = [];
     if (f.workspace !== undefined) {
       // A fresh copy of the project as it is now, in the same folder as before (ADR 0043).
@@ -383,6 +407,7 @@ export class TaskRunner {
     }
     for (const base of this.reopenCandidates(f)) {
       try {
+        const model = await this.configuredModel(base.id, f.task.model);
         let profile = base;
         if (model !== undefined) {
           if (ctx.opts.agentModels === undefined) throw new Error("no model list to choose from");
@@ -392,6 +417,7 @@ export class TaskRunner {
         let sessionId: string | undefined;
         if (
           connection.loadsSessions &&
+          (ctx.opts.agentModels === undefined || f.task.model !== undefined) &&
           f.agentSessionId !== undefined &&
           base.id === f.profile.id
         ) {
@@ -423,6 +449,7 @@ export class TaskRunner {
         f.needsHistory = !loaded;
         // A continued task does not switch models on its first turn: it already did work.
         f.turnsEnded = Math.max(f.turnsEnded ?? 0, 1);
+        if (model !== undefined) f.task.model = model;
         f.task.agent = model === undefined ? profile.name : `${profile.name} · ${model}`;
         ctx.registry.add(taskId, profile.id, f.cwd);
         this.listen(f, connection, sessionId);
@@ -607,7 +634,7 @@ export class TaskRunner {
       if (next === undefined) return false;
       const base = ctx.opts.profiles.find((p) => p.id === next.profileId);
       if (base === undefined) return false;
-      ref = next.model;
+      ref = (await this.configuredModel(base.id, next.model)) as string;
       profile = withModel(base, models.launchFor(base.id, ref));
     } catch {
       return false;

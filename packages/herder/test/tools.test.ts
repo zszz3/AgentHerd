@@ -1,6 +1,6 @@
 import { mkdirSync, mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import { placeModels, type TierPlacement } from "../src/model-guide.ts";
 import { CONTEXT_LABEL, composeTaskPrompt, OWNER_LABEL, quoteAgent } from "../src/prompt.ts";
@@ -19,7 +19,10 @@ function tools(
   opts: Parameters<typeof fakeHost>[0] = {},
   modelTiers?: () => TierPlacement,
 ) {
-  const { host, rec } = fakeHost(opts);
+  const { host, rec } = fakeHost({
+    models: [{ ref: "site/default", agents: ["mock"] }],
+    ...opts,
+  });
   const ctx: TurnContext = {
     kind: "owner",
     ownerText: "",
@@ -27,7 +30,7 @@ function tools(
     images: [],
     asked: false,
     notified: false,
-    pickedDirs: [tmpdir(), "/does/not/exist"],
+    pickedDirs: [tmpdir(), resolve("/does/not/exist")],
     ...turn,
   };
   const byName = new Map(herderTools(host, () => ctx, modelTiers).map((t) => [t.name, t]));
@@ -72,8 +75,8 @@ describe("findTasks and resolveProject", () => {
 
   it("resolves ~ and absolute paths; a bare name must go through project_find", () => {
     const { host } = fakeHost({});
-    expect(resolveProject(host, "~/code")).toBe("/Users/me/code");
-    expect(resolveProject(host, "/tmp/x/")).toBe("/tmp/x");
+    expect(resolveProject(host, "~/code")).toBe(resolve("/Users/me/code"));
+    expect(resolveProject(host, "/tmp/x/")).toBe(resolve("/tmp/x"));
     expect(() => resolveProject(host, "site")).toThrow(/project_find/);
   });
 });
@@ -208,9 +211,127 @@ describe("tools", () => {
       profile: "mock",
       ownerText: "修一下构建",
     });
-    expect(rec.started[1]?.model).toBeUndefined();
+    expect(rec.started[1]?.model).toBe("deepseek/deepseek-v4-pro");
     expect(rec.started).toHaveLength(2);
   });
+
+  it("selects an omitted model in tier order and checks services before other models", async () => {
+    const models = [
+      { ref: "site/quick-flash", agents: ["mock"] },
+      { ref: "site/preferred", agents: ["mock"] },
+      { ref: "backup/preferred", agents: ["mock"] },
+      { ref: "site/next", agents: ["mock"] },
+    ];
+    const tiers = () =>
+      placeModels(["quick-flash", "preferred", "next"], {
+        strong: ["preferred", "next"],
+      });
+    const start = { name: "修构建", project: tmpdir(), ownerText: "修一下构建" };
+    for (const [failing, expected] of [
+      [[], "site/preferred"],
+      [["site/preferred"], "backup/preferred"],
+      [["site/preferred", "backup/preferred"], "site/next"],
+      [["site/preferred", "backup/preferred", "site/next"], "site/quick-flash"],
+    ] as const) {
+      const { call, rec } = tools(
+        { ownerText: "修一下构建" },
+        { models, failing: [...failing] },
+        tiers,
+      );
+      const out = await call("session_start", start);
+      expect(rec.started[0]?.model).toBe(expected);
+      expect(out).toContain(expected);
+    }
+    const down = tools(
+      { ownerText: "修一下构建" },
+      {
+        models,
+        failing: models.map((m) => m.ref),
+      },
+      tiers,
+    );
+    await expect(down.call("session_start", start)).rejects.toThrow(/no model answers/);
+    expect(down.rec.started).toEqual([]);
+  });
+
+  it("uses name-rule tiers without a tier callback and preserves automatic agent allocation", async () => {
+    const { call, rec } = tools(
+      { ownerText: "修一下构建" },
+      {
+        models: [
+          { ref: "site/quick-flash", agents: ["pi"] },
+          { ref: "site/gpt-6.1-sol", agents: ["pi", "codex"] },
+        ],
+        profiles: [
+          { id: "pi", name: "Pi" },
+          { id: "codex", name: "Codex" },
+        ],
+      },
+    );
+    await call("session_start", {
+      name: "修构建",
+      project: tmpdir(),
+      ownerText: "修一下构建",
+      model: "  ",
+    });
+    expect(rec.started[0]?.model).toBe("site/gpt-6.1-sol");
+    expect(rec.started[0]?.profileId).toBe("codex");
+  });
+
+  it("skips default models incompatible with automatic agent allocation", async () => {
+    const { call, rec } = tools(
+      { ownerText: "fix it" },
+      {
+        models: [
+          { ref: "anthropic/claude-opus-5", agents: ["dsh"] },
+          { ref: "relay/gpt-6.1-sol", agents: ["codex", "dsh"] },
+        ],
+        profiles: [
+          { id: "codex", name: "Codex" },
+          { id: "dsh", name: "DSH" },
+        ],
+      },
+    );
+    await call("session_start", { name: "fix", project: tmpdir(), ownerText: "fix it" });
+    expect(rec.started[0]?.model).toBe("relay/gpt-6.1-sol");
+    expect(rec.started[0]?.profileId).toBe("codex");
+  });
+
+  it("limits omitted-model selection to the named agent's configured models", async () => {
+    const { call, rec } = tools(
+      { ownerText: "修一下构建" },
+      {
+        models: [
+          { ref: "site/gpt-6.1-sol", agents: ["pi", "codex"] },
+          { ref: "site/other", agents: ["dsh"] },
+        ],
+        profiles: [{ id: "dsh", name: "DSH" }],
+      },
+    );
+    await call("session_start", {
+      name: "修构建",
+      project: tmpdir(),
+      ownerText: "修一下构建",
+      profile: "dsh",
+    });
+    expect(rec.started[0]?.model).toBe("site/other");
+    expect(rec.started[0]?.profileId).toBe("dsh");
+  });
+
+  it.each([{ models: [] }, { models: [{ ref: "site/model", agents: [] }] }])(
+    "refuses to start without a configured runnable model (%j)",
+    async ({ models }) => {
+      const { call, rec } = tools({ ownerText: "修一下构建" }, { models });
+      await expect(
+        call("session_start", {
+          name: "修构建",
+          project: tmpdir(),
+          ownerText: "修一下构建",
+        }),
+      ).rejects.toThrow(/no .*model/);
+      expect(rec.started).toEqual([]);
+    },
+  );
 
   it("merges a model offered by several services and moves on when one fails", async () => {
     const dir = tmpdir();
@@ -241,7 +362,7 @@ describe("tools", () => {
     const dir = tmpdir();
     const models = [
       { ref: "site/gpt-6.1-sol", agents: ["pi", "codex"] },
-      { ref: "deepseek/deepseek-v4-pro", agents: ["pi"] },
+      { ref: "deepseek/deepseek-v4-pro", agents: ["pi", "dsh"] },
     ];
     const profiles = [
       { id: "dsh", name: "DeepSeek Harness" },
@@ -254,7 +375,7 @@ describe("tools", () => {
     await call("session_start", { ...base, model: "deepseek-v4-pro" });
     await call("session_start", base);
     await call("session_start", { ...base, profile: "dsh" });
-    expect(rec.started.map((s) => s.profileId)).toEqual(["codex", "pi", "pi", "dsh"]);
+    expect(rec.started.map((s) => s.profileId)).toEqual(["codex", "pi", "codex", "dsh"]);
     expect(rec.started[0]?.model).toBe("site/gpt-6.1-sol");
   });
 
@@ -300,7 +421,7 @@ describe("tools", () => {
     expect(await withModels.call("session_list", {})).toMatch(/Strong.*claude-opus-5/);
     names = ["deepseek-flash"];
     expect(await withModels.call("session_list", {})).toMatch(/Fast.*deepseek-flash/);
-    const none = tools({}, {}, () => placeModels(names));
+    const none = tools({}, { models: [] }, () => placeModels(names));
     expect(await none.call("session_list", {})).not.toContain("Model tiers");
   });
 

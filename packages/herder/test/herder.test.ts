@@ -40,7 +40,9 @@ function setup(
 
 describe("Herder", () => {
   it("an owner's image reaches the model once and goes with the task it starts", async () => {
-    const { herder, rec, faux } = setup();
+    const { herder, rec, faux } = setup({
+      models: [{ ref: "site/default", agents: ["mock"] }],
+    });
     const image = { mimeType: "image/png", data: "iVBORw0K", path: "/h/attachments/a.png" };
     const seen: string[] = [];
     faux.setResponses([
@@ -60,7 +62,7 @@ describe("Herder", () => {
           { stopReason: "toolUse" },
         );
       },
-      (context) => {
+      () => {
         return fauxAssistantMessage("开始了。");
       },
       (context) => {

@@ -4,6 +4,7 @@ import {
   agentForModel,
   agentModelEnv,
   CODEX_KEY_ENV,
+  codexCanRun,
   DSH_KEY_ENV,
   isGptModel,
   modelChoices,
@@ -49,7 +50,7 @@ describe("agent models", () => {
     expect(choices).toEqual([
       { ref: "deepseek/deepseek-v4-pro", agents: ["dsh", "pi"] },
       { ref: "anthropic/claude-sonnet-4-5", agents: ["dsh", "pi"] },
-      { ref: "gw/m1", agents: ["dsh", "pi"] },
+      { ref: "gw/m1", agents: ["dsh", "pi", "codex"] },
       { ref: "gw/gpt-6.1-sol", agents: ["dsh", "pi", "codex"] },
     ]);
   });
@@ -75,7 +76,7 @@ describe("agent models", () => {
     const pi = agentModelEnv("pi", model, "k1");
     expect(JSON.parse(pi?.[PI_MODEL_ENV] ?? "{}").id).toBe("m1");
     expect(pi?.[PI_KEY_ENV]).toBe("k1");
-    expect(agentModelEnv("codex", model, "k1")).toBeUndefined();
+    expect(JSON.parse(agentModelEnv("codex", model, "k1")?.CODEX_CONFIG ?? "{}").model).toBe("m1");
     const codex = agentModelEnv("codex", resolveModel(gw, "gpt-6.1-sol"), "k1");
     const config = JSON.parse(codex?.CODEX_CONFIG ?? "{}");
     expect(config).toEqual({
@@ -119,6 +120,24 @@ describe("agent models", () => {
       { id: "acp", config: { provider: "agentherd", model: "m1" } },
     ]);
     expect(modelLaunchFor(settings, store, "pi", "gw/m1", {}).dshPatch).toBeUndefined();
+  });
+
+  it("Codex runs any model of the owner's own services, but not built-ins without Responses", () => {
+    const [deepseek, anthropic, gw] = settings.services;
+    if (deepseek === undefined || anthropic === undefined || gw === undefined) {
+      throw new Error("no service");
+    }
+    expect(codexCanRun(resolveModel(gw, "m1"))).toBe(true);
+    expect(codexCanRun(resolveModel(gw, "gpt-6.1-sol"))).toBe(true);
+    expect(codexCanRun(resolveModel(deepseek, "deepseek-v4-pro"))).toBe(false);
+    expect(codexCanRun(resolveModel(anthropic, "claude-sonnet-4-5"))).toBe(false);
+    const claude = resolveModel(
+      { ...gw, id: "relay", api: "anthropic-messages", models: ["claude-opus-5-5"] },
+      "claude-opus-5-5",
+    );
+    expect(codexCanRun(claude)).toBe(false);
+    // The owner still picks Codex only by naming it: without a GPT model the default stays Pi.
+    expect(agentForModel("gw/m1", ["pi", "codex"])).toBe("pi");
   });
 
   it("modelEnvFor needs a listed model, a key and an agent that can run it", () => {

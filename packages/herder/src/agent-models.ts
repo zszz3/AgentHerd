@@ -5,6 +5,7 @@
 import type { ModelService, ModelSettings, SecretStore } from "@agentherd/core";
 import { parseModelRef } from "@agentherd/core";
 import type { Api, Model } from "@earendil-works/pi-ai";
+import { getProviders } from "@earendil-works/pi-ai/compat";
 import { PI_KEY_ENV, PI_MODEL_ENV, resolveModel, serviceKey } from "./models.ts";
 
 /** Env names for agents that read the key from a variable named in their config. */
@@ -75,11 +76,25 @@ export function dshModelPatch(model: Model<Api>): unknown[] {
 }
 
 /**
+ * Whether Codex can run a model. Codex speaks only the Responses API (ADR 0031), so it takes:
+ * GPT models on any OpenAI-style endpoint, any model pi-ai already reaches through Responses, and
+ * any model of the owner's own OpenAI-compatible services — relays often offer Responses for
+ * every model (checked on api.blueberrys.site with claude-opus-5-5 and gemini-3.8-flash). Other
+ * built-in providers (DeepSeek, Moonshot…) have no Responses endpoint and stay with Pi. A relay
+ * without Responses fails Codex's first turn and the task moves to Pi (ADR 0043).
+ */
+export function codexCanRun(model: Model<Api>): boolean {
+  if (model.api === "openai-responses") return true;
+  if (model.api !== "openai-completions") return false;
+  if (isGptModel(model.id)) return true;
+  return !(getProviders() as string[]).includes(model.provider);
+}
+
+/**
  * The env that makes an agent use a model, or `undefined` when the agent cannot use it.
  * - pi: any pi-ai model, through the bridge's model extension (verified with Pi 1.5.0).
- * - codex: GPT models on OpenAI-style endpoints, as a custom provider in `CODEX_CONFIG` (read by
- *   codex-acp). Codex speaks only the Responses API; an endpoint without it fails the first turn
- *   and the task moves to Pi (ADR 0031).
+ * - codex: models `codexCanRun` accepts, as a custom provider in `CODEX_CONFIG` (read by
+ *   codex-acp).
  * - dsh: OpenAI- and Anthropic-style models; the key goes in env, the model in `dshModelPatch`.
  */
 export function agentModelEnv(
@@ -91,8 +106,7 @@ export function agentModelEnv(
     case "pi":
       return { [PI_MODEL_ENV]: JSON.stringify(model), [PI_KEY_ENV]: key ?? "none" };
     case "codex":
-      if (!isGptModel(model.id)) return undefined;
-      if (model.api !== "openai-completions" && model.api !== "openai-responses") return undefined;
+      if (!codexCanRun(model)) return undefined;
       return {
         CODEX_CONFIG: JSON.stringify({
           model: model.id,

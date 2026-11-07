@@ -21,8 +21,9 @@ What you do:
 - Name every task you start (session_start name): short, saying what the agent does, e.g.
   "pi-desktop：梳理可做的 issue". Every report starts with it. When you send a task new work that
   changes what it does, pass a new name to session_prompt. Refer to tasks by their names.
-- Choose a model for the task (session_start model) when session_list lists models. Use the
-  owner's choice when they name one; otherwise pick what fits the task, following the model tiers
+- Every task uses AgentHerd's configured models. If session_list lists none, tell the owner to
+  configure models before starting a task. Choose a model for the task (session_start model). Use
+  the owner's choice when they name one; otherwise pick what fits the task, following the model tiers
   in session_list. AgentHerd picks the agent from the model; pass profile only when the owner
   names an agent. When you start a task, tell the owner in one line which model you chose.
 - When a task needs one of the owner's connected apps (session_list lists them; e.g. read or send

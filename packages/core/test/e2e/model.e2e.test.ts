@@ -4,7 +4,7 @@
 import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import { FakeChannel } from "@agentherd/channel-fake";
 import type { AgentProfile, ReportView } from "@agentherd/protocol";
 import { afterEach, describe, expect, it } from "vitest";
@@ -36,7 +36,7 @@ function profile(out: string): AgentProfile {
     wrapper,
     `import { writeFileSync } from "node:fs";
 writeFileSync(${JSON.stringify(out)}, process.env.TEST_MODEL ?? "(none)");
-await import(${JSON.stringify(BIN)});
+await import(${JSON.stringify(pathToFileURL(BIN).href)});
 `,
   );
   return {
@@ -56,7 +56,7 @@ const models: AgentModels = {
   },
 };
 
-async function setup(out: string) {
+async function setup(out: string, agentModels: AgentModels = models) {
   const channel = new FakeChannel("owner");
   const herd = new Herd({
     home: dir,
@@ -67,7 +67,7 @@ async function setup(out: string) {
     profiles: [profile(out)],
     store: Store.open(":memory:"),
     boardDebounceMs: 10,
-    agentModels: models,
+    agentModels,
   });
   herds.push(herd);
   await herd.start();
@@ -88,15 +88,49 @@ describe("E2E-MODEL-PER-TASK", () => {
     expect(report?.subtitle).toContain("Mock · svc/fast");
   });
 
-  it("keeps the agent's own settings without a model, and refuses a model it cannot run", async () => {
+  it("selects a configured model without an explicit choice, and refuses unsupported models", async () => {
     const out = join(dir, "env-2.txt");
     const { herd } = await setup(out);
     const { turn } = await herd.startTask("mock", dir, "fix it");
     await turn;
-    expect(readFileSync(out, "utf8")).toBe("agent default");
+    expect(readFileSync(out, "utf8")).toBe("svc/fast");
     await expect(herd.startTask("mock", dir, "fix it", "fix it", "svc/other")).rejects.toThrow(
       /cannot run svc\/other/,
     );
+  });
+});
+
+describe("configured model enforcement", () => {
+  it("rejects an explicit model outside the configured list even if the adapter accepts it", async () => {
+    const { herd } = await setup(join(dir, "unlisted.txt"), {
+      ...models,
+      launchFor: (_p, ref) => ({ env: { TEST_MODEL: ref } }),
+    });
+    await expect(herd.startTask("mock", dir, "fix it", "fix it", "external/model")).rejects.toThrow(
+      /cannot run/,
+    );
+    expect(herd.tasks()).toEqual([]);
+  });
+
+  it("does not start a task when the configured list is empty", async () => {
+    const { herd } = await setup(join(dir, "empty.txt"), { ...models, list: () => [] });
+    await expect(herd.startTask("mock", dir, "fix it")).rejects.toThrow(/no configured model/);
+    expect(herd.tasks()).toEqual([]);
+  });
+
+  it("selects a configured model when continuing a legacy task without one", async () => {
+    const out = join(dir, "legacy.txt");
+    const { herd } = await setup(out);
+    const { taskId, turn } = await herd.startTask("mock", dir, "fix it", "fix it", "svc/fast");
+    await turn;
+    await herd.endTask(taskId, "done");
+    // Simulate a saved task from before per-task model selection.
+    const following = herd.tasks().find((t) => t.id === taskId);
+    if (following === undefined) throw new Error("missing task");
+    delete following.model;
+    await herd.promptTask(taskId, "continue");
+    expect(readFileSync(out, "utf8")).toBe("svc/fast");
+    expect(herd.tasks().find((t) => t.id === taskId)?.model).toBe("svc/fast");
   });
 });
 
@@ -111,7 +145,7 @@ describe("E2E-MODEL-FALLBACK", () => {
     writeFileSync(
       wrapper,
       `process.argv.push("--script", process.env.TEST_MODEL === "svc/broken" ? ${JSON.stringify(bad)} : ${JSON.stringify(good)});
-await import(${JSON.stringify(BIN)});
+await import(${JSON.stringify(pathToFileURL(BIN).href)});
 `,
     );
     return {
