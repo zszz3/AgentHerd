@@ -573,3 +573,33 @@ describe("projects without asking (ADR 0043)", () => {
     expect(rec.started[0]?.cwd).toBeUndefined();
   });
 });
+
+describe("mail watches (ADR 0048)", () => {
+  it("exist only with connected apps", () => {
+    expect(tools({}).names).not.toContain("mail_watch");
+    expect(tools({}, { mail: [] }).names).toEqual(
+      expect.arrayContaining(["mail_watch", "mail_unwatch"]),
+    );
+  });
+
+  it("start and stop when the owner asks, and show in session_list", async () => {
+    const mail: never[] = [];
+    const { call } = tools({}, { mail });
+    const out = await call("mail_watch", { about: "导师的邮件", query: "from:li@uni.edu" });
+    expect(out).toContain('"导师的邮件"');
+    const list = await call("session_list", {});
+    expect(list).toContain('"导师的邮件" query=from:li@uni.edu');
+    expect(await call("mail_unwatch", { watch: "导师" })).toContain("stopped");
+    expect(mail).toEqual([]);
+    await expect(call("mail_unwatch", { watch: "导师" })).rejects.toThrow(/no mail watch/);
+  });
+
+  it("are never started by an event", async () => {
+    const mail: never[] = [];
+    const { call } = tools({ kind: "event" }, { mail });
+    await expect(call("mail_watch", { about: "all", query: "in:inbox" })).rejects.toThrow(
+      /only the owner/,
+    );
+    expect(mail).toEqual([]);
+  });
+});

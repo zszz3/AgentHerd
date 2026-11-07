@@ -259,6 +259,24 @@ follows its tickets' pull requests ([ADR 0047](../adr/0047-follow-the-pull-reque
 - **Failures.** `gh` missing, logged out or offline is audited (`github.error`) once per distinct
   error; nothing is sent to the owner. `agentherd run` does not follow pull requests.
 
+### Mail
+
+Mail is watched only when the owner asks for it ([ADR 0048](../adr/0048-watch-mail-only-when-asked.md)).
+
+- **Asking.** 「导师来邮件提醒我」: the Herder calls `mail_watch` with the owner's words (`about`)
+  and a Gmail search (`query`); `mail_unwatch` stops it; `session_list` lists watches. Only an
+  owner turn can add or stop one. The tools exist only when the owner has connected apps
+  (Composio, [09-agent-tools.md](09-agent-tools.md) §3). There is no setting.
+- **Looking.** While at least one watch exists, every 3 minutes (`mailPollMinutes`) each search
+  runs as `(<query>) after:<created>` with `GMAIL_FETCH_EMAILS` through
+  `COMPOSIO_MULTI_EXECUTE_TOOL`. With no watch nothing is polled. Creating a watch runs the
+  search once and fails when Gmail cannot answer.
+- **Telling.** New matches are sent once: 「新邮件（<about>）：」 then sender, subject, the first 100
+  characters and the Gmail link, at most 5 per message. The Herder's conversation gets the same
+  as an event line marked as mail. Table `mail_watches` (schema 10) keeps watches and the ids
+  told; they survive restarts.
+- **Failures** are audited (`mail.error`) once per distinct error; nothing goes to the owner.
+
 ### Reply length
 
 - Every prompt AgentHerd sends to a session gets a labeled note (ADR 0036; was the first only): replies go to a

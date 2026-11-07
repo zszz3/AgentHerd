@@ -29,6 +29,8 @@ export type {
 export { HERDER_RETRY_TARGET } from "./herder-port.ts";
 export type { Answerable, InboxOptions, OwnerAnswer } from "./inbox.ts";
 export { BODY_MAX_LINES, DEFAULT_REMIND_MINUTES, Inbox, itemBody, itemView } from "./inbox.ts";
+export type { MailMessage, MailWatchOptions } from "./mail-watch.ts";
+export { fetchMail, MAIL_POLL_MINUTES, MAIL_WATCHES_MAX, MailWatches } from "./mail-watch.ts";
 export type {
   AppToolInfo,
   AppTools,
@@ -109,6 +111,7 @@ export {
 export type {
   AuditRow,
   DecisionRow,
+  MailWatch,
   SessionRow,
   StoredItem,
   StoredTask,

@@ -3,7 +3,7 @@
 
 import type { Locale } from "@agentherd/protocol";
 import type { Completer, Embedder, MemoryStore } from "./memory-store.ts";
-import type { DecisionRow } from "./store.ts";
+import type { DecisionRow, MailWatch } from "./store.ts";
 import type { Task } from "./tasks.ts";
 import type { CoreTexts } from "./texts.ts";
 
@@ -20,8 +20,10 @@ export interface OwnerImage {
 export type HerderTurnRole = "owner" | "answer" | "herder" | "ask" | "event";
 
 export interface HerderEvent {
-  kind: "task-reported" | "watchdog" | "github";
-  taskId: string;
+  kind: "task-reported" | "watchdog" | "github" | "mail";
+  /** The task it is about; mail is about no task. */
+  taskId?: string;
+  /** The task's title, or for mail what the owner asked to hear about. */
   title: string;
   /** Text that came from an agent. Untrusted. */
   text: string;
@@ -68,6 +70,11 @@ export interface HerderHost {
   ask(text: string, options: string[]): Promise<void>;
   /** Names of the owner's connected apps; agents other than Pi use them (docs/spec/09-agent-tools.md §3). */
   apps?(): string[];
+  /** Mail the owner asked to hear about (ADR 0048); absent without connected apps. */
+  mailWatches?(): MailWatch[];
+  /** Starts telling the owner about mail matching a Gmail search; throws when Gmail cannot be read. */
+  watchMail?(about: string, query: string): Promise<MailWatch>;
+  unwatchMail?(id: string): boolean;
   audit(type: string, data: Record<string, unknown>): void;
   /** Keeps a line of the Herder's conversation with the owner (`herder_turns`). */
   recordTurn(role: HerderTurnRole, text: string, taskId?: string): void;

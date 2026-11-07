@@ -51,3 +51,4 @@ Format and rules: [ADR 0001](0001-record-architecture-decisions.md).
 | [0045](0045-herder-context-folded-by-the-model.md) | The Herder keeps its whole conversation and folds it itself with billion-context's kernel (copied into the repo) | Accepted |
 | [0046](0046-tell-the-owner-at-the-right-time.md) | Background work holds the report; waiting/blocked/failed reach the owner at once; `herd_ack`; messages kept in an outbox until sent | Accepted |
 | [0047](0047-follow-the-pull-requests-tasks-open.md) | Pull requests a task opened are followed with `gh`: people's comments and failed checks wake the task, a merge or close is told once | Accepted |
+| [0048](0048-watch-mail-only-when-asked.md) | Mail is watched only when the owner asks the Herder: a Gmail search polled through Composio every 3 minutes while a watch exists | Accepted |

@@ -81,6 +81,8 @@ export interface HerdOptions {
   apps?: () => AppTools | undefined;
   /** Names of the owner's connected apps, for the Herder (e.g. ["Gmail"]). */
   appNames?: () => string[];
+  /** Minutes between two looks at the owner's mail watches (ADR 0048). */
+  mailPollMinutes?: number;
   /**
    * Follows pull requests tasks open on GitHub with `gh` (ADR 0047). Without it,
    * nothing is followed.

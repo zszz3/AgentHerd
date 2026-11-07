@@ -29,6 +29,7 @@ import {
   type OwnerImage,
 } from "./herder-port.ts";
 import { Inbox } from "./inbox.ts";
+import { MailWatches } from "./mail-watch.ts";
 import { type JsonRpcMessage, McpGateway } from "./mcp-gateway.ts";
 import { Outbox } from "./outbox.ts";
 import { OwnerCommands } from "./owner-commands.ts";
@@ -64,6 +65,8 @@ export class Herd {
   private started = false;
   private herder: HerderPort | undefined;
   private readonly github: GitHubWatch | undefined;
+  /** Mail the owner asked to hear about; only with connected apps (ADR 0048). */
+  private readonly mail: MailWatches | undefined;
   /** Tasks cut off by the last stop or crash, asked about once the channel is up. */
   private interrupted: string[] = [];
   private mode: Mode;
@@ -148,6 +151,13 @@ export class Herd {
     this.interrupted = [...new Set([...stopped, ...crashed])].filter((id) =>
       this.ctx.following.has(id),
     );
+    this.mail =
+      opts.apps === undefined
+        ? undefined
+        : new MailWatches(this.ctx, {
+            apps: opts.apps,
+            ...(opts.mailPollMinutes === undefined ? {} : { pollMinutes: opts.mailPollMinutes }),
+          });
     this.herder = opts.herder?.(this.herderHost());
     this.github =
       opts.github === undefined
@@ -197,6 +207,16 @@ export class Herd {
       decisions: (limit) => this.store.recentDecisions(limit),
       models: () => this.opts.agentModels?.list() ?? [],
       apps: () => this.opts.appNames?.() ?? [],
+      ...(this.mail === undefined
+        ? {}
+        : {
+            mailWatches: () => this.mail?.list() ?? [],
+            watchMail: async (about: string, query: string) => {
+              if (this.mail === undefined) throw new Error("no connected apps");
+              return this.mail.add(about, query);
+            },
+            unwatchMail: (id: string) => this.mail?.remove(id) ?? false,
+          }),
       checkModel: async (ref) => this.opts.agentModels?.check?.(ref) ?? { ok: true },
       startTask: async (profileId, cwd, title, prompt, model, images) => {
         const { taskId, turn } = await this.startTask(profileId, cwd, title, prompt, model, images);
@@ -278,6 +298,7 @@ export class Herd {
     // What the last run could not send goes out now.
     this.ctx.outbox.start();
     this.github?.start();
+    this.mail?.start();
     await this.endOldRelay(relay?.taskId);
     await this.askToResume();
     if (this.opts.closeStaleTasks !== false) {
@@ -382,6 +403,11 @@ export class Herd {
     return this.runner.endTask(taskId, why);
   }
 
+  /** Looks at the owner's mail watches now (tests). */
+  pollMail(): Promise<void> {
+    return this.mail?.poll() ?? Promise.resolve();
+  }
+
   /** Puts the task's version of the files both it and the owner changed into the project. */
   takeTaskVersion(taskId: string): Promise<void> {
     return this.runner.takeTaskVersion(taskId);
@@ -407,6 +433,7 @@ export class Herd {
     await this.ctx.inbox.stop();
     this.ctx.outbox.stop();
     this.github?.stop();
+    this.mail?.stop();
     if (this.started) await this.opts.channel.stop();
     this.store.audit("herd.stopped", {});
     if (this.opts.store === undefined) this.store.close();
