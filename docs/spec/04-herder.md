@@ -147,6 +147,9 @@ an alarm.
 `herd_report(state, summary, changes?, tests?, risks?, links?)`, with `state` one of
 `progress`, `waiting`, `ready`, `blocked`, `failed`, `dropped`. `summary` ≤ 600 characters.
 `progress` only updates the board; the other states end or pause the task and wake the Herder.
+`waiting`, `blocked` and `failed` are also sent to the owner at once ([ADR 0044](../adr/0044-tell-the-owner-at-the-right-time.md)):
+「需要你：」「卡住了：」「失败了：」 and the summary, linked to the task. The same report is not sent
+twice, and the end-of-turn report is left out when it would repeat it.
 Without `herd_report`, the stage comes from the stop reason and session state. A report holds
 for the turn it came in; the next prompt starts without one.
 
@@ -198,6 +201,28 @@ The body is chosen by size:
    is the original reply, folded.
 
 The Herder never writes or shortens the body.
+
+### Background work
+
+A turn that ends normally with the agent's last word a `herd_report` `progress` (no tool call
+after it) still has work running (a build, tests, a subagent). No report is sent; the board says
+「后台还在运行：<summary>」. After `backgroundCheckMinutes` (default 5) AgentHerd prompts the
+session to check on it: still running → `progress` again, finished → a normal reply. After 6
+checks the report goes out anyway. A prompt from the owner ends the wait and gets its own report;
+ending the task cancels it ([ADR 0044](../adr/0044-tell-the-owner-at-the-right-time.md)).
+
+### Acknowledgement
+
+An agent may call `herd_ack` once per turn with one line (≤ 200 characters) about what it is
+starting; the owner gets it at once ([09-agent-tools.md](09-agent-tools.md)).
+
+### Delivery
+
+Messages for the owner (texts, reports, alarms, relay views) go through an outbox in herd.db
+(table `outbox`): stored first, deleted once the channel took them. A failed send is retried
+after 2 s, doubling up to 60 s; after 24 h it is dropped and audited (`send.dropped`). What a
+crash or stop left unsent goes out right after the next start. The board, approval cards and
+Herder questions are sent on their own paths.
 
 ### Reply length
 

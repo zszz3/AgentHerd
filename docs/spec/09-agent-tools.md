@@ -47,7 +47,7 @@ flowchart LR
 | `initialize` | `protocolVersion` as asked (fallback `2025-06-18`), `capabilities: { tools: {} }`, server info `agentherd` |
 | `notifications/initialized`, other notifications | Ignored |
 | `ping` | `{}` |
-| `tools/list` | `herd_report` plus the app tools (§3), one page |
+| `tools/list` | `herd_report`, `herd_ack` plus the app tools (§3), one page |
 | `tools/call` | §2 / §3; errors are tool results with `isError: true`, not JSON-RPC errors |
 | anything else | JSON-RPC error `-32601` |
 
@@ -58,6 +58,10 @@ Input as in [04-herder.md §2](04-herder.md): `state` (`progress`, `waiting`, `r
 `risks`, `links` (strings). The gateway validates it, hands it to the core for the task the token
 belongs to, and answers `"reported"`. The core treats it as the agent report source of 04-herder
 §2.
+
+`herd_ack(text)` ([ADR 0044](../adr/0044-tell-the-owner-at-the-right-time.md)): one line (≤ 200
+characters, longer is cut) sent to the owner at once, labeled with the task. Once per turn and
+only while a turn runs; otherwise the answer is a tool error.
 
 ## 3. Apps through Composio
 

@@ -2,7 +2,7 @@ import { mkdirSync } from "node:fs";
 import { dirname } from "node:path";
 import type { StatementSync } from "node:sqlite";
 import { DatabaseSync } from "node:sqlite";
-import type { Decision, Item, MessageRef, Rule } from "@agentherd/protocol";
+import type { Decision, Item, MessageRef, Rule, View } from "@agentherd/protocol";
 import { redact } from "@agentherd/rules";
 import type { HerderTurnRole } from "./herder-port.ts";
 import { ftsQuery, MEMORY_TABLES_SQL, MemoryStore } from "./memory-store.ts";
@@ -21,6 +21,7 @@ import {
   HERDER_TURNS_TABLE_SQL,
   LATEST_SCHEMA_VERSION,
   MESSAGE_TASKS_TABLE_SQL,
+  OUTBOX_TABLE_SQL,
   SCHEMA_SQL,
   STATE_TABLE_SQL,
   TASK_WORKSPACE_SQL,
@@ -118,6 +119,10 @@ export class Store {
         if (!columns.some((c) => c.name === "workspace_json")) this.db.exec(TASK_WORKSPACE_SQL);
         this.db.exec(MESSAGE_TASKS_TABLE_SQL);
         this.db.prepare("UPDATE schema_version SET version = ?").run(7);
+      }
+      if (version < 8) {
+        this.db.exec(OUTBOX_TABLE_SQL);
+        this.db.prepare("UPDATE schema_version SET version = ?").run(8);
       }
     }
 
@@ -440,6 +445,44 @@ export class Store {
       .run(messageId, taskId, at.toISOString());
   }
 
+  /** Keeps a message for the owner until the channel took it. */
+  addOutbox(row: OutboxRow): void {
+    this.db
+      .prepare(
+        "INSERT OR REPLACE INTO outbox(id, view_json, task_id, attempts, next_at, created_at, error) VALUES (?, ?, ?, ?, ?, ?, ?)",
+      )
+      .run(
+        row.id,
+        JSON.stringify(row.view),
+        row.taskId ?? null,
+        row.attempts,
+        row.nextAt,
+        row.createdAt,
+        row.error ?? null,
+      );
+  }
+
+  /** Messages the channel has not taken yet, oldest first. */
+  outbox(): OutboxRow[] {
+    return this.db
+      .prepare("SELECT * FROM outbox ORDER BY created_at, rowid")
+      .all()
+      .map((r) => ({
+        id: String(r.id),
+        view: JSON.parse(String(r.view_json)) as View,
+        ...(r.task_id === null ? {} : { taskId: String(r.task_id) }),
+        attempts: Number(r.attempts),
+        nextAt: String(r.next_at),
+        createdAt: String(r.created_at),
+        ...(r.error === null ? {} : { error: String(r.error) }),
+      }));
+  }
+
+  /** The channel took the message, or it was given up. */
+  deleteOutbox(id: string): void {
+    this.db.prepare("DELETE FROM outbox WHERE id = ?").run(id);
+  }
+
   /** The task a message is about, if AgentHerd sent it for one. */
   taskOfMessage(messageId: string): string | undefined {
     const row = this.db
@@ -477,6 +520,20 @@ export class Store {
 }
 
 /** A task as saved in herd.db (ADR 0039). */
+/** A message for the owner waiting in the outbox. */
+export interface OutboxRow {
+  id: string;
+  view: View;
+  /** The task it is about: the owner's reply to it goes there. */
+  taskId?: string;
+  attempts: number;
+  /** When to try again (ISO). */
+  nextAt: string;
+  createdAt: string;
+  /** The last send error. */
+  error?: string;
+}
+
 export interface StoredTask {
   task: Task;
   cwd: string;

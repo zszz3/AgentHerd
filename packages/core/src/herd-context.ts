@@ -18,6 +18,7 @@ import type { HerderFactory, HerderPort, OwnerImage } from "./herder-port.ts";
 import type { Inbox } from "./inbox.ts";
 import type { AppTools, HerdReport, McpGateway } from "./mcp-gateway.ts";
 import type { Completer, Embedder } from "./memory-store.ts";
+import type { Outbox } from "./outbox.ts";
 import type { Registry } from "./registry.ts";
 import type { Store } from "./store.ts";
 import type { Task } from "./tasks.ts";
@@ -58,6 +59,8 @@ export interface HerdOptions {
   boardDebounceMs?: number;
   relayIdleMinutes?: number;
   sessionIdleMinutes?: number;
+  /** Minutes before an agent with work running in the background is asked about it. */
+  backgroundCheckMinutes?: number;
   /** Language of the texts the owner reads. Default: Chinese. */
   locale?: Locale;
   /** Creates the Herder. Without it, plain messages get the list of commands. */
@@ -140,6 +143,14 @@ export interface Following {
   reopening?: Promise<void>;
   /** The agent's last `herd_report` in the current turn. */
   report?: HerdReport;
+  /** Tool calls of the turn when `report` came: later calls mean the agent went on working. */
+  reportAt?: number;
+  /** The report already sent to the owner when it came (waiting, blocked, failed). */
+  notified?: HerdReport;
+  /** The agent sent its `herd_ack` line in this turn. */
+  acked?: boolean;
+  /** The turn ended with work still running in the background: checks so far, the next one. */
+  background?: { checks: number; timer?: Timer };
   /** Text and tool calls of the current turn. */
   turn: { text: string; toolCalls: number };
   /** Reply text since the last tool call, not yet in the transcript. */
@@ -162,6 +173,8 @@ export interface Following {
 export interface QueuedPrompt {
   text: string;
   images: OwnerImage[];
+  /** AgentHerd's own prompt asking about background work, not the owner's. */
+  wake?: boolean;
   resolve: (result: RunResult) => void;
   reject: (error: Error) => void;
 }
@@ -184,6 +197,8 @@ export interface HerdContext {
   readonly following: Map<string, Following>;
   /** Task tokens and answers for the agents' `agentherd` MCP server. */
   readonly mcp: McpGateway;
+  /** Messages for the owner, stored until the channel took them. */
+  readonly outbox: Outbox;
   readonly workspaces: Workspaces;
   /** The current Herder, if any. It can change at runtime. */
   herder(): HerderPort | undefined;
@@ -256,18 +271,14 @@ export async function say(
 }
 
 /**
- * Sends a view; a failure is audited, never thrown. A message about a task (a report, a relay
- * view, or `taskId` given) is remembered, so the owner's reply to it goes to that task (ADR 0043).
+ * Sends a view through the outbox: a failure is retried, never thrown. A message about a task (a
+ * report, a relay view, or `taskId` given) is remembered, so the owner's reply to it goes to that
+ * task (ADR 0043).
  */
 export async function send(ctx: HerdContext, view: View, taskId?: string): Promise<void> {
-  try {
-    const ref = await ctx.opts.channel.send(view);
-    const about =
-      taskId ?? (view.kind === "report" || view.kind === "relay" ? view.taskId : undefined);
-    if (about !== undefined && typeof ref?.id === "string") ctx.store.linkMessage(ref.id, about);
-  } catch (error) {
-    ctx.store.audit("send.error", { kind: view.kind, message: (error as Error).message });
-  }
+  const about =
+    taskId ?? (view.kind === "report" || view.kind === "relay" ? view.taskId : undefined);
+  await ctx.outbox.send(view, about);
 }
 
 export function firstLine(text: string): string {
