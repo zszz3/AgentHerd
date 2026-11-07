@@ -104,7 +104,14 @@ export const PR_WATCHES_TABLE_SQL = `CREATE TABLE IF NOT EXISTS pr_watches(
   updated_at TEXT NOT NULL
 );`;
 
-export const LATEST_SCHEMA_VERSION = 10;
+/** Schema 11: mail the owner asked to be told about (docs/spec/04-herder.md "Mail"). */
+export const MAIL_WATCHES_TABLE_SQL = `CREATE TABLE IF NOT EXISTS mail_watches(
+  id TEXT PRIMARY KEY,
+  data_json TEXT NOT NULL,
+  created_at TEXT NOT NULL
+);`;
+
+export const LATEST_SCHEMA_VERSION = 11;
 
 export const SCHEMA_SQL = `
 CREATE TABLE sessions(
@@ -166,4 +173,5 @@ ${MESSAGE_TASKS_TABLE_SQL}
 ${HERDER_LOG_TABLE_SQL}
 ${OUTBOX_TABLE_SQL}
 ${PR_WATCHES_TABLE_SQL}
+${MAIL_WATCHES_TABLE_SQL}
 `;

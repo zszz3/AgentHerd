@@ -39,7 +39,7 @@ AgentHerd has no public address for webhooks.
 - **Following every pull request of the repo, or new issues (super-agent's admission).** Starting
   work the owner did not ask for needs a policy and owner confirmation; left for later.
 - **Gmail and other Composio apps.** Composio triggers deliver by webhook or its own websocket;
-  not done here.
+  not done here. Mail is watched on request instead ([ADR 0048](0048-watch-mail-only-when-asked.md)).
 
 ## Consequences
 

@@ -22,6 +22,7 @@ import {
   HERDER_TURNS_TABLE_SQL,
   LATEST_SCHEMA_VERSION,
   LEGACY_HERDER_STATE_KEY,
+  MAIL_WATCHES_TABLE_SQL,
   MESSAGE_TASKS_TABLE_SQL,
   OUTBOX_TABLE_SQL,
   PR_WATCHES_TABLE_SQL,
@@ -137,6 +138,10 @@ export class Store {
       if (version < 10) {
         this.db.exec(PR_WATCHES_TABLE_SQL);
         this.db.prepare("UPDATE schema_version SET version = ?").run(10);
+      }
+      if (version < 11) {
+        this.db.exec(MAIL_WATCHES_TABLE_SQL);
+        this.db.prepare("UPDATE schema_version SET version = ?").run(11);
       }
     }
 
@@ -513,6 +518,24 @@ export class Store {
     this.db.prepare("DELETE FROM pr_watches WHERE key = ?").run(prKey(watch));
   }
 
+  saveMailWatch(watch: MailWatch): void {
+    this.db
+      .prepare("INSERT OR REPLACE INTO mail_watches(id, data_json, created_at) VALUES (?, ?, ?)")
+      .run(watch.id, JSON.stringify(watch), watch.createdAt);
+  }
+
+  /** Mail watches the owner asked for, oldest first. */
+  mailWatches(): MailWatch[] {
+    return this.db
+      .prepare("SELECT data_json FROM mail_watches ORDER BY created_at, id")
+      .all()
+      .map((r) => JSON.parse(String(r.data_json)) as MailWatch);
+  }
+
+  deleteMailWatch(id: string): void {
+    this.db.prepare("DELETE FROM mail_watches WHERE id = ?").run(id);
+  }
+
   /** The channel took the message, or it was given up. */
   deleteOutbox(id: string): void {
     this.db.prepare("DELETE FROM outbox WHERE id = ?").run(id);
@@ -599,7 +622,6 @@ export class Store {
   }
 }
 
-/** A task as saved in herd.db (ADR 0039). */
 /** A pull request a task opened, as far as AgentHerd has read it. */
 export interface PrWatch {
   /** `owner/name` */
@@ -638,6 +660,19 @@ export interface OutboxRow {
   error?: string;
 }
 
+/** Mail the owner asked to be told about (docs/spec/04-herder.md "Mail"). */
+export interface MailWatch {
+  id: string;
+  /** What the owner wants to hear about, in their words, e.g. "导师的邮件". */
+  about: string;
+  /** A Gmail search, e.g. `from:prof@uni.edu`. */
+  query: string;
+  createdAt: string;
+  /** Ids of messages already told, newest last. */
+  seen: string[];
+}
+
+/** A task as saved in herd.db (ADR 0039). */
 export interface StoredTask {
   task: Task;
   cwd: string;

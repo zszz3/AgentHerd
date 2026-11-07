@@ -147,6 +147,38 @@ function appLines(host: HerderHost): string[] {
   ];
 }
 
+/** The owner's mail watches, when mail can be watched (ADR 0048). */
+function mailLines(host: HerderHost): string[] {
+  if (host.mailWatches === undefined) return [];
+  const watches = host.mailWatches();
+  return [
+    "Mail watches (AgentHerd tells the owner about new matching mail every few minutes):",
+    ...(watches.length === 0
+      ? ["(none)"]
+      : watches.map(
+          (w) => `- ${w.id.slice(0, 8)} "${w.about}" query=${w.query} since=${w.createdAt}`,
+        )),
+  ];
+}
+
+/** A mail watch by id prefix or words of what it is about. */
+function oneWatch(host: HerderHost, query: string): { id: string; about: string } {
+  const q = normalize(query);
+  const watches = host.mailWatches?.() ?? [];
+  const found = watches.filter(
+    (w) =>
+      w.id.startsWith(query.trim()) ||
+      normalize(w.about).includes(q) ||
+      normalize(w.query).includes(q),
+  );
+  const only = found[0];
+  if (found.length === 1 && only !== undefined) return only;
+  if (found.length === 0) throw new Error(`no mail watch matches "${query}"`);
+  throw new Error(
+    `several mail watches match "${query}": ${found.map((w) => `${w.id.slice(0, 8)} "${w.about}"`).join(", ")}`,
+  );
+}
+
 /** Ended tasks listed by session_list, newest first. */
 export const ENDED_TASKS_LISTED = 15;
 
@@ -218,6 +250,19 @@ const findSchema = obj({
   name: str({ description: "The project's name as the owner said it, e.g. pi-desktop" }),
 });
 const emptySchema = obj({});
+const mailWatchSchema = obj({
+  about: str({
+    description:
+      'What the owner wants to hear about, in their words, e.g. "导师的邮件". Shown on every notice.',
+  }),
+  query: str({
+    description:
+      "A Gmail search for that mail, e.g. from:prof@uni.edu, subject:offer, is:important, or in:inbox for all new mail.",
+  }),
+});
+const mailUnwatchSchema = obj({
+  watch: str({ description: "Mail watch id prefix or words of what it is about" }),
+});
 
 export function herderTools(
   host: HerderHost,
@@ -251,6 +296,7 @@ export function herderTools(
           ...modelLines(host, modelTiers),
           `Relay: ${host.relayTaskId()?.slice(0, 8) ?? "none"}`,
           ...appLines(host),
+          ...mailLines(host),
         ];
         return ok(lines.join("\n"));
       },
@@ -478,7 +524,44 @@ export function herderTools(
       },
     },
   ];
-  return tools.map((t) => t as unknown as AgentTool);
+  const all = tools.map((t) => t as unknown as AgentTool);
+  if (host.watchMail !== undefined) {
+    all.push(...mailTools(host, turn).map((t) => t as unknown as AgentTool));
+  }
+  return all;
+}
+
+/** Mail watches exist only because the owner asked (ADR 0048). */
+function mailTools(host: HerderHost, turn: () => TurnContext) {
+  return [
+    {
+      name: "mail_watch",
+      label: "Watch mail",
+      description:
+        "Only when the owner asks to be told about some mail (e.g. 「导师来邮件提醒我」): from now on AgentHerd checks Gmail every few minutes and tells the owner about new mail matching the search. Never start one on your own.",
+      parameters: mailWatchSchema,
+      execute: async (_id: string, args: { about: string; query: string }) => {
+        if (turn().kind === "event") throw new Error("only the owner can ask for mail watches");
+        const watch = await host.watchMail?.(args.about, args.query);
+        if (watch === undefined) throw new Error("mail cannot be watched here");
+        return ok(
+          `watching mail ${watch.id.slice(0, 8)} "${watch.about}" (query: ${watch.query}); tell the owner in one short line`,
+        );
+      },
+    },
+    {
+      name: "mail_unwatch",
+      label: "Stop watching mail",
+      description: "Stops a mail watch when the owner no longer wants those notices.",
+      parameters: mailUnwatchSchema,
+      execute: async (_id: string, args: { watch: string }) => {
+        if (turn().kind === "event") throw new Error("only the owner can stop mail watches");
+        const watch = oneWatch(host, args.watch);
+        host.unwatchMail?.(watch.id);
+        return ok(`stopped watching "${watch.about}"`);
+      },
+    },
+  ];
 }
 
 /** The owner's models grouped by name: services in list order, agents that can run any of them. */
