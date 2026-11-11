@@ -340,6 +340,11 @@ New GitHub work is offered only when the owner asks for it ([ADR 0052](../adr/00
   switched on (off by default), and to the Herder as a `social` event. `social_watch` switches a
   kind when the owner asks; `session_list` shows platforms. Agents other than Pi use the account
   through `XIAOHONGSHU_` and `ZHIHU_` tools; writes ask (ADR 0056).
+- **News and this Mac's tools** (ADR 0059). `feed_read` reads GitHub Trending, Hacker News or
+  arXiv; with `told: true` (a digest, often a schedule) the items are recorded and later reads
+  mark them `[told before]`, which the Herder leaves out. `session_start` adds what the host says
+  the Mac offers (lark-cli signed in as the owner, the Obsidian vault) to every new task's
+  context.
 - **Watches list.** 应用连接 → 监听 lists pull requests, mail watches, new-work watches and
   platform kinds; pausing keeps a watch without looking (`paused` in its row), removing deletes it.
 

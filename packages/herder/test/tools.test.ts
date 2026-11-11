@@ -145,6 +145,55 @@ describe("tools", () => {
     );
   });
 
+  it("session_start tells the agent what this Mac offers (ADR 0059)", async () => {
+    const dir = tmpdir();
+    const { call, rec } = tools(
+      { ownerText: `在 ${dir} 里整理一下调研` },
+      { toolNotes: ["飞书: lark-cli is installed and signed in as the owner."] },
+    );
+    await call("session_start", {
+      name: "调研",
+      project: dir,
+      profile: "mock",
+      ownerText: "整理一下调研",
+    });
+    expect(rec.started[0]?.prompt).toContain(
+      "飞书: lark-cli is installed and signed in as the owner.",
+    );
+  });
+
+  it("feed_read marks told items for digests and shows earlier ones (ADR 0059)", async () => {
+    const { call, rec } = tools(
+      { kind: "scheduled" },
+      {
+        feed: [
+          {
+            id: "gh:a/b",
+            title: "a/b",
+            url: "https://github.com/a/b",
+            about: "agents",
+            seen: true,
+          },
+          {
+            id: "gh:c/d",
+            title: "c/d",
+            url: "https://github.com/c/d",
+            about: "tools",
+            seen: false,
+          },
+        ],
+      },
+    );
+    const result = JSON.stringify(
+      await call("feed_read", { source: "github-trending", since: "daily", told: true }),
+    );
+    expect(result).toContain("[told before] a/b https://github.com/a/b");
+    expect(result).not.toContain("[told before] c/d");
+    expect(rec.state.get("feeds")).toEqual([
+      { source: "github-trending", query: { since: "daily" }, mark: true },
+    ]);
+  });
+
   it("session_start passes the steps leaving the Mac the owner asked for (ADR 0056)", async () => {
     const dir = tmpdir();
     const { call, rec } = tools({ ownerText: `在 ${dir} 里修一下构建，做完推上去开个 PR` });

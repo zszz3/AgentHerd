@@ -43,6 +43,8 @@ export interface HostStatus {
   keepAwake: boolean;
   /** How the Herder talks to the owner (ADR 0053). */
   herderStyle: HerderStyle;
+  /** The owner's Obsidian vault folder, if set (ADR 0059). */
+  obsidianVault?: string;
   /** Agent profile ids the owner can start with /run. */
   profiles: string[];
 }
@@ -180,6 +182,32 @@ export interface SettingsPatch {
   mode?: Mode;
   keepAwake?: boolean;
   herderStyle?: HerderStyle;
+  /** An Obsidian vault folder; "" clears it. */
+  obsidianVault?: string;
+}
+
+/** 飞书 through lark-cli in 应用连接 (ADR 0059). */
+export interface LarkView {
+  state: "missing" | "installing" | "no-app" | "signed-out" | "ready" | "failed";
+  account?: string;
+  version?: string;
+  problem?: string;
+  checkedAt?: string;
+}
+
+/** A 飞书 sign-in: scan the image with the 飞书 app, or open the link. */
+export interface LarkLogin {
+  image: string;
+  url: string;
+}
+
+export type FeedSource = "github-trending" | "hacker-news" | "arxiv";
+
+/** One news source in 应用连接 (ADR 0059). */
+export interface FeedView {
+  source: FeedSource;
+  name: string;
+  on: boolean;
 }
 
 /** Everything the host offers. Each method is one request on the socket. */
@@ -362,6 +390,14 @@ export interface HostApi {
   watches(): WatchView[];
   setWatchPaused(id: string, paused: boolean): WatchView[];
   removeWatch(id: string): WatchView[];
+  /** 飞书 through lark-cli (ADR 0059). Checks again on every call. */
+  lark(): Promise<LarkView>;
+  /** Installs and sets up lark-cli if needed and starts a QR sign-in; a "lark" event comes when done. */
+  connectLark(): Promise<LarkLogin>;
+  testLark(): Promise<{ ok: boolean; message: string; lark: LarkView }>;
+  logoutLark(): Promise<LarkView>;
+  feeds(): FeedView[];
+  setFeed(source: FeedSource, on: boolean): FeedView[];
 }
 
 export type HostMethod = keyof HostApi;
@@ -411,6 +447,12 @@ export const HOST_METHODS: readonly HostMethod[] = [
   "watches",
   "setWatchPaused",
   "removeWatch",
+  "lark",
+  "connectLark",
+  "testLark",
+  "logoutLark",
+  "feeds",
+  "setFeed",
 ];
 
 export type HostEvent =
@@ -421,7 +463,8 @@ export type HostEvent =
   | { topic: "agents"; data: AgentView[] }
   | { topic: "apps"; data: AppsView }
   | { topic: "socials"; data: SocialView[] }
-  | { topic: "watches"; data: WatchView[] };
+  | { topic: "watches"; data: WatchView[] }
+  | { topic: "lark"; data: LarkView };
 
 /** The same API, asynchronous, as seen by a client. */
 export type RemoteHost = {

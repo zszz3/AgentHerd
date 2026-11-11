@@ -1,8 +1,10 @@
 // Sample data for the in-memory dev bridge (dev-bridge.ts): a placeholder QR code,
 // tasks, model services, the provider catalog, the Herder's schedules,
-// and the platforms and watches of 应用连接.
+// and the platforms, 飞书, news sources and watches of 应用连接.
 
 import type {
+  FeedView,
+  LarkView,
   MemoryView,
   ModelsView,
   ProviderView,
@@ -460,5 +462,21 @@ export function sampleWatches(empty: boolean): WatchView[] {
       removable: false,
       activeAt: hoursFromNow(-2),
     },
+  ];
+}
+
+/** 飞书 in the browser preview: signed in, or not installed yet for `?sim=empty`. */
+export function sampleLark(empty: boolean): LarkView {
+  return empty
+    ? { state: "missing" }
+    : { state: "ready", account: "小羊", version: "1.4.0", checkedAt: hoursFromNow(-0.1) };
+}
+
+/** The news sources in the browser preview: Trending and Hacker News on, arXiv off. */
+export function sampleFeeds(): FeedView[] {
+  return [
+    { source: "github-trending", name: "GitHub Trending", on: true },
+    { source: "hacker-news", name: "Hacker News", on: true },
+    { source: "arxiv", name: "arXiv", on: false },
   ];
 }

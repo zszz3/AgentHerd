@@ -183,6 +183,28 @@ the article page), `GET_COMMENTS`, `GET_MY_PROFILE`, `LIST_NOTIFICATIONS` read; 
 `/api/v4/notifications/v2/{default,vote_thank,follow}` (「等你来答」 invitations left out); reading
 them does not mark them read.
 
+## 3c. 飞书, news sources and notes (ADR 0059)
+
+**飞书** is the official [lark-cli](https://www.npmjs.com/package/@larksuite/cli), signed in as the
+owner. The host finds it (PATH, `~/.local/bin`, Homebrew) or installs it with
+`npm install -g @larksuite/cli`, sets it up with AgentHerd's own Feishu app when it has none, and
+signs in with `auth login --no-wait --json --domain …` (QR in 应用连接, `--device-code` finishes
+in the background). It is not a gateway tool: every new task gets one paragraph saying lark-cli is
+signed in, as whom, and where its guides are (`lark-cli skills read lark-doc`), and the agent runs
+it with its shell. `outboundCheck` reads lark-cli commands: reads, `--help`, `--dry-run`, `auth`,
+`config`, `schema` and `skills` stay on the Mac; `+create` of a doc, sheet, slides, base or mind
+note passes (the owner's own space); im, mail, calendar, vc and approval writes ask as `send`;
+other writes and non-GET `lark-cli api` ask as `edit`.
+
+**News sources** need no sign-in and are on unless switched off in 应用连接 → 资讯: GitHub Trending
+(the web page; daily, weekly or monthly, per language), Hacker News (front page, best stories,
+Algolia search) and arXiv (export API, newest first). Agents get `GITHUB_TRENDING`,
+`HACKER_NEWS` and `ARXIV_SEARCH` beside the Composio tools, read-only, never asking. The Herder
+reads them with `feed_read` (04-herder).
+
+**Notes.** Notion is a Composio app (§3). An Obsidian vault folder set in 应用连接 → 笔记
+(`obsidianVault` in config.json, checked to exist) is told to every new task like lark-cli.
+
 ## 4. Failure behavior
 
 | Case | Behavior |

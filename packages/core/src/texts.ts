@@ -12,6 +12,7 @@ import type { MemoryKind } from "./memory-store.ts";
   publish: "发布",
   deploy: "部署",
   send: "替你给别人发消息",
+  edit: "改飞书等线上的文档、表格或日程",
 };
 const STEPS_EN = {
   push: "pushes to a remote",
@@ -21,6 +22,7 @@ const STEPS_EN = {
   publish: "publishes",
   deploy: "deploys",
   send: "sends a message for you",
+  edit: "changes documents, sheets or events online",
 };
 
 export interface CoreTexts {

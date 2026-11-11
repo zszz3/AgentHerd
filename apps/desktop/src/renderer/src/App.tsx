@@ -55,7 +55,7 @@ const HEADERS: Record<Page, { title: string; hint: string }> = {
   },
   connections: {
     title: "应用连接",
-    hint: "小红书、知乎和 Composio 应用，以及主管在盯的东西",
+    hint: "小红书、知乎、飞书、Composio 应用、资讯和笔记，以及主管在盯的东西",
   },
   models: { title: "模型", hint: "模型服务和 Key，Pi 和各档任务用哪个模型" },
   agents: { title: "Agent", hint: "替你干活的编程 Agent；主管开任务时按模型自动挑" },

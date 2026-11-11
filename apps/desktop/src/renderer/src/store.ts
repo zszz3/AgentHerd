@@ -4,9 +4,11 @@
 import type {
   AgentView,
   AppsView,
+  FeedView,
   HostApi,
   HostEvent,
   HostStatus,
+  LarkView,
   ModelsView,
   ProviderView,
   RemoteHost,
@@ -60,6 +62,10 @@ interface AppState {
   socials: SocialView[] | undefined;
   /** 应用连接 › 监听; loaded when the page shows, then kept by events. */
   watches: WatchView[] | undefined;
+  /** 应用连接 › 飞书 (lark-cli); loaded when the page shows, then kept by "lark" events. */
+  lark: LarkView | undefined;
+  /** 应用连接 › 资讯; loaded when the page shows. */
+  feeds: FeedView[] | undefined;
   providers: ProviderView[];
   setup: SetupState | undefined;
   page: Page;
@@ -113,6 +119,8 @@ export const useApp = create<AppState>()((set, get) => ({
   apps: undefined,
   socials: undefined,
   watches: undefined,
+  lark: undefined,
+  feeds: undefined,
   providers: [],
   setup: undefined,
   page: hashPage() ?? "tasks",
@@ -204,6 +212,9 @@ function applyEvent(event: HostEvent): void {
       break;
     case "watches":
       useApp.setState({ watches: event.data });
+      break;
+    case "lark":
+      useApp.setState({ lark: event.data });
       break;
     case "setup":
       useApp.setState({ setup: event.data });

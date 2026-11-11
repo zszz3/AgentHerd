@@ -1,11 +1,13 @@
 // The AgentHerd host: owns the config, the Herd, the Herder and the channel, and answers the local
 // API (./api.ts). `agentherd start` and the desktop app both run one host; only one per home.
 
+import { existsSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
 import {
   chooseModel,
   emptyModelSettings,
+  FEED_SOURCES,
   type GhRun,
   Herd,
   type JsonRpcMessage,
@@ -48,10 +50,14 @@ import type {
   AgentCheck,
   AgentView,
   AppsView,
+  FeedSource,
+  FeedView,
   HostApi,
   HostEvent,
   HostStatus,
   ItemSummary,
+  LarkLogin,
+  LarkView,
   MemoryView,
   ModelProbe,
   ModelsView,
@@ -75,15 +81,17 @@ import type {
 import { Apps, newComposioUserId } from "./apps.ts";
 import type { AgentDef, Fetchers } from "./catalog.ts";
 import { withCodexHome } from "./codex-home.ts";
-import { type CliConfig, readConfig, writeConfig } from "./config.ts";
+import { type CliConfig, readConfig, secretFile, writeConfig } from "./config.ts";
 import { dshPatchArgs, writeDshPatch } from "./dsh-patch.ts";
 import { LocalEmbedder } from "./embedder.ts";
+import { FEED_NAMES, Feeds } from "./feeds.ts";
+import { Lark } from "./lark.ts";
 import { mcpServerFor } from "./mcp-socket.ts";
 import { probeModels } from "./probe.ts";
 import { availableProfiles } from "./profiles.ts";
 import { withSystemProxy } from "./proxy.ts";
 import { RuntimeStore } from "./runtimes.ts";
-import { Socials } from "./socials.ts";
+import { combineApps, Socials } from "./socials.ts";
 import { type VerifyOptions, verifyProfile } from "./verify.ts";
 import { deleteWatch, pauseWatch, watchViews } from "./watches.ts";
 
@@ -164,6 +172,9 @@ export class Host implements HostApi {
   private readonly appList: Apps;
   /** 小红书 and 知乎 (ADR 0058). */
   private readonly socialList: Socials;
+  /** 飞书 through lark-cli, and the news sources (ADR 0059). */
+  private readonly larkCli: Lark;
+  private readonly feedList: Feeds;
 
   constructor(opts: HostOptions) {
     this.opts = opts;
@@ -190,6 +201,67 @@ export class Host implements HostApi {
       log: (line) => this.log(line),
       watch: (platform) => this.herd?.socials?.watch(platform),
     });
+    this.larkCli = new Lark({
+      changed: () => this.emit({ topic: "lark", data: this.larkCli.current() }),
+      log: (line) => this.log(line),
+      qr: (url) => QRCode.toDataURL(url, { width: 320, margin: 1 }),
+      app: async () => {
+        const data = this.config().channel?.data;
+        if (data?.appId === undefined) return undefined;
+        const secret = secretFile(this.opts.home).get(`feishu:${data.appId}`);
+        if (secret === undefined) return undefined;
+        return { appId: data.appId, secret, brand: data.brand ?? "feishu" };
+      },
+    });
+    this.feedList = new Feeds({ home: opts.home, off: () => this.config().feedsOff ?? [] });
+  }
+
+  lark(): Promise<LarkView> {
+    return this.larkCli.check();
+  }
+
+  connectLark(): Promise<LarkLogin> {
+    return this.larkCli.connect();
+  }
+
+  async testLark(): Promise<{ ok: boolean; message: string; lark: LarkView }> {
+    const found = await this.larkCli.test();
+    return { ...found, lark: this.larkCli.current() };
+  }
+
+  logoutLark(): Promise<LarkView> {
+    return this.larkCli.logout().then(() => this.larkCli.current());
+  }
+
+  feeds(): FeedView[] {
+    return FEED_SOURCES.map((source) => ({
+      source,
+      name: FEED_NAMES[source],
+      on: this.feedList.on(source),
+    }));
+  }
+
+  setFeed(source: FeedSource, on: boolean): FeedView[] {
+    if (!FEED_SOURCES.includes(source)) throw new Error(`no news source ${source}`);
+    const off = new Set(this.config().feedsOff ?? []);
+    if (on) off.delete(source);
+    else off.add(source);
+    writeConfig(this.opts.home, { ...this.config(), feedsOff: [...off] });
+    return this.feeds();
+  }
+
+  /** What every new task is told about this Mac's tools (ADR 0059). */
+  private toolNotes(): string[] {
+    const notes: string[] = [];
+    const lark = this.larkCli.note();
+    if (lark !== undefined) notes.push(lark);
+    const vault = this.config().obsidianVault;
+    if (vault !== undefined && vault !== "") {
+      notes.push(
+        `Obsidian: the owner's vault is ${vault} (Markdown files; keep its folders, front matter and [[links]] style). Write notes there only when the owner asks for a note.`,
+      );
+    }
+    return notes;
   }
 
   private socialsChanged(): void {
@@ -394,13 +466,19 @@ export class Host implements HostApi {
       },
       github: { run: this.opts.gh ?? runGh(withSystemProxy()) },
       socials: () => this.socialList.sources(),
+      feeds: {
+        on: () => FEED_SOURCES.filter((f) => this.feedList.on(f)),
+        read: (source, query, mark) => this.feedList.read(source, query, mark),
+      },
+      toolNotes: () => this.toolNotes(),
       watchesChanged: () => this.socialsChanged(),
       ...(herder === undefined ? {} : { herder }),
       ...(this.opts.mcpSocket === undefined
         ? {}
         : {
             mcpServer: (token: string) => mcpServerFor(this.opts.mcpSocket as string, token),
-            apps: () => this.socialList.tools(this.appList.appTools()),
+            apps: () =>
+              combineApps([this.socialList.tools(this.appList.appTools()), this.feedList.tools()]),
             appNames: () => this.appList.connectedNames(),
           }),
       agentModels: {
@@ -622,6 +700,7 @@ export class Host implements HostApi {
       locale: config.locale ?? DEFAULT_LOCALE,
       keepAwake: config.keepAwake ?? false,
       herderStyle: config.herderStyle ?? DEFAULT_HERDER_STYLE,
+      ...(config.obsidianVault ? { obsidianVault: config.obsidianVault } : {}),
       profiles: this.profileList.map((p) => p.id),
     };
   }
@@ -892,6 +971,12 @@ export class Host implements HostApi {
         );
       }
       next.herderStyle = patch.herderStyle;
+    }
+    if (patch.obsidianVault !== undefined) {
+      const vault = patch.obsidianVault.trim().replace(/^~(?=\/|$)/, homedir());
+      if (vault === "") delete next.obsidianVault;
+      else if (!existsSync(vault)) throw new Error(`没有这个文件夹：${vault}`);
+      else next.obsidianVault = vault;
     }
     writeConfig(this.opts.home, next);
     this.emitStatus();

@@ -1,6 +1,9 @@
 // A HerderHost that records what the Herder does, for unit tests.
 
 import type {
+  FeedItem,
+  FeedQuery,
+  FeedSource,
   HerderHost,
   IntakeWatch,
   MailWatch,
@@ -155,6 +158,10 @@ export function fakeHost(
     intake?: IntakeWatch[];
     /** Schedules kept in memory (ADR 0055). */
     schedules?: Schedule[];
+    /** What every new task is told about this Mac (ADR 0059). */
+    toolNotes?: string[];
+    /** A news source answer; reads are recorded in rec.state "feeds" (ADR 0059). */
+    feed?: FeedItem[];
   } = {},
 ): {
   host: HerderHost;
@@ -221,6 +228,17 @@ export function fakeHost(
     ...(opts.mail === undefined ? {} : mailHost(opts.mail)),
     ...(opts.intake === undefined ? {} : intakeHost(opts.intake)),
     ...(opts.schedules === undefined ? {} : scheduleHost(opts.schedules)),
+    ...(opts.toolNotes === undefined ? {} : { toolNotes: () => opts.toolNotes ?? [] }),
+    ...(opts.feed === undefined
+      ? {}
+      : {
+          feeds: () => ["github-trending", "hacker-news"] as const,
+          readFeed: async (source: FeedSource, query: FeedQuery, mark: boolean) => {
+            const reads = (rec.state.get("feeds") as unknown[] | undefined) ?? [];
+            rec.state.set("feeds", [...reads, { source, query, mark }]);
+            return opts.feed ?? [];
+          },
+        }),
     getState: <T>(key: string) => rec.state.get(key) as T | undefined,
     setState: (key, value) => void rec.state.set(key, structuredClone(value)),
     herderLog: () => structuredClone(rec.log),

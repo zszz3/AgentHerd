@@ -5,6 +5,7 @@ import { statSync } from "node:fs";
 import { isAbsolute, join, resolve } from "node:path";
 import {
   describeWhen,
+  type FeedSource,
   type HerderHost,
   type OwnerImage,
   type Schedule,
@@ -569,6 +570,26 @@ const socialWatchSchema = obj({
   on: bool({ description: "true to tell the owner about this kind, false to stop" }),
 });
 
+const feedReadSchema = obj({
+  source: oneOf(["github-trending", "hacker-news", "arxiv"] as const, {
+    description: "github-trending, hacker-news or arxiv",
+  }),
+  since: opt(
+    oneOf(["daily", "weekly", "monthly"] as const, {
+      description: "GitHub Trending range; weekly on Hacker News gives the best stories",
+    }),
+  ),
+  language: opt(str({ description: "GitHub Trending language, such as python" })),
+  query: opt(str({ description: "search words (Hacker News, arXiv)" })),
+  limit: opt(num({ description: "how many, at most 30 (default 15)" })),
+  told: opt(
+    bool({
+      description:
+        "true when you are about to tell the owner these items (a digest): later reads mark them as told",
+    }),
+  ),
+});
+
 const mailUnwatchSchema = obj({
   watch: str({ description: "Mail watch id prefix or words of what it is about" }),
 });
@@ -708,6 +729,7 @@ export function herderTools(
           args.addedContext?.trim() ?? "",
           ownerPrefsText(host.memory),
           decisionsText(host.memory),
+          (host.toolNotes?.() ?? []).join("\n"),
           lessonsText(lessons),
         ]
           .filter((s) => s !== "")
@@ -913,6 +935,37 @@ export function herderTools(
       },
     };
     all.push(socialTool as unknown as AgentTool);
+  }
+  const readFeed = host.readFeed;
+  if (readFeed !== undefined && (host.feeds?.() ?? []).length > 0) {
+    const feedTool = {
+      name: "feed_read",
+      label: "News",
+      description:
+        "Reads GitHub Trending, Hacker News or arXiv. Items marked [told before] were already in an earlier digest: leave them out unless the owner asks.",
+      parameters: feedReadSchema,
+      execute: async (
+        _id: string,
+        args: {
+          source: FeedSource;
+          since?: "daily" | "weekly" | "monthly";
+          language?: string;
+          query?: string;
+          limit?: number;
+          told?: boolean;
+        },
+      ) => {
+        const { source, told, ...query } = args;
+        const items = await readFeed(source, query, told === true);
+        if (items.length === 0) return ok("nothing found");
+        return ok(
+          items
+            .map((i) => `- ${i.seen ? "[told before] " : ""}${i.title} ${i.url}\n  ${i.about}`)
+            .join("\n"),
+        );
+      },
+    };
+    all.push(feedTool as unknown as AgentTool);
   }
   if (host.watchIntake !== undefined) {
     all.push(...intakeTools(host, turn).map((t) => t as unknown as AgentTool));

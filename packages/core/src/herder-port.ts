@@ -13,6 +13,25 @@ import type { DecisionRow, IntakeWatch, MailWatch } from "./store.ts";
 import type { Task } from "./tasks.ts";
 import type { CoreTexts } from "./texts.ts";
 
+/** Public news sources the host reads (ADR 0059). */
+export const FEED_SOURCES = ["github-trending", "hacker-news", "arxiv"] as const;
+export type FeedSource = (typeof FEED_SOURCES)[number];
+export interface FeedQuery {
+  since?: "daily" | "weekly" | "monthly";
+  language?: string;
+  /** Search words (Hacker News, arXiv). */
+  query?: string;
+  limit?: number;
+}
+export interface FeedItem {
+  id: string;
+  title: string;
+  url: string;
+  about: string;
+  /** Already told to the owner in an earlier digest. */
+  seen: boolean;
+}
+
 /** An image the owner sent, saved under `<home>/attachments`. */
 export interface OwnerImage {
   mimeType: string;
@@ -121,6 +140,12 @@ export interface HerderHost {
     watch: Record<SocialKind, boolean>;
   }[];
   setSocialWatch?(platform: SocialPlatform, kind: SocialKind, on: boolean): void;
+  /** Turned-on news sources (ADR 0059). */
+  feeds?(): readonly FeedSource[];
+  /** Reads one; `mark` records the items as told to the owner. */
+  readFeed?(source: FeedSource, query: FeedQuery, mark: boolean): Promise<FeedItem[]>;
+  /** Lines every new task gets: tools on this Mac the agent can use (lark-cli, Obsidian, ADR 0059). */
+  toolNotes?(): string[];
   /** New-work watches (ADR 0052), when GitHub is set up. */
   intakeWatches?(): IntakeWatch[];
   watchIntake?(request: IntakeRequest): Promise<IntakeWatch>;
