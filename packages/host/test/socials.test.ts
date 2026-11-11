@@ -24,22 +24,25 @@ function fakeServer(signedIn: boolean) {
       return json({ is_logged_in: signedIn, ...(signedIn ? { username: "小羊不吃草" } : {}) });
     }
     if (path === "/api/v1/notifications/unread") {
-      return json({ mentions: 2, likes: 0, connections: 1, unread: 3 });
+      // The real server wraps these answers twice.
+      return json({ data: { mentions: 2, likes: 0, connections: 1, unread: 3 } });
     }
     if (path === "/api/v1/notifications/list") {
       return json({
-        tab: "mentions",
-        items: [
-          {
-            id: "n1",
-            title: "评论了你的笔记",
-            from: { nickname: "阿花" },
-            comment_text: "求链接",
-            feed_id: "f1",
-            feed_xsec_token: "tok=",
-            feed_title: "AgentHerd 上手",
-          },
-        ],
+        data: {
+          tab: "mentions",
+          items: [
+            {
+              id: "n1",
+              title: "评论了你的笔记",
+              from: { nickname: "阿花" },
+              comment_text: "求链接",
+              feed_id: "f1",
+              feed_xsec_token: "tok=",
+              feed_title: "AgentHerd 上手",
+            },
+          ],
+        },
       });
     }
     if (path === "/mcp") {

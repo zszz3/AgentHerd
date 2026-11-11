@@ -6,7 +6,7 @@
 
 import { type ChildProcess, spawn } from "node:child_process";
 import { randomBytes } from "node:crypto";
-import { chmodSync, existsSync, mkdirSync, renameSync, writeFileSync } from "node:fs";
+import { chmodSync, existsSync, mkdirSync, renameSync, statSync, writeFileSync } from "node:fs";
 import { createServer } from "node:net";
 import { arch, platform } from "node:os";
 import { join } from "node:path";
@@ -32,7 +32,21 @@ const XHS_READS =
   /^(check_login_status|list_feeds|search_feeds|get_feed_detail|user_profile|get_my_profile|get_unread_count|list_notifications)$/;
 const START_MS = 30_000;
 const LOGIN_WAIT_MS = 4 * 60_000;
-const LOGIN_POLL_MS = 4_000;
+const LOGIN_POLL_MS = 1_000;
+/**
+ * Some answers wrap their result once more (`{data: {data: {...}}}`: notices, unread counts,
+ * user/me); others do not (login status). Unwraps the inner one when it is the only field.
+ */
+function inner(data: unknown): unknown {
+  if (data !== null && typeof data === "object" && !Array.isArray(data)) {
+    const keys = Object.keys(data);
+    if (keys.length === 1 && keys[0] === "data") return (data as { data: unknown }).data;
+  }
+  return data;
+}
+
+/** A full status check every this many polls, in case the cookie file change was missed. */
+const LOGIN_FULL_CHECK_TICKS = 15;
 const LIST_LIMIT = 20;
 
 export type SocialState = "off" | "starting" | "signed-out" | "ready" | "failed";
@@ -213,7 +227,7 @@ export class Xiaohongshu implements SocialSource {
         `小红书 ${path}: ${json.error ?? `HTTP ${res.status}`}${json.details ? ` (${String(json.details)})` : ""}`,
       );
     }
-    return json.data as T;
+    return inner(json.data) as T;
   }
 
   /** Reads whether the owner is signed in. */
@@ -244,15 +258,27 @@ export class Xiaohongshu implements SocialSource {
     return { image: code.img ?? "", signedIn: false };
   }
 
+  /**
+   * Waits for the scan. The server writes the cookie file the moment the owner scans, and a
+   * status check takes several seconds (it opens a page), so the file is watched and the status
+   * read as soon as it changes; a full check also runs now and then in case the file was missed.
+   */
   private watchLogin(): void {
     if (this.loginTimer !== undefined) clearTimeout(this.loginTimer);
     const until = Date.now() + LOGIN_WAIT_MS;
+    const cookies = join(this.dir(), "cookies.json");
+    const stamp = () => (existsSync(cookies) ? statSync(cookies).mtimeMs : 0);
+    const before = stamp();
+    let ticks = 0;
     const tick = async () => {
       this.loginTimer = undefined;
-      try {
-        await this.check();
-      } catch {
-        // try again
+      ticks += 1;
+      if (stamp() !== before || ticks % LOGIN_FULL_CHECK_TICKS === 0) {
+        try {
+          await this.check();
+        } catch {
+          // try again
+        }
       }
       if (this.state !== "ready" && this.child !== undefined && Date.now() < until) {
         this.loginTimer = setTimeout(() => void tick(), LOGIN_POLL_MS);
