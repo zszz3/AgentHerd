@@ -1,4 +1,4 @@
-// 模型分档 on the 主管 page: the owner's models in three tiers, rearranged by dragging (ADR 0028).
+// 模型分档 on the 模型 page: the owner's models in three tiers, rearranged by dragging (ADR 0028).
 // The Herder picks a tier from what the task is, and prefers models higher in a tier.
 
 import type { ModelTiersView, Tier, TierModelView } from "@agentherd/host/api";

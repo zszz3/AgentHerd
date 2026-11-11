@@ -1,29 +1,28 @@
-// 设置: the Feishu channel, the owner's apps, mode, how the Herder talks, font size, keep awake, the first run, and where AgentHerd keeps
-// its files.
+// 设置: the Feishu channel, the owner's apps, how approvals work, font size, keep awake, the first
+// run, and where AgentHerd keeps its files. How the Herder talks is on the 主管 page.
 
 import type { SettingsPatch } from "@agentherd/host/api";
-import {
-  Check,
-  Eye,
-  FolderOpen,
-  Hand,
-  Info,
-  MessageCircle,
-  MoonStar,
-  Rocket,
-  Type,
-} from "lucide-react";
+import { Check, Eye, FolderOpen, Hand, Info, MoonStar, Rocket, Type } from "lucide-react";
 import { useState } from "react";
 import { AppsSection } from "../components/AppsSection";
 import { FeishuSection } from "../components/FeishuSection";
 import { Button, Group, IconTile, Row, Section, Segmented, Switch } from "../components/ui";
 import { FONT_SCALES, setFontScale, useFontScale } from "../font-scale";
-import { HERDER_STYLE_LABELS } from "../herder-styles";
 import { call, type Mode, useApp } from "../store";
 
 const MODES: { mode: Mode; title: string; hint: string; icon: typeof Eye }[] = [
-  { mode: "observe", title: "只观察", hint: "只建议，不自动批准", icon: Eye },
-  { mode: "assist", title: "协助", hint: "按规则自动批准", icon: Hand },
+  {
+    mode: "observe",
+    title: "只观察",
+    hint: "什么都不自动放行，每个请求都发到飞书等你批准",
+    icon: Eye,
+  },
+  {
+    mode: "assist",
+    title: "协助",
+    hint: "本机上的操作自动放行；推送、开 PR、发消息、大量删除等你批准",
+    icon: Hand,
+  },
 ];
 
 export function SettingsPage() {
@@ -46,7 +45,7 @@ export function SettingsPage() {
       <FeishuSection />
       <AppsSection />
 
-      <Section title="模式">
+      <Section title="审批方式">
         <Group>
           {MODES.map(({ mode, title, hint, icon: Icon }) => {
             const active = status.mode === mode;
@@ -77,38 +76,6 @@ export function SettingsPage() {
           {!MODES.some((m) => m.mode === status.mode) && (
             <div className="px-4 py-2.5 text-ink-muted text-sm">当前模式：{status.mode}</div>
           )}
-        </Group>
-      </Section>
-
-      <Section title="主管的说话风格">
-        <Group>
-          {HERDER_STYLE_LABELS.map(({ style, title, hint }) => {
-            const active = status.herderStyle === style;
-            return (
-              <label key={style} className="block cursor-pointer hover:bg-hover">
-                <input
-                  type="radio"
-                  name="herderStyle"
-                  className="peer sr-only"
-                  checked={active}
-                  disabled={busy}
-                  onChange={() => void update({ herderStyle: style })}
-                />
-                <Row
-                  className="peer-focus-visible:bg-hover"
-                  icon={
-                    <IconTile tone={active ? "blue" : "gray"}>
-                      <MessageCircle size={15} strokeWidth={1.75} />
-                    </IconTile>
-                  }
-                  title={title}
-                  description={hint}
-                  trailing={active ? <Check size={16} className="text-accent-text" /> : undefined}
-                />
-              </label>
-            );
-          })}
-          <div className="px-4 py-2.5 text-ink-muted text-sm">随时可以换，也可以直接跟主管说</div>
         </Group>
       </Section>
 

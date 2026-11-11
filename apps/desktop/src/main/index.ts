@@ -147,9 +147,11 @@ async function captureAndQuit(prefix: string): Promise<void> {
   };
   await shoot("start");
   for (const page of pages) {
-    await w.webContents.executeJavaScript(
-      `document.querySelector('[data-nav="${page}"]')?.click()`,
+    // Pages inside a sidebar entry (记忆, Agent…) are tabs; a reload with the page in the hash opens them.
+    const reloaded = await w.webContents.executeJavaScript(
+      `(() => { const b = document.querySelector('[data-nav="${page}"]'); if (b) { b.click(); return false; } location.hash = "${page}"; location.reload(); return true; })()`,
     );
+    if (reloaded === true) await wait(2000);
     await wait(800);
     await shoot(page);
   }

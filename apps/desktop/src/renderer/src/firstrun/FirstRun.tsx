@@ -200,14 +200,14 @@ export function FirstRun() {
       break;
     case "style":
       title = "主管怎么跟你说话";
-      hint = "三种说话方式，都是同一件事的汇报。之后在「设置」里随时能换，也可以直接跟主管说。";
+      hint = "三种说话方式，都是同一件事的汇报。之后在「主管」页随时能换，也可以直接跟主管说。";
       body = <StyleBody style={style} onChoose={setStyle} />;
       busy = savingStyle;
       onPrimary = () => void saveStyle();
       break;
     case "done":
       title = "准备好了";
-      hint = "没完成的项目，之后在「设置」和「模型」页都能补上。";
+      hint = "没完成的项目，之后在「设置」「主管」「模型」页都能补上。";
       body = <DoneBody />;
       primary = "进入 AgentHerd";
       onPrimary = finish;
@@ -246,7 +246,8 @@ export function FirstRun() {
                 欢迎使用 AgentHerd
               </h1>
               <p className="max-w-[400px] text-base text-ink-muted leading-6">
-                AgentHerd 在后台看着你的编程 Agent：普通请求替你放行，要紧的发到飞书等你批准。
+                在飞书里跟主管说要做什么，它在你的 Mac 上开 Agent
+                去做，做完用自己的话告诉你；要推送、发消息这类出这台电脑的事，会先问你。
               </p>
             </div>
             <Button variant="primary" type="submit" className="mt-2 h-10 min-w-[200px] text-base">

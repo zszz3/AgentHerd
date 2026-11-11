@@ -1,21 +1,10 @@
 // The app shell: a sidebar on the window frame, and the page on a rounded card beside it.
 
-import {
-  Bot,
-  Boxes,
-  Brain,
-  CalendarClock,
-  ListTodo,
-  Loader2,
-  type LucideIcon,
-  Settings,
-  SquareTerminal,
-  WifiOff,
-} from "lucide-react";
+import { Bot, Boxes, ListTodo, Loader2, type LucideIcon, Settings, WifiOff } from "lucide-react";
 import { useEffect } from "react";
 import { Logo } from "./components/Logo";
 import { SidebarStatus } from "./components/SidebarStatus";
-import { Dot, Toasts } from "./components/ui";
+import { Dot, Segmented, Toasts } from "./components/ui";
 import { FirstRun } from "./firstrun/FirstRun";
 import { AgentsPage } from "./pages/AgentsPage";
 import { HerdersPage } from "./pages/HerdersPage";
@@ -26,15 +15,25 @@ import { SettingsPage } from "./pages/SettingsPage";
 import { TasksPage } from "./pages/TasksPage";
 import { type Page, startStore, useApp } from "./store";
 
-const NAV: { page: Page; label: string; icon: LucideIcon }[] = [
-  { page: "tasks", label: "任务", icon: ListTodo },
-  { page: "herders", label: "主管", icon: Bot },
-  { page: "memory", label: "记忆", icon: Brain },
-  { page: "schedules", label: "定时任务", icon: CalendarClock },
-  { page: "agents", label: "Agent", icon: SquareTerminal },
-  { page: "models", label: "模型", icon: Boxes },
-  { page: "settings", label: "设置", icon: Settings },
+/** The sidebar has four entries; 主管 and 模型 hold several pages, shown as tabs. */
+const NAV: { page: Page; label: string; icon: LucideIcon; pages: readonly Page[] }[] = [
+  { page: "tasks", label: "任务", icon: ListTodo, pages: ["tasks"] },
+  { page: "herders", label: "主管", icon: Bot, pages: ["herders", "memory", "schedules"] },
+  { page: "models", label: "模型", icon: Boxes, pages: ["models", "agents"] },
+  { page: "settings", label: "设置", icon: Settings, pages: ["settings"] },
 ];
+
+const TABS: Partial<Record<Page, string>> = {
+  herders: "说话风格",
+  memory: "记忆",
+  schedules: "定时任务",
+  models: "模型",
+  agents: "Agent",
+};
+
+function entryOf(page: Page) {
+  return NAV.find((n) => n.pages.includes(page)) ?? NAV[0];
+}
 
 const HEADERS: Record<Page, { title: string; hint: string }> = {
   tasks: { title: "任务", hint: "Agent 在做什么，哪些在等你" },
@@ -43,16 +42,16 @@ const HEADERS: Record<Page, { title: string; hint: string }> = {
     hint: "在飞书里回答你、帮你开任务、跟进进度；不会替你批准任何请求",
   },
   memory: {
-    title: "记忆",
+    title: "主管",
     hint: "主管长期记住的事；不对就改掉或忘掉，飞书里也能用 /记忆 查看",
   },
   schedules: {
-    title: "定时任务",
+    title: "主管",
     hint: "主管按时去做的事；在飞书里跟主管说就能加，这里可以暂停或删除",
   },
-  agents: { title: "Agent", hint: "替你干活的编程 Agent；在飞书里用 /run 开任务" },
-  models: { title: "模型", hint: "管理模型服务和 Key，选审查用的模型" },
-  settings: { title: "设置", hint: "飞书、应用连接、工作模式、字体大小、电源和数据目录" },
+  models: { title: "模型", hint: "模型服务和 Key，以及主管、Pi 和各档任务用哪个模型" },
+  agents: { title: "模型", hint: "替你干活的编程 Agent；主管开任务时按模型自动挑" },
+  settings: { title: "设置", hint: "飞书、应用连接、审批方式、外观、电源和数据目录" },
 };
 
 function Sidebar() {
@@ -72,8 +71,8 @@ function Sidebar() {
         </div>
       </div>
       <nav className="flex flex-col gap-px px-2.5">
-        {NAV.map(({ page: p, label, icon: Icon }) => {
-          const active = page === p;
+        {NAV.map(({ page: p, label, icon: Icon, pages }) => {
+          const active = pages.includes(page);
           return (
             <button
               key={p}
@@ -123,6 +122,7 @@ function ConnectionBanner() {
 
 function CurrentPage() {
   const page = useApp((s) => s.page);
+  const setPage = useApp((s) => s.setPage);
   const loaded = useApp((s) => s.loaded);
   if (!loaded) {
     return (
@@ -132,6 +132,22 @@ function CurrentPage() {
       </div>
     );
   }
+  const entry = entryOf(page);
+  if (entry.pages.length === 1) return <PageBody page={page} />;
+  return (
+    <div className="flex flex-col gap-6">
+      <Segmented
+        label={entry.label}
+        options={entry.pages.map((p) => ({ value: p, label: TABS[p] ?? p }))}
+        value={page}
+        onChange={setPage}
+      />
+      <PageBody page={page} />
+    </div>
+  );
+}
+
+function PageBody({ page }: { page: Page }) {
   switch (page) {
     case "tasks":
       return <TasksPage />;
