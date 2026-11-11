@@ -1,5 +1,5 @@
 // The owner's 小红书 and 知乎 accounts in the host (ADR 0058): which are turned on, starting and
-// stopping their local servers, the app's views, and the tools agents get from them.
+// stopping their local servers or browser, the app's views, and the tools agents get from them.
 
 import { randomInt } from "node:crypto";
 import {
@@ -13,6 +13,7 @@ import {
 import type { SocialPlatform, SocialView } from "./api.ts";
 import { type CliConfig, readConfig, writeConfig } from "./config.ts";
 import { Xiaohongshu } from "./xiaohongshu.ts";
+import { Zhihu } from "./zhihu.ts";
 
 /** One platform's settings in config.json. */
 export interface SocialConfig {
@@ -28,28 +29,40 @@ export interface SocialsOptions {
   home: string;
   changed: () => void;
   log?: (line: string) => void;
-  /** Tests give their own platform. */
+  /** Tests give their own platforms. */
   xiaohongshu?: Xiaohongshu;
+  zhihu?: Zhihu;
   /** What the herd's watch is set to, when a herd runs. */
   watch?: (platform: SocialPlatform) => Record<SocialKind, boolean> | undefined;
 }
 
 const NAMES: Record<SocialPlatform, string> = { xiaohongshu: "小红书", zhihu: "知乎" };
+const PLATFORMS = ["xiaohongshu", "zhihu"] as const;
+
+type Platform = Xiaohongshu | Zhihu;
 
 export class Socials {
   private readonly opts: SocialsOptions;
   readonly xiaohongshu: Xiaohongshu;
+  readonly zhihu: Zhihu;
 
   constructor(opts: SocialsOptions) {
     this.opts = opts;
+    const log = opts.log === undefined ? {} : { log: opts.log };
     this.xiaohongshu =
       opts.xiaohongshu ??
       new Xiaohongshu({
         home: opts.home,
         seed: this.seed("xiaohongshu"),
         changed: () => opts.changed(),
-        ...(opts.log === undefined ? {} : { log: opts.log }),
+        ...log,
       });
+    this.zhihu =
+      opts.zhihu ?? new Zhihu({ home: opts.home, changed: () => opts.changed(), ...log });
+  }
+
+  private platform(platform: SocialPlatform): Platform {
+    return platform === "zhihu" ? this.zhihu : this.xiaohongshu;
   }
 
   private config(): CliConfig {
@@ -58,6 +71,10 @@ export class Socials {
 
   private settings(platform: SocialPlatform): SocialConfig {
     return this.config().socials?.[platform] ?? {};
+  }
+
+  private on(platform: SocialPlatform): boolean {
+    return this.settings(platform).enabled === true;
   }
 
   private save(platform: SocialPlatform, patch: SocialConfig): void {
@@ -78,35 +95,23 @@ export class Socials {
 
   /** Starts the platforms the owner turned on. */
   start(): void {
-    if (this.settings("xiaohongshu").enabled === true) void this.xiaohongshu.start();
+    for (const p of PLATFORMS) if (this.on(p)) void this.platform(p).start();
   }
 
   stop(): void {
-    this.xiaohongshu.kill();
+    for (const p of PLATFORMS) this.platform(p).kill();
   }
 
   /** The platforms the herd watches: turned on (ready or not). */
   sources(): SocialSource[] {
-    return this.settings("xiaohongshu").enabled === true ? [this.xiaohongshu] : [];
+    return PLATFORMS.filter((p) => this.on(p)).map((p) => this.platform(p));
   }
 
   views(): SocialView[] {
-    return (["xiaohongshu", "zhihu"] as const).map((platform) => {
-      const enabled = this.settings(platform).enabled === true;
+    return PLATFORMS.map((platform) => {
+      const enabled = this.on(platform);
       const watch = this.opts.watch?.(platform) ?? { ...DEFAULT_SOCIAL_WATCH };
-      if (platform === "zhihu") {
-        return {
-          platform,
-          name: NAMES[platform],
-          available: false,
-          accepted: false,
-          enabled: false,
-          state: "off" as const,
-          problem: "即将支持",
-          watch,
-        };
-      }
-      const x = this.xiaohongshu;
+      const x = this.platform(platform);
       return {
         platform,
         name: NAMES[platform],
@@ -114,8 +119,8 @@ export class Socials {
         accepted: this.settings(platform).acceptedAt !== undefined,
         enabled,
         state: enabled ? x.state : "off",
-        ...(x.account === undefined ? {} : { account: x.account }),
-        ...(x.problem === undefined ? {} : { problem: x.problem }),
+        ...(enabled && x.account !== undefined ? { account: x.account } : {}),
+        ...(enabled && x.problem !== undefined ? { problem: x.problem } : {}),
         watch,
         ...(x.checkedAt === undefined ? {} : { checkedAt: x.checkedAt }),
       };
@@ -123,39 +128,35 @@ export class Socials {
   }
 
   async enable(platform: SocialPlatform, accepted: boolean): Promise<void> {
-    if (platform !== "xiaohongshu") throw new Error("知乎 is not supported yet");
     const before = this.settings(platform).acceptedAt;
     if (!accepted && before === undefined) {
       throw new Error("turning a platform on needs the owner to accept the notice");
     }
     this.save(platform, { enabled: true, acceptedAt: before ?? new Date().toISOString() });
     this.opts.changed();
-    await this.xiaohongshu.start();
+    await this.platform(platform).start();
   }
 
   disable(platform: SocialPlatform): void {
     this.save(platform, { enabled: false });
-    if (platform === "xiaohongshu") this.xiaohongshu.stop();
+    this.platform(platform).stop();
     this.opts.changed();
   }
 
   async loginCode(platform: SocialPlatform): Promise<{ image: string; signedIn: boolean }> {
-    if (platform !== "xiaohongshu" || this.settings(platform).enabled !== true) {
-      throw new Error(`${NAMES[platform]} is not turned on`);
-    }
-    return this.xiaohongshu.loginCode();
+    if (!this.on(platform)) throw new Error(`${NAMES[platform]} is not turned on`);
+    return this.platform(platform).loginCode();
   }
 
   async logout(platform: SocialPlatform): Promise<void> {
-    if (platform !== "xiaohongshu") return;
-    await this.xiaohongshu.logout();
+    if (!this.on(platform)) return;
+    await this.platform(platform).logout();
   }
 
   /** Checks the platform now (测试连接). */
   async test(platform: SocialPlatform): Promise<{ ok: boolean; message: string }> {
-    if (platform !== "xiaohongshu") return { ok: false, message: `${NAMES[platform]}还没接好` };
-    if (this.settings(platform).enabled !== true) return { ok: false, message: "还没连接" };
-    const x = this.xiaohongshu;
+    if (!this.on(platform)) return { ok: false, message: "还没连接" };
+    const x = this.platform(platform);
     try {
       if (x.state === "off" || x.state === "failed") await x.start();
       else await x.check();
@@ -171,9 +172,10 @@ export class Socials {
 
   /** Tools of the signed-in platforms, beside the owner's Composio apps. */
   tools(composio: AppTools | undefined): AppTools | undefined {
-    const xhs =
-      this.settings("xiaohongshu").enabled === true ? this.xiaohongshu.tools() : undefined;
-    return combineApps([composio, xhs]);
+    return combineApps([
+      composio,
+      ...PLATFORMS.map((p) => (this.on(p) ? this.platform(p).tools() : undefined)),
+    ]);
   }
 }
 

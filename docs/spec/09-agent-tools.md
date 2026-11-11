@@ -172,7 +172,16 @@ turned on in 应用连接 (risk notice accepted, QR sign-in). Its MCP tools reac
 Composio ones as `XIAOHONGSHU_<TOOL>` (`get_login_qrcode` and `delete_cookies` hidden); the
 approval rules above apply, and publish/comment/reply/like/favorite leave the Mac (ADR 0056).
 Notices for the owner come from its REST API (`notifications/unread`, `notifications/list`), not
-from agents. 知乎 is listed but not ready.
+from agents.
+
+知乎 has no maintained server and its web API signs requests, so the host keeps a headless Chrome
+with its own profile (`~/.agentherd/zhihu/profile`, signed in by the site's QR code) and calls the
+API from inside a zhihu.com page, whose session does what the site needs. Its tools are ours,
+named `ZHIHU_<TOOL>`: `SEARCH`, `HOT_LIST`, `GET_QUESTION`, `GET_ANSWER`, `GET_ARTICLE` (read from
+the article page), `GET_COMMENTS`, `GET_MY_PROFILE`, `LIST_NOTIFICATIONS` read; `POST_COMMENT`,
+`REPLY_COMMENT` and `VOTE_UP` write and ask. Notices come from
+`/api/v4/notifications/v2/{default,vote_thank,follow}` (「等你来答」 invitations left out); reading
+them does not mark them read.
 
 ## 4. Failure behavior
 

@@ -392,7 +392,7 @@ export function sampleSchedules(empty: boolean): SchedulesView {
   };
 }
 
-/** The platforms in the browser preview: 小红书 signed in with mentions on, 知乎 off. */
+/** The platforms in the browser preview: 小红书 signed in with mentions on, 知乎 not connected. */
 export function sampleSocials(): SocialView[] {
   return [
     {
@@ -409,11 +409,10 @@ export function sampleSocials(): SocialView[] {
     {
       platform: "zhihu",
       name: "知乎",
-      available: false,
+      available: true,
       accepted: false,
       enabled: false,
       state: "off",
-      problem: "即将支持",
       watch: { mentions: true, likes: false, follows: false },
     },
   ];

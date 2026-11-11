@@ -1,9 +1,9 @@
 # ADR 0058: The owner's 小红书 and 知乎, and one list of everything watched
 
-- Status: Accepted (小红书 built; 知乎 waiting for a sign-in test)
+- Status: Accepted
 - Date: 2026-11-11
 - Builds on: [ADR 0048](0048-watch-mail-only-when-asked.md) (mail watches), [ADR 0052](0052-offer-new-github-work-when-asked.md) (new work), [ADR 0056](0056-leaving-the-mac-asks-and-questions-close.md) (leaving the Mac)
-- Changes: [09-agent-tools §6](../spec/09-agent-tools.md), [04-herder](../spec/04-herder.md), [07-delivery](../spec/07-delivery.md)
+- Changes: [09-agent-tools §3b](../spec/09-agent-tools.md), [04-herder](../spec/04-herder.md), [07-delivery](../spec/07-delivery.md)
 
 ## Context
 
@@ -44,9 +44,14 @@ notice before a platform is turned on, and one page 「应用连接」 that list
 6. **One list of watches.** 应用连接 → 监听 lists pull requests tasks opened, mail watches, new
    GitHub work and platform watches. Each can be paused (kept, not looked at; `paused` in its
    herd.db row) and, except platform kinds, removed. Composio apps moved from 设置 to this page.
-7. **知乎** waits: its web API signs requests (`x-zse-96`), and no maintained server exists. It
-   shows in the app as not ready until a sign-in test with the owner's account decides between a
-   browser server like 小红书's and our own client.
+7. **知乎 is our own client in a headless Chrome.** No maintained server exists and the web API
+   signs requests (`x-zse-96`). A sign-in test with the owner's account showed that, once signed
+   in, calls made from inside a zhihu.com page pass without our own signing: me, notices, search,
+   hot list, answers, comments. The question and article endpoints still want the app's
+   signature, so a question is read through its answers and an article from its page data. The
+   host keeps that Chrome (profile `~/.agentherd/zhihu/profile`) while 知乎 is on; sign-in is the
+   site's QR code, shown in the app. Eleven `ZHIHU_` tools: eight read, three write
+   (comment, reply, vote up) and ask.
 
 ## Alternatives
 
@@ -59,4 +64,7 @@ notice before a platform is turned on, and one page 「应用连接」 that list
 
 - A 17 MB binary and a headless Chrome run while 小红书 is on. Only Apple-silicon Macs for now.
 - The account risk is the owner's; the notice says so, and nothing writes without asking.
-- Reading the notice lists marks them read on 小红书, as opening the app would.
+- Reading the notice lists marks them read on 小红书, as opening the app would; 知乎's are left
+  unread.
+- 知乎 may change the endpoints or demand signatures for more of them; the client then fails
+  with the site's message, and 测试连接 shows it.

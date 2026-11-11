@@ -8,6 +8,7 @@ import type { AppTools } from "@agentherd/core";
 import { describe, expect, it } from "vitest";
 import { combineApps } from "../src/socials.ts";
 import { Xiaohongshu } from "../src/xiaohongshu.ts";
+import { Zhihu, type ZhihuBrowser } from "../src/zhihu.ts";
 
 function fakeServer(signedIn: boolean) {
   const calls: string[] = [];
@@ -176,5 +177,142 @@ describe("combineApps", () => {
     const only = source([], []);
     expect(combineApps([undefined, only])).toBe(only);
     expect(combineApps([undefined])).toBeUndefined();
+  });
+});
+
+/** A 知乎 page that answers like the site, signed in or not. */
+function fakeZhihu(signedIn = true) {
+  const calls: { method: string; path: string; body?: unknown }[] = [];
+  let stopped = false;
+  const browser: ZhihuBrowser = {
+    start: async () => {
+      stopped = false;
+    },
+    running: () => !stopped,
+    signedIn: async () => signedIn,
+    qrCode: async () => "data:image/png;base64,QR",
+    doneSignIn: async () => {},
+    clearCookies: async () => {
+      signedIn = false;
+    },
+    stop: () => {
+      stopped = true;
+    },
+    pageData: async (url) => ({
+      initialState: {
+        entities: {
+          articles: { [url.split("/").pop() as string]: { title: "文章", content: "<p>正文</p>" } },
+        },
+      },
+    }),
+    call: async (method, path, body) => {
+      calls.push({ method, path, body });
+      if (!signedIn) return [401, { error: { message: "请登录" } }];
+      if (path.startsWith("/api/v4/me")) return [200, { name: "我借此火", url_token: "me" }];
+      if (path.startsWith("/api/v4/notifications/v2/default")) {
+        return [
+          200,
+          {
+            data: [
+              {
+                id: "1",
+                is_read: false,
+                content: {
+                  verb: "评论了你的回答",
+                  actors: [{ name: "小王" }],
+                  target: {
+                    text: "如何学 Agent",
+                    link: "https://www.zhihu.com/question/9/answer/8",
+                  },
+                  extend: { text: "<p>写得好</p>" },
+                },
+              },
+              {
+                id: "2",
+                is_read: false,
+                content: { verb: " 的提问等你来答", actors: [{ name: "某人" }], target: {} },
+              },
+            ],
+          },
+        ];
+      }
+      if (path.startsWith("/api/v4/notifications/v2/")) return [200, { data: [] }];
+      if (path.startsWith("/api/v4/comment_v5/")) return [200, { id: 77 }];
+      return [404, { error: { message: "没有" } }];
+    },
+  };
+  return { browser, calls };
+}
+
+describe("知乎 (ADR 0058)", () => {
+  it("reads the sign-in from the page and the account from /me", async () => {
+    const { browser } = fakeZhihu(true);
+    const z = new Zhihu({ home: "/tmp/none", changed: () => {}, browser });
+    await z.start();
+    expect(z.state).toBe("ready");
+    expect(z.account).toBe("我借此火");
+
+    const out = fakeZhihu(false);
+    const signedOut = new Zhihu({ home: "/tmp/none", changed: () => {}, browser: out.browser });
+    await signedOut.start();
+    expect(signedOut.state).toBe("signed-out");
+    expect(signedOut.tools()).toBeUndefined();
+    expect((await signedOut.loginCode()).image).toBe("data:image/png;base64,QR");
+    signedOut.kill();
+  });
+
+  it("counts unread notices and leaves invitations out", async () => {
+    const { browser } = fakeZhihu();
+    const z = new Zhihu({ home: "/tmp/none", changed: () => {}, browser });
+    await z.start();
+    expect(await z.unread()).toEqual({ mentions: 1, likes: 0, follows: 0 });
+    expect(await z.notices("mentions")).toEqual([
+      {
+        id: "1",
+        kind: "mentions",
+        who: "小王",
+        text: "评论了你的回答：写得好",
+        on: "如何学 Agent",
+        url: "https://www.zhihu.com/question/9/answer/8",
+      },
+    ]);
+  });
+
+  it("names tools ZHIHU_, marks writes, and comments as the owner", async () => {
+    const { browser, calls } = fakeZhihu();
+    const z = new Zhihu({ home: "/tmp/none", changed: () => {}, browser });
+    await z.start();
+    const tools = z.tools() as AppTools;
+    const names = (await tools.list()).map((t) => t.name);
+    expect(names).toContain("ZHIHU_SEARCH");
+    expect(names).toContain("ZHIHU_POST_COMMENT");
+    const info = await tools.describe(["ZHIHU_SEARCH", "ZHIHU_POST_COMMENT", "ZHIHU_VOTE_UP"]);
+    expect(info.get("ZHIHU_SEARCH")?.hints?.readOnly).toBe(true);
+    expect(info.get("ZHIHU_POST_COMMENT")?.hints?.readOnly).toBe(false);
+    expect(info.get("ZHIHU_VOTE_UP")?.hints?.readOnly).toBe(false);
+
+    await tools.call("ZHIHU_POST_COMMENT", {
+      on: "answer",
+      id: "https://www.zhihu.com/question/9/answer/123456",
+      content: "谢谢",
+    });
+    expect(calls.at(-1)).toEqual({
+      method: "POST",
+      path: "/api/v4/comment_v5/answers/123456/comment",
+      body: { content: "谢谢" },
+    });
+    const article = (await tools.call("ZHIHU_GET_ARTICLE", { article_id: "555555" })) as {
+      content: { text: string }[];
+    };
+    expect(article.content[0]?.text).toContain("正文");
+  });
+
+  it("turns signed-out when the site says so", async () => {
+    const fake = fakeZhihu();
+    const z = new Zhihu({ home: "/tmp/none", changed: () => {}, browser: fake.browser });
+    await z.start();
+    await z.logout();
+    expect(z.state).toBe("signed-out");
+    await expect(z.unread()).rejects.toThrow("知乎登录已失效");
   });
 });
