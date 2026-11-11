@@ -1,9 +1,9 @@
-// Choosing a model from the list for a role (ADR 0021): the select itself, and the rows of the
-// 模型 page for the Herder and Pi, each with a 试一下 button.
+// Choosing a model from the list for a role (ADR 0021): the select itself, and a row with a
+// 试一下 button (the Herder on the 主管 page, Pi on the 模型 page).
 
 import type { ModelTest } from "@agentherd/host/api";
 import { Check, CircleAlert, Loader2 } from "lucide-react";
-import { useState } from "react";
+import { type ReactNode, useState } from "react";
 import { applyModels, call, type ModelRef, type ModelRole, useApp } from "../store";
 import { Button, Group, inputClass, Row } from "./ui";
 
@@ -115,14 +115,16 @@ function TestResult({ testing, result }: { testing: boolean; result: ModelTest |
 }
 
 /** One role: its select, a 试一下 button, and what the try found. */
-function RoleRow({
+export function RoleRow({
   modelRole,
   title,
   description,
+  icon,
 }: {
   modelRole: ModelRole;
-  title: string;
-  description: string;
+  title: ReactNode;
+  description: ReactNode;
+  icon?: ReactNode;
 }) {
   const ref = useApp((s) => s.models?.roles[modelRole]);
   const [testing, setTesting] = useState(false);
@@ -138,13 +140,14 @@ function RoleRow({
     <div>
       <Row
         className="min-h-14"
+        icon={icon}
         title={title}
         description={description}
         trailing={
           <>
             <RoleSelect
               modelRole={modelRole}
-              label={`${title}的模型`}
+              label={modelRole === "herder" ? "主管的模型" : "Pi 的模型"}
               className="w-56"
               onChosen={(next) => {
                 setResult(null);
@@ -167,16 +170,11 @@ function RoleRow({
   );
 }
 
-/** The "谁用哪个模型" group of the 模型 page: the Herder and Pi. */
+/** The 模型 page's group for Pi's model; the Herder's model is chosen on the 主管 page. */
 export function RolePicker() {
   const count = useApp((s) => s.models?.services.length ?? 0);
   return (
     <Group>
-      <RoleRow
-        modelRole="herder"
-        title="主管"
-        description="在飞书里跟你说话、开任务；用快一点、便宜一点的就够"
-      />
       <RoleRow
         modelRole="pi"
         title="Pi"

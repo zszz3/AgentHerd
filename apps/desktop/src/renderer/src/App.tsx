@@ -1,6 +1,15 @@
 // The app shell: a sidebar on the window frame, and the page on a rounded card beside it.
 
-import { Bot, Boxes, ListTodo, Loader2, type LucideIcon, Settings, WifiOff } from "lucide-react";
+import {
+  Bot,
+  Boxes,
+  ListTodo,
+  Loader2,
+  type LucideIcon,
+  Settings,
+  SquareTerminal,
+  WifiOff,
+} from "lucide-react";
 import { useEffect } from "react";
 import { Logo } from "./components/Logo";
 import { SidebarStatus } from "./components/SidebarStatus";
@@ -15,20 +24,19 @@ import { SettingsPage } from "./pages/SettingsPage";
 import { TasksPage } from "./pages/TasksPage";
 import { type Page, startStore, useApp } from "./store";
 
-/** The sidebar has four entries; 主管 and 模型 hold several pages, shown as tabs. */
+/** The sidebar entries; 主管 holds several pages, shown as tabs. */
 const NAV: { page: Page; label: string; icon: LucideIcon; pages: readonly Page[] }[] = [
   { page: "tasks", label: "任务", icon: ListTodo, pages: ["tasks"] },
   { page: "herders", label: "主管", icon: Bot, pages: ["herders", "memory", "schedules"] },
-  { page: "models", label: "模型", icon: Boxes, pages: ["models", "agents"] },
+  { page: "models", label: "模型", icon: Boxes, pages: ["models"] },
+  { page: "agents", label: "Agent", icon: SquareTerminal, pages: ["agents"] },
   { page: "settings", label: "设置", icon: Settings, pages: ["settings"] },
 ];
 
 const TABS: Partial<Record<Page, string>> = {
-  herders: "说话风格",
+  herders: "模型和风格",
   memory: "记忆",
   schedules: "定时任务",
-  models: "模型",
-  agents: "Agent",
 };
 
 function entryOf(page: Page) {
@@ -49,8 +57,8 @@ const HEADERS: Record<Page, { title: string; hint: string }> = {
     title: "主管",
     hint: "主管按时去做的事；在飞书里跟主管说就能加，这里可以暂停或删除",
   },
-  models: { title: "模型", hint: "模型服务和 Key，以及主管、Pi 和各档任务用哪个模型" },
-  agents: { title: "模型", hint: "替你干活的编程 Agent；主管开任务时按模型自动挑" },
+  models: { title: "模型", hint: "模型服务和 Key，Pi 和各档任务用哪个模型" },
+  agents: { title: "Agent", hint: "替你干活的编程 Agent；主管开任务时按模型自动挑" },
   settings: { title: "设置", hint: "飞书、应用连接、审批方式、外观、电源和数据目录" },
 };
 

@@ -52,7 +52,7 @@ pnpm install
 pnpm --filter @agentherd/desktop start
 ```
 
-第一次打开会一步步带你：扫码接入飞书，添加模型服务和 Key，给主管选模型和说话风格。在「模型 › Agent」下载 Pi 或 Codex，
+第一次打开会一步步带你：扫码接入飞书，添加模型服务和 Key，给主管选模型和说话风格。在「Agent」页下载 Pi 或 Codex，
 点「验证」确认能启动。然后在飞书里给主管发条消息就行。
 
 <details>

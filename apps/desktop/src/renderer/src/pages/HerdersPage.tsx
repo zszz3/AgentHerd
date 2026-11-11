@@ -1,10 +1,11 @@
-// 主管 › 说话风格: whether the Herder is working and on which model, and how it talks (ADR 0053).
-// Its model is chosen on the 模型 page, with every other model choice.
+// 主管 › 说话风格: whether the Herder is working, its model (with 试一下), and how it talks
+// (ADR 0053).
 
 import type { SettingsPatch } from "@agentherd/host/api";
 import { Bot, Check, MessageCircle } from "lucide-react";
 import { useState } from "react";
 import { herderReasonLabel } from "../components/labels";
+import { RoleRow } from "../components/RolePicker";
 import { Button, Dot, Group, IconTile, Row, Section } from "../components/ui";
 import { HERDER_STYLE_LABELS } from "../herder-styles";
 import { call, useApp } from "../store";
@@ -12,6 +13,7 @@ import { call, useApp } from "../store";
 export function HerdersPage() {
   const status = useApp((s) => s.status);
   const setPage = useApp((s) => s.setPage);
+  const serviceCount = useApp((s) => s.models?.services.length ?? 0);
   const [busy, setBusy] = useState(false);
   if (status === undefined) return null;
   const herder = status.herder;
@@ -26,8 +28,8 @@ export function HerdersPage() {
   return (
     <div className="flex flex-col gap-7">
       <Group>
-        <Row
-          className="min-h-16"
+        <RoleRow
+          modelRole="herder"
           icon={
             <IconTile tone={herder.on ? "green" : "gray"}>
               <Bot size={15} strokeWidth={1.75} />
@@ -43,16 +45,19 @@ export function HerdersPage() {
             </span>
           }
           description={
-            herder.on ? (
-              <span className="selectable font-mono">{herder.ref}</span>
-            ) : (
-              herderReasonLabel(herder.reason)
-            )
-          }
-          trailing={
-            <Button onClick={() => setPage("models")}>{herder.on ? "换模型" : "去选模型"}</Button>
+            herder.on
+              ? "在飞书里跟你说话、开任务；用快一点、便宜一点的模型就够"
+              : herderReasonLabel(herder.reason)
           }
         />
+        {serviceCount === 0 && (
+          <div className="flex items-center justify-between gap-3 px-4 py-2.5 text-ink-muted text-sm">
+            还没有模型服务，先添加一个才能选模型。
+            <Button size="sm" onClick={() => setPage("models")}>
+              去添加
+            </Button>
+          </div>
+        )}
       </Group>
 
       <Section title="说话风格" hint="随时可以换，也可以直接在飞书里跟主管说">

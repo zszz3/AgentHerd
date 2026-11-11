@@ -65,7 +65,7 @@ pnpm --filter @agentherd/desktop start
 ```
 
 The first run walks you through it: scan a QR code to connect Feishu, add a model service and
-its key, pick the Herder's model and how it talks. Under **模型 › Agent**, download Pi or Codex
+its key, pick the Herder's model and how it talks. On the **Agent** page, download Pi or Codex
 and press 验证 to check that it starts. Then send the Herder a message in Feishu.
 
 <details>
