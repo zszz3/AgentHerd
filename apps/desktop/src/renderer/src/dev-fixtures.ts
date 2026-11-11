@@ -151,7 +151,20 @@ export function sampleTranscript(taskId: string): TranscriptView {
         text: "Write test/orders/refund.test.ts",
         status: "completed",
       },
-      { id: 7, at: at(1), role: "tool", text: "npm test", status: "in_progress" },
+      { id: 7, at: at(3), role: "tool", text: "npm test", status: "completed" },
+      {
+        id: 8,
+        at: at(3),
+        role: "agent",
+        text: "12 个测试都过了：退款 8 个，部分发货 4 个。测试在 test/orders/refund.test.ts。",
+      },
+      {
+        id: 9,
+        at: at(2),
+        role: "prompt",
+        text: "[Message from the Herder, not from the owner]\n负责人想再加几个超过 30 天退款的边界测试。",
+      },
+      { id: 10, at: at(1), role: "tool", text: "npm test -- refund", status: "in_progress" },
     ],
     live: "已写完 12 个测试，正在跑 npm test",
   };

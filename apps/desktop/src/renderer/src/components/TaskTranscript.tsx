@@ -202,12 +202,96 @@ function rows(entries: readonly TranscriptEntry[]): (TranscriptEntry | Transcrip
   return out;
 }
 
+/** Agent replies longer than this show folded, with 展开全部. */
+const REPLY_FOLD_CHARS = 280;
+
+function AgentEntry({ text }: { text: string }) {
+  const long = text.length > REPLY_FOLD_CHARS || text.split("\n").length > 8;
+  const [open, setOpen] = useState(false);
+  if (!long) return <Markdown text={text} className="text-ink text-md leading-relaxed" />;
+  return (
+    <div>
+      <div className={open ? undefined : "relative max-h-36 overflow-hidden"}>
+        <Markdown text={text} className="text-ink text-md leading-relaxed" />
+        {!open && (
+          <div className="pointer-events-none absolute inset-x-0 bottom-0 h-12 bg-linear-to-t from-canvas to-transparent" />
+        )}
+      </div>
+      <button
+        type="button"
+        aria-expanded={open}
+        onClick={() => setOpen(!open)}
+        className="mt-1 text-accent-text text-sm hover:underline"
+      >
+        {open ? "收起" : "展开全部"}
+      </button>
+    </div>
+  );
+}
+
+/** Earlier rounds (each starts with what AgentHerd sent) show as one line until opened. */
+function Round({
+  index,
+  entries,
+  last,
+}: {
+  index: number;
+  entries: readonly TranscriptEntry[];
+  last: boolean;
+}) {
+  const [open, setOpen] = useState(last);
+  const first = entries[0];
+  const said =
+    first?.role === "prompt"
+      ? (promptParts(first.text).find((p) => p.main)?.text ?? first.text)
+      : (first?.text ?? "");
+  return (
+    <div className="flex flex-col gap-3">
+      {!last && (
+        <button
+          type="button"
+          aria-expanded={open}
+          onClick={() => setOpen(!open)}
+          className="flex w-full items-center gap-2 rounded-md bg-inset px-2.5 py-1.5 text-left text-ink-muted text-sm hover:text-ink"
+        >
+          <ChevronRight
+            size={13}
+            className={`shrink-0 transition-transform duration-150 ${open ? "rotate-90" : ""}`}
+          />
+          <span className="shrink-0">第 {index + 1} 轮</span>
+          {first !== undefined && <span className="shrink-0">· {hhmm(first.at)}</span>}
+          <span className="min-w-0 flex-1 truncate text-ink-2">{said.split("\n")[0]}</span>
+        </button>
+      )}
+      {open &&
+        rows(entries).map((r) =>
+          Array.isArray(r) ? (
+            <ToolRun key={r[0]?.id} entries={r} />
+          ) : (
+            <Entry key={r.id} entry={r} />
+          ),
+        )}
+    </div>
+  );
+}
+
+/** Splits the transcript into rounds, each starting at a prompt. */
+function rounds(entries: readonly TranscriptEntry[]): TranscriptEntry[][] {
+  const out: TranscriptEntry[][] = [];
+  for (const e of entries) {
+    const current = out[out.length - 1];
+    if (e.role === "prompt" || current === undefined) out.push([e]);
+    else current.push(e);
+  }
+  return out;
+}
+
 function Entry({ entry }: { entry: TranscriptEntry }) {
   switch (entry.role) {
     case "prompt":
       return <PromptEntry text={entry.text} at={entry.at} />;
     case "agent":
-      return <Markdown text={entry.text} className="text-ink text-md leading-relaxed" />;
+      return <AgentEntry text={entry.text} />;
     case "tool":
       return <ToolEntry text={entry.text} status={entry.status} />;
     default:
@@ -279,13 +363,9 @@ export function TaskTranscript({ task, onClose }: { task: Task; onClose: () => v
             还没有对话记录。这个功能上线前开始的任务没有记录。
           </p>
         )}
-        {rows(entries).map((r) =>
-          Array.isArray(r) ? (
-            <ToolRun key={r[0]?.id} entries={r} />
-          ) : (
-            <Entry key={r.id} entry={r} />
-          ),
-        )}
+        {rounds(entries).map((r, i, all) => (
+          <Round key={r[0]?.id} index={i} entries={r} last={i === all.length - 1} />
+        ))}
         {live !== "" && (
           <div>
             <Markdown text={live} className="text-ink text-md leading-relaxed" />
