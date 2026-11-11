@@ -68,7 +68,7 @@ AgentHerd started itself; otherwise, or when longer, the answer is a tool error.
 
 ## 3. Apps through Composio
 
-### Setup (desktop app, 设置 → 应用连接)
+### Setup (desktop app, 应用连接 → 应用)
 
 1. The owner pastes a Composio API key (from platform.composio.dev). The host checks it with one
    API call and stores it in `secrets.json` under `composio`; the UI can replace or remove it, never
@@ -163,6 +163,25 @@ redaction (06-security §2).
 
 The settings use a second session with no toolkit filter, only to list toolkits and to get
 sign-in links; a session Composio no longer knows (404) is made again once.
+
+## 3b. 小红书 and 知乎 (ADR 0058)
+
+The host runs a pinned [xiaohongshu-mcp](https://github.com/xpzouying/xiaohongshu-mcp) release on
+`127.0.0.1` (random port, bearer token, cookies in `~/.agentherd/xiaohongshu/`) while 小红书 is
+turned on in 应用连接 (risk notice accepted, QR sign-in). Its MCP tools reach agents beside the
+Composio ones as `XIAOHONGSHU_<TOOL>` (`get_login_qrcode` and `delete_cookies` hidden); the
+approval rules above apply, and publish/comment/reply/like/favorite leave the Mac (ADR 0056).
+Notices for the owner come from its REST API (`notifications/unread`, `notifications/list`), not
+from agents.
+
+知乎 has no maintained server and its web API signs requests, so the host keeps a headless Chrome
+with its own profile (`~/.agentherd/zhihu/profile`, signed in by the site's QR code) and calls the
+API from inside a zhihu.com page, whose session does what the site needs. Its tools are ours,
+named `ZHIHU_<TOOL>`: `SEARCH`, `HOT_LIST`, `GET_QUESTION`, `GET_ANSWER`, `GET_ARTICLE` (read from
+the article page), `GET_COMMENTS`, `GET_MY_PROFILE`, `LIST_NOTIFICATIONS` read; `POST_COMMENT`,
+`REPLY_COMMENT` and `VOTE_UP` write and ask. Notices come from
+`/api/v4/notifications/v2/{default,vote_thank,follow}` (「等你来答」 invitations left out); reading
+them does not mark them read.
 
 ## 4. Failure behavior
 

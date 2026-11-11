@@ -161,6 +161,10 @@ export function appOutbound(slug: string): OutboundResult | undefined {
       "speaks for the owner",
     );
   }
+  // A like, save or follow shows under the owner's name too (小红书 / 知乎, ADR 0058).
+  if (/(^|_)(LIKE|FAVORITE|FOLLOW|UPVOTE|VOTE_UP)(_|$)/.test(s)) {
+    return hit("comment", "acts in public for the owner");
+  }
   if (/CREATE_(A_)?PULL_REQUEST|CREATE_(AN_)?ISSUE/.test(s)) {
     return hit(/PULL/.test(s) ? "pull-request" : "comment", "writes on GitHub");
   }

@@ -377,6 +377,7 @@ export class GitHubWatch {
         store.audit("github.expired", { taskId: watch.taskId, url: watch.url });
         continue;
       }
+      if (watch.paused === true) continue;
       // While the task works, what its account writes is the agent's; look after the turn.
       const f = this.ctx.following.get(watch.taskId);
       if (this.turnsPending.has(watch.taskId) || f?.busy === true || f?.reopening !== undefined) {

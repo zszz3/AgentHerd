@@ -171,6 +171,22 @@ function mailLines(host: HerderHost): string[] {
   ];
 }
 
+/** The owner's 小红书 / 知乎 accounts that are turned on, and what each tells (ADR 0058). */
+function socialLines(host: HerderHost): string[] {
+  const socials = host.socialWatches?.() ?? [];
+  if (socials.length === 0) return [];
+  return [
+    "Platforms (the owner's accounts; agents use them through their agentherd tools, writes ask the owner; AgentHerd looks for new notices about every 20 minutes):",
+    ...socials.map(
+      (s) =>
+        `- ${s.platform} (${s.name}) ${s.ready ? "signed in" : "not signed in (the owner scans a code in the app)"}; tells: ${
+          (["mentions", "likes", "follows"] as const).filter((k) => s.watch[k]).join(", ") ||
+          "nothing"
+        }`,
+    ),
+  ];
+}
+
 /** New-work watches (ADR 0052). */
 function intakeLines(host: HerderHost): string[] {
   if (host.intakeWatches === undefined) return [];
@@ -542,6 +558,17 @@ const intakeUnwatchSchema = obj({
   watch: str({ description: "The watch's id prefix or words of what it is about." }),
 });
 
+const socialWatchSchema = obj({
+  platform: oneOf(["xiaohongshu", "zhihu"] as const, {
+    description: "xiaohongshu = 小红书, zhihu = 知乎",
+  }),
+  kind: oneOf(["mentions", "likes", "follows"] as const, {
+    description:
+      "mentions = comments, answers and @; likes = likes and saves; follows = new followers",
+  }),
+  on: bool({ description: "true to tell the owner about this kind, false to stop" }),
+});
+
 const mailUnwatchSchema = obj({
   watch: str({ description: "Mail watch id prefix or words of what it is about" }),
 });
@@ -579,6 +606,7 @@ export function herderTools(
           `Relay: ${host.relayTaskId()?.slice(0, 8) ?? "none"}`,
           ...appLines(host),
           ...mailLines(host),
+          ...socialLines(host),
           ...intakeLines(host),
           ...scheduleLines(host),
           ...sourceLines(host),
@@ -860,6 +888,31 @@ export function herderTools(
   }
   if (host.watchMail !== undefined) {
     all.push(...mailTools(host, turn).map((t) => t as unknown as AgentTool));
+  }
+  const setSocialWatch = host.setSocialWatch;
+  if (setSocialWatch !== undefined) {
+    const socialTool = {
+      name: "social_watch",
+      label: "Platform notices",
+      description:
+        "Turns telling the owner about one kind of notice on their 小红书 or 知乎 account on or off, when the owner asks.",
+      parameters: socialWatchSchema,
+      execute: async (
+        _id: string,
+        args: {
+          platform: "xiaohongshu" | "zhihu";
+          kind: "mentions" | "likes" | "follows";
+          on: boolean;
+        },
+      ) => {
+        ownerOnly(turn, "change platform watches");
+        setSocialWatch(args.platform, args.kind, args.on);
+        return ok(
+          `${args.platform} ${args.kind} ${args.on ? "on" : "off"}; tell the owner in one short line`,
+        );
+      },
+    };
+    all.push(socialTool as unknown as AgentTool);
   }
   if (host.watchIntake !== undefined) {
     all.push(...intakeTools(host, turn).map((t) => t as unknown as AgentTool));

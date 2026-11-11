@@ -62,9 +62,15 @@ import type {
   SchedulesView,
   SettingsPatch,
   SetupState,
+  SocialKind,
+  SocialLoginCode,
+  SocialPlatform,
+  SocialTest,
+  SocialView,
   TasksView,
   Tier,
   TranscriptView,
+  WatchView,
 } from "./api.ts";
 import { Apps, newComposioUserId } from "./apps.ts";
 import type { AgentDef, Fetchers } from "./catalog.ts";
@@ -77,7 +83,9 @@ import { probeModels } from "./probe.ts";
 import { availableProfiles } from "./profiles.ts";
 import { withSystemProxy } from "./proxy.ts";
 import { RuntimeStore } from "./runtimes.ts";
+import { Socials } from "./socials.ts";
 import { type VerifyOptions, verifyProfile } from "./verify.ts";
+import { deleteWatch, pauseWatch, watchViews } from "./watches.ts";
 
 export const HOST_VERSION = "0.0.0";
 
@@ -154,6 +162,8 @@ export class Host implements HostApi {
 
   private readonly agentList: Agents;
   private readonly appList: Apps;
+  /** 小红书 and 知乎 (ADR 0058). */
+  private readonly socialList: Socials;
 
   constructor(opts: HostOptions) {
     this.opts = opts;
@@ -174,6 +184,75 @@ export class Host implements HostApi {
       emit: (data) => this.emit({ topic: "apps", data }),
       log: (line) => this.log(line),
     });
+    this.socialList = new Socials({
+      home: opts.home,
+      changed: () => this.socialsChanged(),
+      log: (line) => this.log(line),
+      watch: (platform) => this.herd?.socials?.watch(platform),
+    });
+  }
+
+  private socialsChanged(): void {
+    // A platform that just signed in starts being looked at.
+    this.herd?.socials?.schedule();
+    this.emit({ topic: "socials", data: this.socials() });
+    this.emit({ topic: "watches", data: this.watches() });
+  }
+
+  socials(): SocialView[] {
+    return this.socialList.views();
+  }
+
+  async enableSocial(platform: SocialPlatform, accepted: boolean): Promise<SocialView[]> {
+    await this.socialList.enable(platform, accepted);
+    return this.socials();
+  }
+
+  async disableSocial(platform: SocialPlatform): Promise<SocialView[]> {
+    this.socialList.disable(platform);
+    return this.socials();
+  }
+
+  socialLoginCode(platform: SocialPlatform): Promise<SocialLoginCode> {
+    return this.socialList.loginCode(platform);
+  }
+
+  async socialLogout(platform: SocialPlatform): Promise<SocialView[]> {
+    await this.socialList.logout(platform);
+    return this.socials();
+  }
+
+  async testSocial(platform: SocialPlatform): Promise<SocialTest> {
+    const found = await this.socialList.test(platform);
+    return { ...found, socials: this.socials() };
+  }
+
+  setSocialWatch(platform: SocialPlatform, kind: SocialKind, on: boolean): SocialView[] {
+    const socials = this.herd?.socials;
+    if (socials === undefined) throw new Error("AgentHerd is not running; connect Feishu first");
+    socials.setWatch(platform, kind, on);
+    return this.socials();
+  }
+
+  watches(): WatchView[] {
+    const herd = this.herd;
+    if (herd === undefined) return [];
+    return watchViews(herd, this.socialList.views());
+  }
+
+  setWatchPaused(id: string, paused: boolean): WatchView[] {
+    const herd = this.herd;
+    if (herd === undefined) throw new Error("AgentHerd is not running; connect Feishu first");
+    pauseWatch(herd, id, paused);
+    this.emit({ topic: "socials", data: this.socials() });
+    return this.watches();
+  }
+
+  removeWatch(id: string): WatchView[] {
+    const herd = this.herd;
+    if (herd === undefined) throw new Error("AgentHerd is not running; connect Feishu first");
+    deleteWatch(herd, id);
+    return this.watches();
   }
 
   /** This AgentHerd's Composio user id, made the first time it is needed. */
@@ -253,6 +332,7 @@ export class Host implements HostApi {
   async start(): Promise<void> {
     this.installNeededAgents();
     void this.appList.load();
+    this.socialList.start();
     await this.restartHerd();
   }
 
@@ -265,6 +345,7 @@ export class Host implements HostApi {
   async stop(): Promise<void> {
     this.stopped = true;
     this.agentList.stop();
+    this.socialList.stop();
     this.setupRun++;
     await this.stopHerd();
   }
@@ -312,12 +393,14 @@ export class Host implements HostApi {
         },
       },
       github: { run: this.opts.gh ?? runGh(withSystemProxy()) },
+      socials: () => this.socialList.sources(),
+      watchesChanged: () => this.socialsChanged(),
       ...(herder === undefined ? {} : { herder }),
       ...(this.opts.mcpSocket === undefined
         ? {}
         : {
             mcpServer: (token: string) => mcpServerFor(this.opts.mcpSocket as string, token),
-            apps: () => this.appList.appTools(),
+            apps: () => this.socialList.tools(this.appList.appTools()),
             appNames: () => this.appList.connectedNames(),
           }),
       agentModels: {
@@ -370,6 +453,7 @@ export class Host implements HostApi {
     }
     this.emitStatus();
     this.emitTasks();
+    this.socialsChanged();
   }
 
   private memoryEmbedder(): LocalEmbedder {

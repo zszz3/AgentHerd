@@ -227,6 +227,73 @@ export interface SchedulesView {
   ready: boolean;
 }
 
+/** Chinese platforms AgentHerd can use with the owner's own account (ADR 0058). */
+export type SocialPlatform = "xiaohongshu" | "zhihu";
+
+/** What a platform watch can tell the owner about. */
+export type SocialKind = "mentions" | "likes" | "follows";
+
+/** What 测试连接 found. */
+export interface SocialTest {
+  ok: boolean;
+  message: string;
+  socials: SocialView[];
+}
+
+/**
+ * One platform in 应用连接 (ADR 0058). Turning it on needs the owner to accept the account-risk
+ * notice once; signing in is a QR code scanned with the platform's phone app.
+ */
+export interface SocialView {
+  platform: SocialPlatform;
+  /** 小红书 / 知乎 */
+  name: string;
+  /** False while AgentHerd cannot connect it yet (知乎, ADR 0058). */
+  available: boolean;
+  /** The owner accepted the account-risk notice once; connecting again does not show it. */
+  accepted: boolean;
+  /** The owner accepted the notice and turned the platform on. */
+  enabled: boolean;
+  /**
+   * off: not turned on. starting: AgentHerd is getting its helper ready. signed-out: needs a scan.
+   * ready: signed in, agents and watches can use it. failed: see `problem`.
+   */
+  state: "off" | "starting" | "signed-out" | "ready" | "failed";
+  /** The signed-in account's name, when known. */
+  account?: string;
+  /** Something the owner should know, in Chinese. */
+  problem?: string;
+  /** What the watch tells the owner about (ADR 0058 defaults: mentions on, the rest off). */
+  watch: Record<SocialKind, boolean>;
+  /** The last look for new notices (ISO). */
+  checkedAt?: string;
+}
+
+/** A QR code to scan with the platform's app. */
+export interface SocialLoginCode {
+  /** data:image/png;base64,… */
+  image: string;
+  /** True when the account turned out to be signed in already (no code). */
+  signedIn: boolean;
+}
+
+/** One thing AgentHerd watches, for the 应用连接 page (ADR 0058). */
+export interface WatchView {
+  /** `pr:<repo>#<n>`, `mail:<id>`, `intake:<id>`, `social:<platform>:<kind>`. */
+  id: string;
+  kind: "pr" | "mail" | "intake" | "social";
+  /** What it watches, in the owner's words where there are some. */
+  title: string;
+  /** One line: how, how often. */
+  detail: string;
+  paused: boolean;
+  /** Social watches are switched, not removed. */
+  removable: boolean;
+  createdAt?: string;
+  /** Last news from it (ISO). */
+  activeAt?: string;
+}
+
 export interface HostApi {
   status(): HostStatus;
   tasks(): TasksView;
@@ -277,6 +344,24 @@ export interface HostApi {
   /** A sign-in link for the app; when it is done an "apps" event comes. */
   connectApp(slug: string): Promise<{ url: string }>;
   disconnectApp(slug: string): Promise<AppsView>;
+  /** 小红书 and 知乎 (ADR 0058). */
+  socials(): SocialView[];
+  /** Turns a platform on; `accepted` must be true: the owner read the account-risk notice. */
+  enableSocial(platform: SocialPlatform, accepted: boolean): Promise<SocialView[]>;
+  /** Turns a platform off: agents lose its tools and its watches stop. The sign-in is kept
+   * unless the owner disconnects (socialLogout first). */
+  disableSocial(platform: SocialPlatform): Promise<SocialView[]>;
+  /** A QR code to sign in; when the scan is done a "socials" event comes. */
+  socialLoginCode(platform: SocialPlatform): Promise<SocialLoginCode>;
+  /** Forgets the sign-in on this Mac. */
+  socialLogout(platform: SocialPlatform): Promise<SocialView[]>;
+  /** Checks now whether the platform is reachable and signed in; says what it found, in Chinese. */
+  testSocial(platform: SocialPlatform): Promise<SocialTest>;
+  setSocialWatch(platform: SocialPlatform, kind: SocialKind, on: boolean): SocialView[];
+  /** Everything AgentHerd watches: pull requests, mail, new GitHub work, platforms. */
+  watches(): WatchView[];
+  setWatchPaused(id: string, paused: boolean): WatchView[];
+  removeWatch(id: string): WatchView[];
 }
 
 export type HostMethod = keyof HostApi;
@@ -316,6 +401,16 @@ export const HOST_METHODS: readonly HostMethod[] = [
   "setComposioKey",
   "connectApp",
   "disconnectApp",
+  "socials",
+  "enableSocial",
+  "disableSocial",
+  "socialLoginCode",
+  "socialLogout",
+  "testSocial",
+  "setSocialWatch",
+  "watches",
+  "setWatchPaused",
+  "removeWatch",
 ];
 
 export type HostEvent =
@@ -324,7 +419,9 @@ export type HostEvent =
   | { topic: "models"; data: ModelsView }
   | { topic: "setup"; data: SetupState }
   | { topic: "agents"; data: AgentView[] }
-  | { topic: "apps"; data: AppsView };
+  | { topic: "apps"; data: AppsView }
+  | { topic: "socials"; data: SocialView[] }
+  | { topic: "watches"; data: WatchView[] };
 
 /** The same API, asynchronous, as seen by a client. */
 export type RemoteHost = {

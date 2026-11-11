@@ -11,8 +11,10 @@ import type {
   ProviderView,
   RemoteHost,
   SetupState,
+  SocialView,
   TasksView,
   TranscriptView,
+  WatchView,
 } from "@agentherd/host/api";
 import { create } from "zustand";
 import type { Bridge } from "../../shared/bridge";
@@ -29,7 +31,15 @@ export type ModelRef = NonNullable<Parameters<HostApi["chooseModel"]>[1]>;
 export type Stage = Task["stage"];
 export type Mode = HostStatus["mode"];
 
-export type Page = "tasks" | "herders" | "memory" | "schedules" | "agents" | "models" | "settings";
+export type Page =
+  | "tasks"
+  | "herders"
+  | "memory"
+  | "schedules"
+  | "connections"
+  | "agents"
+  | "models"
+  | "settings";
 
 export interface Toast {
   id: number;
@@ -44,8 +54,12 @@ interface AppState {
   tasks: TasksView | undefined;
   models: ModelsView | undefined;
   agents: AgentView[];
-  /** 设置 › 应用连接; loaded when the section shows. */
+  /** 应用连接 › 应用 (Composio); loaded when the section shows. */
   apps: AppsView | undefined;
+  /** 应用连接 › 平台 (小红书, 知乎); loaded when the page shows, then kept by events. */
+  socials: SocialView[] | undefined;
+  /** 应用连接 › 监听; loaded when the page shows, then kept by events. */
+  watches: WatchView[] | undefined;
   providers: ProviderView[];
   setup: SetupState | undefined;
   page: Page;
@@ -66,6 +80,7 @@ const PAGES: readonly Page[] = [
   "herders",
   "memory",
   "schedules",
+  "connections",
   "agents",
   "models",
   "settings",
@@ -96,6 +111,8 @@ export const useApp = create<AppState>()((set, get) => ({
   models: undefined,
   agents: [],
   apps: undefined,
+  socials: undefined,
+  watches: undefined,
   providers: [],
   setup: undefined,
   page: hashPage() ?? "tasks",
@@ -181,6 +198,12 @@ function applyEvent(event: HostEvent): void {
       break;
     case "apps":
       useApp.setState({ apps: event.data });
+      break;
+    case "socials":
+      useApp.setState({ socials: event.data });
+      break;
+    case "watches":
+      useApp.setState({ watches: event.data });
       break;
     case "setup":
       useApp.setState({ setup: event.data });

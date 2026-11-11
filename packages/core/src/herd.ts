@@ -38,6 +38,7 @@ import { OwnerCommands } from "./owner-commands.ts";
 import { Registry } from "./registry.ts";
 import { Relay, type RelayState } from "./relay.ts";
 import { type ScheduleInput, type SchedulePatch, Schedules } from "./schedules.ts";
+import { type SocialKind, type SocialPlatform, SocialWatches } from "./social-watch.ts";
 import { SourceHealth, type SourceState } from "./source-health.ts";
 import { Store, type TranscriptEntry } from "./store.ts";
 import { applyReport, onAlarm, restage } from "./task-report.ts";
@@ -76,6 +77,8 @@ export class Herd {
   readonly schedules: Schedules;
   /** Mail the owner asked to hear about; only with connected apps (ADR 0048). */
   private readonly mail: MailWatches | undefined;
+  /** Notices on the owner's 小红书 and 知乎 accounts (ADR 0058). */
+  readonly socials: SocialWatches | undefined;
   /** Tasks cut off by the last stop or crash, asked about once the channel is up. */
   private interrupted: string[] = [];
   private mode: Mode;
@@ -171,6 +174,16 @@ export class Herd {
             apps: opts.apps,
             ...(opts.mailPollMinutes === undefined ? {} : { pollMinutes: opts.mailPollMinutes }),
           });
+    this.socials =
+      opts.socials === undefined
+        ? undefined
+        : new SocialWatches(this.ctx, {
+            sources: opts.socials,
+            ...(opts.socialPollMinutes === undefined
+              ? {}
+              : { pollMinutes: opts.socialPollMinutes }),
+            ...(opts.watchesChanged === undefined ? {} : { changed: opts.watchesChanged }),
+          });
     this.intake =
       opts.github === undefined
         ? undefined
@@ -245,6 +258,15 @@ export class Herd {
               return this.mail.add(about, query);
             },
             unwatchMail: (id: string) => this.mail?.remove(id) ?? false,
+          }),
+      ...(this.socials === undefined
+        ? {}
+        : {
+            socialWatches: () => this.socialWatchLines(),
+            setSocialWatch: (platform: SocialPlatform, kind: SocialKind, on: boolean) => {
+              if (this.socials === undefined) throw new Error("no platform is turned on");
+              this.socials.setWatch(platform, kind, on);
+            },
           }),
       ...(this.intake === undefined
         ? {}
@@ -357,6 +379,7 @@ export class Herd {
     this.ctx.outbox.start();
     this.github?.start();
     this.mail?.start();
+    this.socials?.start();
     this.intake?.start();
     this.schedules.start();
     await this.endOldRelay(relay?.taskId);
@@ -477,6 +500,28 @@ export class Herd {
     return true;
   }
 
+  /** Turned-on platforms and what each tells the owner about, for the Herder. */
+  private socialWatchLines(): {
+    platform: SocialPlatform;
+    name: string;
+    ready: boolean;
+    watch: Record<SocialKind, boolean>;
+  }[] {
+    const socials = this.socials;
+    if (socials === undefined) return [];
+    return (this.opts.socials?.() ?? []).map((s) => ({
+      platform: s.platform,
+      name: s.name,
+      ready: s.ready(),
+      watch: socials.watch(s.platform),
+    }));
+  }
+
+  /** Looks at the owner's 小红书 and 知乎 now (tests). */
+  pollSocials(): Promise<void> {
+    return this.socials?.poll() ?? Promise.resolve();
+  }
+
   /** Looks at the owner's mail watches now (tests). */
   pollMail(): Promise<void> {
     return this.mail?.poll() ?? Promise.resolve();
@@ -528,6 +573,7 @@ export class Herd {
     this.ctx.outbox.stop();
     this.github?.stop();
     this.mail?.stop();
+    this.socials?.stop();
     this.intake?.stop();
     this.schedules.stop();
     if (this.started) await this.opts.channel.stop();

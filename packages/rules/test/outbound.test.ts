@@ -70,5 +70,15 @@ describe("outboundCheck (ADR 0056)", () => {
     expect(appOutbound("GITHUB_CREATE_AN_ISSUE_COMMENT")?.step).toBe("comment");
     expect(appOutbound("GMAIL_FETCH_EMAILS")).toBeUndefined();
     expect(appOutbound("NOTION_CREATE_PAGE")).toBeUndefined();
+    // 小红书 tools through AgentHerd (ADR 0058).
+    expect(appOutbound("XIAOHONGSHU_PUBLISH_CONTENT")?.step).toBe("publish");
+    expect(appOutbound("XIAOHONGSHU_POST_COMMENT_TO_FEED")?.step).toBe("comment");
+    expect(appOutbound("XIAOHONGSHU_REPLY_NOTIFICATION")?.step).toBe("send");
+    expect(appOutbound("XIAOHONGSHU_LIKE_FEED")?.step).toBe("comment");
+    expect(appOutbound("XIAOHONGSHU_FAVORITE_FEED")?.step).toBe("comment");
+    expect(appOutbound("ZHIHU_FOLLOW_QUESTION")?.step).toBe("comment");
+    expect(appOutbound("XIAOHONGSHU_SEARCH_FEEDS")).toBeUndefined();
+    expect(appOutbound("XIAOHONGSHU_LIST_NOTIFICATIONS")).toBeUndefined();
+    expect(appOutbound("ZHIHU_GET_FOLLOWERS")).toBeUndefined();
   });
 });

@@ -261,6 +261,7 @@ export class Intake {
 
   private async pollAll(): Promise<void> {
     for (const watch of this.ctx.store.intakeWatches()) {
+      if (watch.paused === true) continue;
       try {
         const items = await searchItems(this.run, watch);
         this.ctx.sources.ok("github");

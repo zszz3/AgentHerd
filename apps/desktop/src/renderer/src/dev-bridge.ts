@@ -27,7 +27,9 @@ import type {
   RemoteHost,
   SchedulesView,
   SetupState,
+  SocialView,
   Tier,
+  WatchView,
 } from "@agentherd/host/api";
 import type { Bridge } from "../../shared/bridge";
 import {
@@ -37,8 +39,10 @@ import {
   sampleMemory,
   sampleSchedules,
   sampleServices,
+  sampleSocials,
   sampleTasks,
   sampleTranscript,
+  sampleWatches,
 } from "./dev-fixtures";
 
 type Listener<T> = (value: T) => void;
@@ -116,6 +120,13 @@ function installFakeBridge(): void {
         }
       : { hasKey: false, apps: [] };
   const appsChanged = (): void => emit({ topic: "apps", data: structuredClone(apps) });
+  let socials: SocialView[] = sampleSocials();
+  let watches: WatchView[] = sampleWatches(sim === "empty" || sim === "no-agent");
+  /** Changes one platform and tells the page, as the host's "socials" event does. */
+  const setSocial = (platform: SocialView["platform"], patch: Partial<SocialView>): void => {
+    socials = socials.map((s) => (s.platform === platform ? { ...s, ...patch } : s));
+    emit({ topic: "socials", data: structuredClone(socials) });
+  };
 
   const emit = (event: HostEvent): void => {
     for (const l of eventListeners) l(event);
@@ -239,6 +250,56 @@ function installFakeBridge(): void {
           ],
         };
       return delay(apps, 600);
+    },
+    socials: () => delay(socials),
+    enableSocial: (platform) => {
+      setSocial(platform, { enabled: true, accepted: true, state: "starting" });
+      setTimeout(() => setSocial(platform, { state: "signed-out" }), 1500);
+      return delay(socials);
+    },
+    disableSocial: (platform) => {
+      setSocial(platform, { enabled: false, state: "off" });
+      return delay(socials);
+    },
+    socialLoginCode: (platform) => {
+      // The preview "scans" by itself after a few seconds.
+      setTimeout(() => setSocial(platform, { state: "ready", account: "预览账号" }), 4000);
+      return delay({ image: PLACEHOLDER_QR, signedIn: false }, 600);
+    },
+    socialLogout: (platform) => {
+      socials = socials.map((s) => {
+        if (s.platform !== platform) return s;
+        const { account: _, ...rest } = s;
+        return { ...rest, state: "signed-out" as const };
+      });
+      return delay(socials);
+    },
+    testSocial: (platform) => {
+      const s = socials.find((x) => x.platform === platform);
+      const ok = s?.state === "ready";
+      return delay(
+        {
+          ok,
+          message: ok ? `连接正常，账号「${s?.account ?? ""}」` : "登录已失效，点「重连」扫码",
+          socials,
+        },
+        800,
+      );
+    },
+    setSocialWatch: (platform, kind, on) => {
+      socials = socials.map((s) =>
+        s.platform === platform ? { ...s, watch: { ...s.watch, [kind]: on } } : s,
+      );
+      return delay(socials);
+    },
+    watches: () => delay(watches),
+    setWatchPaused: (id, paused) => {
+      watches = watches.map((w) => (w.id === id ? { ...w, paused } : w));
+      return delay(watches);
+    },
+    removeWatch: (id) => {
+      watches = watches.filter((w) => w.id !== id || !w.removable);
+      return delay(watches);
     },
     connectApp: (slug) => {
       apps = {

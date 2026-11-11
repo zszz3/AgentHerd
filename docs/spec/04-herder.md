@@ -157,6 +157,8 @@ an alarm.
 | Watchdog | Timer, every `watchdogSeconds` (default 60) |
 | Pull requests | `gh`, every 2 minutes, for pull requests a task opened (see Pull requests) |
 | New work | `gh search`, every 5 minutes, only for watches the owner asked for (see New work) |
+| 小红书 notices | The local xiaohongshu-mcp, every 20 ± 5 minutes while signed in (see Platforms) |
+| 知乎 notices | The 知乎 page AgentHerd keeps signed in, every 20 ± 5 minutes (see Platforms) |
 
 `herd_report(state, summary, changes?, tests?, risks?, links?)`, with `state` one of
 `progress`, `waiting`, `ready`, `blocked`, `failed`, `dropped`. `summary` ≤ 600 characters.
@@ -328,6 +330,18 @@ New GitHub work is offered only when the owner asks for it ([ADR 0052](../adr/00
 - **The intake turn** may start a task. The title is quoted as not from the owner; only the
   repository's name picks a project without asking (ADR 0043), otherwise the Herder asks which
   folder. The task's prompt has the item's link, so its pull request is followed (ADR 0051).
+
+### Platforms
+
+- **小红书 and 知乎** (ADR 0058) are each turned on in 应用连接 after a risk notice and a QR sign-in. Every
+  20 ± 5 minutes AgentHerd reads its unread counts and opens a notice list only when it has
+  something unread; the first look of a kind only learns what is there. New comments and @ go to
+  the owner one per line (three at most, then a count), likes and new followers as counts when
+  switched on (off by default), and to the Herder as a `social` event. `social_watch` switches a
+  kind when the owner asks; `session_list` shows platforms. Agents other than Pi use the account
+  through `XIAOHONGSHU_` and `ZHIHU_` tools; writes ask (ADR 0056).
+- **Watches list.** 应用连接 → 监听 lists pull requests, mail watches, new-work watches and
+  platform kinds; pausing keeps a watch without looking (`paused` in its row), removing deletes it.
 
 ### Schedules
 

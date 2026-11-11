@@ -1,10 +1,10 @@
-// 设置: the Feishu channel, the owner's apps, how approvals work, font size, keep awake, the first
-// run, and where AgentHerd keeps its files. How the Herder talks is on the 主管 page.
+// 设置: the Feishu channel, how approvals work, font size, keep awake, the first run, and where
+// AgentHerd keeps its files. How the Herder talks is on the 主管 page; the owner's apps and
+// platforms are on the 应用连接 page.
 
 import type { SettingsPatch } from "@agentherd/host/api";
 import { Check, Eye, FolderOpen, Hand, Info, MoonStar, Rocket, Type } from "lucide-react";
 import { useState } from "react";
-import { AppsSection } from "../components/AppsSection";
 import { FeishuSection } from "../components/FeishuSection";
 import { Button, Group, IconTile, Row, Section, Segmented, Switch } from "../components/ui";
 import { FONT_SCALES, setFontScale, useFontScale } from "../font-scale";
@@ -43,7 +43,6 @@ export function SettingsPage() {
   return (
     <div className="flex flex-col gap-7">
       <FeishuSection />
-      <AppsSection />
 
       <Section title="审批方式">
         <Group>
