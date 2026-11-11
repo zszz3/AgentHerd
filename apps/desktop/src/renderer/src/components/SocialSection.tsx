@@ -1,9 +1,9 @@
-// 应用连接 › 平台 (ADR 0058): 小红书 and 知乎 with the owner's own account. Turning one on needs the
-// owner to accept the account-risk notice; signing in is a QR code scanned with the platform's app.
+// 应用连接 › 平台 (ADR 0058): 小红书 and 知乎 with the owner's own account. Each has one 连接
+// button: the account-risk notice the first time, then a QR code scanned with the platform's app.
 
 import type { SocialKind, SocialPlatform, SocialView } from "@agentherd/host/api";
-import { Loader2, LogOut, QrCode } from "lucide-react";
-import { type ReactNode, useCallback, useEffect, useState } from "react";
+import { Link2, Loader2, LogOut } from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { call, useApp } from "../store";
 import { Modal } from "./Modal";
 import { Badge, Button, Group, IconTile, Row, Section, Switch } from "./ui";
@@ -15,186 +15,196 @@ const KIND_LABELS: Record<SocialPlatform, Record<SocialKind, string>> = {
 };
 const KINDS: readonly SocialKind[] = ["mentions", "likes", "follows"];
 
-function stateBadge(social: SocialView): ReactNode {
-  switch (social.state) {
-    case "off":
-      return <Badge>未开启</Badge>;
-    case "starting":
-      return <Badge tone="blue">准备中</Badge>;
-    case "signed-out":
-      return <Badge tone="amber">未登录</Badge>;
-    case "ready":
-      return (
-        <Badge tone="green">
-          已连接{social.account !== undefined ? ` · ${social.account}` : ""}
-        </Badge>
-      );
-    case "failed":
-      return <Badge tone="red">出错</Badge>;
-  }
-}
-
-/** The account-risk notice; the platform turns on only after the owner ticks the box. */
-function RiskNotice({ social, onClose }: { social: SocialView; onClose: () => void }) {
-  const [accepted, setAccepted] = useState(false);
-  const [busy, setBusy] = useState(false);
-  const enable = async () => {
-    setBusy(true);
-    const next = await call((h) => h.enableSocial(social.platform, true));
-    setBusy(false);
-    if (next === undefined) return;
-    useApp.setState({ socials: next });
-    onClose();
-  };
-  return (
-    <Modal
-      title={`开启${social.name}`}
-      onClose={onClose}
-      footer={
-        <>
-          <Button onClick={onClose}>取消</Button>
-          <Button variant="primary" disabled={!accepted || busy} onClick={() => void enable()}>
-            {busy && <Loader2 size={13} className="animate-spin" />}
-            开启
-          </Button>
-        </>
-      }
-    >
-      <div className="flex flex-col gap-4">
-        <p className="text-ink-2 text-md leading-6">
-          AgentHerd 通过模拟浏览器操作，用你自己的账号访问{social.name}。
-          这不是平台的官方接口：平台可能认为是自动化行为，导致限流、要求验证甚至封号，后果由你自己承担。
-          AgentHerd 会尽量降低频率（每 20
-          分钟左右看一次通知），发帖、评论、回复、点赞每次都会先问你，除非你开任务时说过可以。
-          登录信息只保存在这台 Mac 上。担心的话建议先用小号。
-        </p>
-        <label className="flex cursor-pointer items-center gap-2 text-ink text-md">
-          <input
-            type="checkbox"
-            checked={accepted}
-            onChange={(e) => setAccepted(e.target.checked)}
-          />
-          我已了解风险
-        </label>
-      </div>
-    </Modal>
+/**
+ * Connecting a platform, in one dialog: the account-risk notice the first time, then AgentHerd
+ * gets ready, then the QR code. It closes by itself once the account is signed in.
+ */
+function ConnectDialog({ social, onClose }: { social: SocialView; onClose: () => void }) {
+  const [phase, setPhase] = useState<"notice" | "preparing" | "code" | "failed">(
+    social.accepted ? "preparing" : "notice",
   );
-}
+  const [ticked, setTicked] = useState(false);
+  const [image, setImage] = useState("");
+  const [problem, setProblem] = useState<string | undefined>();
+  const started = useRef(false);
 
-/** The sign-in QR code. It closes by itself when a "socials" event says the account is in. */
-function LoginCode({
-  social,
-  image,
-  onClose,
-}: {
-  social: SocialView;
-  image: string;
-  onClose: () => void;
-}) {
+  const connect = useCallback(async () => {
+    setPhase("preparing");
+    if (!social.enabled || social.state === "failed") {
+      const next = await call((h) => h.enableSocial(social.platform, true));
+      if (next === undefined) {
+        setPhase("failed");
+        return;
+      }
+      useApp.setState({ socials: next });
+      const now = next.find((s) => s.platform === social.platform);
+      if (now?.state === "failed") {
+        setProblem(now.problem);
+        setPhase("failed");
+        return;
+      }
+      if (now?.state === "ready") return;
+    }
+    const result = await call((h) => h.socialLoginCode(social.platform));
+    if (result === undefined) {
+      setPhase("failed");
+      return;
+    }
+    if (result.signedIn) {
+      const next = await call((h) => h.socials());
+      if (next !== undefined) useApp.setState({ socials: next });
+      return;
+    }
+    setImage(result.image);
+    setPhase("code");
+  }, [social.enabled, social.state, social.platform]);
+
+  // Already accepted: go straight on.
   useEffect(() => {
-    if (social.state === "ready") onClose();
-  }, [social.state, onClose]);
+    if (phase === "preparing" && !started.current) {
+      started.current = true;
+      void connect();
+    }
+  }, [phase, connect]);
+
+  useEffect(() => {
+    if (social.state === "ready" && phase !== "notice") onClose();
+  }, [social.state, phase, onClose]);
+
+  if (phase === "notice") {
+    return (
+      <Modal
+        title={`连接${social.name}`}
+        onClose={onClose}
+        footer={
+          <>
+            <Button onClick={onClose}>取消</Button>
+            <Button
+              variant="primary"
+              disabled={!ticked}
+              onClick={() => {
+                started.current = true;
+                void connect();
+              }}
+            >
+              继续连接
+            </Button>
+          </>
+        }
+      >
+        <div className="flex flex-col gap-4">
+          <p className="text-ink-2 text-md leading-6">
+            AgentHerd 通过模拟浏览器操作，用你自己的账号访问{social.name}。
+            这不是平台的官方接口：平台可能认为是自动化行为，导致限流、要求验证甚至封号，后果由你自己承担。
+            AgentHerd 会尽量降低频率（每 20
+            分钟左右看一次通知），发帖、评论、回复、点赞每次都会先问你，除非你开任务时说过可以。
+            登录信息只保存在这台 Mac 上。担心的话建议先用小号。
+          </p>
+          <label className="flex cursor-pointer items-center gap-2 text-ink text-md">
+            <input type="checkbox" checked={ticked} onChange={(e) => setTicked(e.target.checked)} />
+            我已了解风险
+          </label>
+        </div>
+      </Modal>
+    );
+  }
   return (
-    <Modal title={`登录${social.name}`} onClose={onClose}>
-      <div className="flex flex-col items-center gap-3 pb-2">
-        <img
-          src={image}
-          alt={`${social.name}登录二维码`}
-          className="h-52 w-52 rounded-lg border border-line bg-white object-contain p-2"
-        />
-        <p className="text-ink-muted text-md">用{social.name} App 扫一扫</p>
+    <Modal title={`连接${social.name}`} onClose={onClose}>
+      <div className="flex min-h-64 flex-col items-center justify-center gap-3 pb-2">
+        {phase === "preparing" && (
+          <>
+            <Loader2 size={20} className="animate-spin text-ink-muted" />
+            <p className="text-ink-muted text-md">正在打开{social.name}登录，第一次要多等一会…</p>
+          </>
+        )}
+        {phase === "code" && (
+          <>
+            <img
+              src={image}
+              alt={`${social.name}登录二维码`}
+              className="h-52 w-52 rounded-lg border border-line bg-white object-contain p-2"
+            />
+            <p className="text-ink-muted text-md">用{social.name} App 扫一扫，扫完这里会自己关掉</p>
+          </>
+        )}
+        {phase === "failed" && (
+          <>
+            <p className="text-ink-2 text-md">没连上{problem ? `：${problem}` : ""}</p>
+            <Button
+              onClick={() => {
+                started.current = true;
+                void connect();
+              }}
+            >
+              再试一次
+            </Button>
+          </>
+        )}
       </div>
     </Modal>
   );
 }
 
 /**
- * A platform row, and its watch switches while it is on. The dialogs live in `SocialSection`: a
- * Group draws a line above each child, so they must not be its children.
+ * A platform row, and its watch switches while it is connected. The dialog lives in
+ * `SocialSection`: a Group draws a line above each child, so it must not be its child.
  */
-function PlatformRows({
-  social,
-  onEnable,
-  onCode,
-}: {
-  social: SocialView;
-  onEnable: () => void;
-  onCode: (image: string) => void;
-}) {
+function PlatformRows({ social, onConnect }: { social: SocialView; onConnect: () => void }) {
   const [busy, setBusy] = useState(false);
-  const on = social.state !== "off";
+  const ready = social.state === "ready";
 
-  const apply = async (action: () => Promise<SocialView[] | undefined>) => {
+  const disconnect = async () => {
     setBusy(true);
-    const next = await action();
+    await call((h) => h.socialLogout(social.platform));
+    const next = await call((h) => h.disableSocial(social.platform));
     setBusy(false);
     if (next !== undefined) useApp.setState({ socials: next });
   };
-  const toggle = (value: boolean) => {
-    if (value) onEnable();
-    else void apply(() => call((h) => h.disableSocial(social.platform)));
-  };
-  const login = async () => {
-    setBusy(true);
-    const result = await call((h) => h.socialLoginCode(social.platform));
-    setBusy(false);
-    if (result === undefined) return;
-    if (result.signedIn) {
-      const next = await call((h) => h.socials());
-      if (next !== undefined) useApp.setState({ socials: next });
-      return;
-    }
-    onCode(result.image);
-  };
 
-  const action =
-    social.state === "signed-out" ? (
-      <Button size="sm" disabled={busy} onClick={() => void login()}>
-        <QrCode size={12} />
-        扫码登录
-      </Button>
-    ) : social.state === "ready" ? (
-      <Button
-        variant="ghost"
-        size="sm"
-        disabled={busy}
-        onClick={() => void apply(() => call((h) => h.socialLogout(social.platform)))}
-      >
-        <LogOut size={12} />
-        退出登录
-      </Button>
-    ) : undefined;
+  const trailing = !social.available ? (
+    <Badge>即将支持</Badge>
+  ) : ready ? (
+    <Button variant="ghost" size="sm" disabled={busy} onClick={() => void disconnect()}>
+      <LogOut size={12} />
+      断开
+    </Button>
+  ) : social.state === "starting" ? (
+    <Badge tone="blue">准备中</Badge>
+  ) : (
+    <Button size="sm" onClick={onConnect}>
+      <Link2 size={12} />
+      连接
+    </Button>
+  );
 
   return (
     <>
       <Row
-        icon={
-          <IconTile tone={social.state === "ready" ? "green" : "gray"}>
-            {social.name.slice(0, 1)}
-          </IconTile>
-        }
+        icon={<IconTile tone={ready ? "green" : "gray"}>{social.name.slice(0, 1)}</IconTile>}
         title={
           <span className="flex items-center gap-2">
             {social.name}
-            {stateBadge(social)}
+            {ready && (
+              <Badge tone="green">
+                已连接{social.account !== undefined ? ` · ${social.account}` : ""}
+              </Badge>
+            )}
+            {social.state === "failed" && <Badge tone="red">出错</Badge>}
           </span>
         }
-        description={social.problem}
-        trailing={
-          <>
-            {action}
-            <Switch label={`开启${social.name}`} checked={on} disabled={busy} onChange={toggle} />
-          </>
+        description={
+          social.available ? (social.state === "failed" ? social.problem : undefined) : undefined
         }
+        trailing={trailing}
       />
-      {on &&
+      {ready &&
         KINDS.map((kind) => (
           <Row
             key={kind}
             className="min-h-10! py-1.5 pl-14"
             title={
               <span className="font-normal text-ink-2 text-md">
-                {KIND_LABELS[social.platform][kind]}
+                告诉我{KIND_LABELS[social.platform][kind]}
               </span>
             }
             trailing={
@@ -216,11 +226,9 @@ function PlatformRows({
 
 export function SocialSection() {
   const socials = useApp((s) => s.socials);
-  const [notice, setNotice] = useState<SocialPlatform | undefined>();
-  const [code, setCode] = useState<{ platform: SocialPlatform; image: string } | undefined>();
-  const closeCode = useCallback(() => setCode(undefined), []);
-  const noticed = socials?.find((s) => s.platform === notice);
-  const scanning = socials?.find((s) => s.platform === code?.platform);
+  const [connecting, setConnecting] = useState<SocialPlatform | undefined>();
+  const close = useCallback(() => setConnecting(undefined), []);
+  const current = socials?.find((s) => s.platform === connecting);
   return (
     <Section
       title="平台"
@@ -234,21 +242,11 @@ export function SocialSection() {
           </div>
         ) : (
           socials.map((s) => (
-            <PlatformRows
-              key={s.platform}
-              social={s}
-              onEnable={() => setNotice(s.platform)}
-              onCode={(image) => setCode({ platform: s.platform, image })}
-            />
+            <PlatformRows key={s.platform} social={s} onConnect={() => setConnecting(s.platform)} />
           ))
         )}
       </Group>
-      {noticed !== undefined && (
-        <RiskNotice social={noticed} onClose={() => setNotice(undefined)} />
-      )}
-      {code !== undefined && scanning !== undefined && (
-        <LoginCode social={scanning} image={code.image} onClose={closeCode} />
-      )}
+      {current !== undefined && <ConnectDialog social={current} onClose={close} />}
     </Section>
   );
 }

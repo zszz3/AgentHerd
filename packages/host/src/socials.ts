@@ -98,9 +98,11 @@ export class Socials {
         return {
           platform,
           name: NAMES[platform],
+          available: false,
+          accepted: false,
           enabled: false,
-          state: "failed" as const,
-          problem: "知乎还没接好，先用小红书",
+          state: "off" as const,
+          problem: "即将支持",
           watch,
         };
       }
@@ -108,6 +110,8 @@ export class Socials {
       return {
         platform,
         name: NAMES[platform],
+        available: true,
+        accepted: this.settings(platform).acceptedAt !== undefined,
         enabled,
         state: enabled ? x.state : "off",
         ...(x.account === undefined ? {} : { account: x.account }),
@@ -119,9 +123,12 @@ export class Socials {
   }
 
   async enable(platform: SocialPlatform, accepted: boolean): Promise<void> {
-    if (!accepted) throw new Error("turning a platform on needs the owner to accept the notice");
     if (platform !== "xiaohongshu") throw new Error("知乎 is not supported yet");
-    this.save(platform, { enabled: true, acceptedAt: new Date().toISOString() });
+    const before = this.settings(platform).acceptedAt;
+    if (!accepted && before === undefined) {
+      throw new Error("turning a platform on needs the owner to accept the notice");
+    }
+    this.save(platform, { enabled: true, acceptedAt: before ?? new Date().toISOString() });
     this.opts.changed();
     await this.xiaohongshu.start();
   }

@@ -241,6 +241,10 @@ export interface SocialView {
   platform: SocialPlatform;
   /** 小红书 / 知乎 */
   name: string;
+  /** False while AgentHerd cannot connect it yet (知乎, ADR 0058). */
+  available: boolean;
+  /** The owner accepted the account-risk notice once; connecting again does not show it. */
+  accepted: boolean;
   /** The owner accepted the notice and turned the platform on. */
   enabled: boolean;
   /**
@@ -337,7 +341,8 @@ export interface HostApi {
   socials(): SocialView[];
   /** Turns a platform on; `accepted` must be true: the owner read the account-risk notice. */
   enableSocial(platform: SocialPlatform, accepted: boolean): Promise<SocialView[]>;
-  /** Turns a platform off: agents lose its tools and its watches stop. The sign-in is kept. */
+  /** Turns a platform off: agents lose its tools and its watches stop. The sign-in is kept
+   * unless the owner disconnects (socialLogout first). */
   disableSocial(platform: SocialPlatform): Promise<SocialView[]>;
   /** A QR code to sign in; when the scan is done a "socials" event comes. */
   socialLoginCode(platform: SocialPlatform): Promise<SocialLoginCode>;

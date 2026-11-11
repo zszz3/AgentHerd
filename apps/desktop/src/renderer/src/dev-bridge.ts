@@ -253,7 +253,7 @@ function installFakeBridge(): void {
     },
     socials: () => delay(socials),
     enableSocial: (platform) => {
-      setSocial(platform, { enabled: true, state: "starting" });
+      setSocial(platform, { enabled: true, accepted: true, state: "starting" });
       setTimeout(() => setSocial(platform, { state: "signed-out" }), 1500);
       return delay(socials);
     },
@@ -270,7 +270,7 @@ function installFakeBridge(): void {
       socials = socials.map((s) => {
         if (s.platform !== platform) return s;
         const { account: _, ...rest } = s;
-        return { ...rest, state: "signed-out" };
+        return { ...rest, state: "signed-out" as const };
       });
       return delay(socials);
     },

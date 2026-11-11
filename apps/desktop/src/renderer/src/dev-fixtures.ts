@@ -398,6 +398,8 @@ export function sampleSocials(): SocialView[] {
     {
       platform: "xiaohongshu",
       name: "小红书",
+      available: true,
+      accepted: true,
       enabled: true,
       state: "ready",
       account: "小羊不吃草",
@@ -407,8 +409,11 @@ export function sampleSocials(): SocialView[] {
     {
       platform: "zhihu",
       name: "知乎",
+      available: false,
+      accepted: false,
       enabled: false,
       state: "off",
+      problem: "即将支持",
       watch: { mentions: true, likes: false, follows: false },
     },
   ];
