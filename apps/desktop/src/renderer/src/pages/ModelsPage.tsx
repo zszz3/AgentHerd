@@ -1,9 +1,10 @@
-// 模型: the model used for reviews, and the list of model services (ADR 0021).
-// The Herder's model is chosen on the 主管 page.
+// 模型: Pi's model, the tiers tasks pick from (ADR 0028), and the list of model services with
+// their keys (ADR 0021). The Herder's model is chosen on the 主管 page.
 
 import { Boxes, Plus } from "lucide-react";
 import { useState } from "react";
 import { AddServiceDialog } from "../components/AddServiceDialog";
+import { ModelTiers } from "../components/ModelTiers";
 import { RolePicker } from "../components/RolePicker";
 import { ServiceCard } from "../components/ServiceCard";
 import { Button, EmptyState, Group, Section } from "../components/ui";
@@ -75,9 +76,10 @@ export function ServiceList() {
 export function ModelsPage() {
   return (
     <div className="flex flex-col gap-7">
-      <Section title="用途" hint="主管用的模型在「主管」页选">
+      <Section title="Pi 用的模型" hint="选了就生效；选完会顺手试一下能不能用">
         <RolePicker />
       </Section>
+      <ModelTiers />
       <ServiceList />
     </div>
   );

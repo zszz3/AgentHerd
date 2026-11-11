@@ -31,8 +31,8 @@ const NAV: { page: Page; label: string; icon: LucideIcon }[] = [
   { page: "herders", label: "主管", icon: Bot },
   { page: "memory", label: "记忆", icon: Brain },
   { page: "schedules", label: "定时任务", icon: CalendarClock },
-  { page: "agents", label: "Agent", icon: SquareTerminal },
   { page: "models", label: "模型", icon: Boxes },
+  { page: "agents", label: "Agent", icon: SquareTerminal },
   { page: "settings", label: "设置", icon: Settings },
 ];
 
@@ -50,9 +50,9 @@ const HEADERS: Record<Page, { title: string; hint: string }> = {
     title: "定时任务",
     hint: "主管按时去做的事；在飞书里跟主管说就能加，这里可以暂停或删除",
   },
-  agents: { title: "Agent", hint: "替你干活的编程 Agent；在飞书里用 /run 开任务" },
-  models: { title: "模型", hint: "管理模型服务和 Key，选审查用的模型" },
-  settings: { title: "设置", hint: "飞书、应用连接、工作模式、字体大小、电源和数据目录" },
+  models: { title: "模型", hint: "模型服务和 Key，Pi 和各档任务用哪个模型" },
+  agents: { title: "Agent", hint: "替你干活的编程 Agent；主管开任务时按模型自动挑" },
+  settings: { title: "设置", hint: "飞书、应用连接、审批方式、外观、电源和数据目录" },
 };
 
 function Sidebar() {
@@ -132,6 +132,10 @@ function CurrentPage() {
       </div>
     );
   }
+  return <PageBody page={page} />;
+}
+
+function PageBody({ page }: { page: Page }) {
   switch (page) {
     case "tasks":
       return <TasksPage />;

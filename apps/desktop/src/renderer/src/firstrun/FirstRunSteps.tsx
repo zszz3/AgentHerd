@@ -335,7 +335,7 @@ export function DoneBody() {
       <Row
         icon={row(styleTitle !== undefined)}
         title="主管的说话风格"
-        description={styleTitle ?? "之后在「设置」里选"}
+        description={styleTitle ?? "之后在「主管」页选"}
       />
     </Group>
   );

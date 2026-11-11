@@ -1,10 +1,11 @@
-// Choosing a model from the list for a role (ADR 0021): the select itself, and the 审查员 row of
-// the 模型 page. The 主管 page uses the select in its own rows.
+// Choosing a model from the list for a role (ADR 0021): the select itself, and a row with a
+// 试一下 button (the Herder on the 主管 page, Pi on the 模型 page).
 
-import { Loader2 } from "lucide-react";
-import { useState } from "react";
+import type { ModelTest } from "@agentherd/host/api";
+import { Check, CircleAlert, Loader2 } from "lucide-react";
+import { type ReactNode, useState } from "react";
 import { applyModels, call, type ModelRef, type ModelRole, useApp } from "../store";
-import { Group, inputClass, Row } from "./ui";
+import { Button, Group, inputClass, Row } from "./ui";
 
 const NONE = "";
 
@@ -86,20 +87,102 @@ export function RoleSelect({
   );
 }
 
-/** The "用途" group of the 模型 page. */
+/** What trying a model found: a short reply, or why it failed. */
+function TestResult({ testing, result }: { testing: boolean; result: ModelTest | null }) {
+  if (!testing && result === null) return null;
+  return (
+    <div className="flex items-start gap-1.5 px-4 pb-3 pl-4 text-sm">
+      {testing && (
+        <>
+          <Loader2 size={13} className="mt-[3px] shrink-0 animate-spin text-ink-muted" />
+          <span className="text-ink-muted">正在试一下…</span>
+        </>
+      )}
+      {result?.ok === true && (
+        <>
+          <Check size={13} className="mt-[3px] shrink-0 text-success-text" />
+          <span className="selectable min-w-0 break-words text-ink-2">{result.reply}</span>
+        </>
+      )}
+      {result?.ok === false && (
+        <>
+          <CircleAlert size={13} className="mt-[3px] shrink-0 text-danger-text" />
+          <span className="selectable min-w-0 break-words text-danger-text">{result.message}</span>
+        </>
+      )}
+    </div>
+  );
+}
+
+/** One role: its select, a 试一下 button, and what the try found. */
+export function RoleRow({
+  modelRole,
+  title,
+  description,
+  icon,
+}: {
+  modelRole: ModelRole;
+  title: ReactNode;
+  description: ReactNode;
+  icon?: ReactNode;
+}) {
+  const ref = useApp((s) => s.models?.roles[modelRole]);
+  const [testing, setTesting] = useState(false);
+  const [result, setResult] = useState<ModelTest | null>(null);
+  const test = async (target: ModelRef) => {
+    setTesting(true);
+    setResult(null);
+    const outcome = await call((h) => h.testModel(target));
+    setTesting(false);
+    if (outcome !== undefined) setResult(outcome);
+  };
+  return (
+    <div>
+      <Row
+        className="min-h-14"
+        icon={icon}
+        title={title}
+        description={description}
+        trailing={
+          <>
+            <RoleSelect
+              modelRole={modelRole}
+              label={modelRole === "herder" ? "主管的模型" : "Pi 的模型"}
+              className="w-56"
+              onChosen={(next) => {
+                setResult(null);
+                if (next !== null) void test(next);
+              }}
+            />
+            <Button
+              disabled={ref === undefined || testing}
+              onClick={() => {
+                if (ref !== undefined) void test(ref);
+              }}
+            >
+              试一下
+            </Button>
+          </>
+        }
+      />
+      <TestResult testing={testing} result={result} />
+    </div>
+  );
+}
+
+/** The 模型 page's group for Pi's model; the Herder's model is chosen on the 主管 page. */
 export function RolePicker() {
   const count = useApp((s) => s.models?.services.length ?? 0);
   return (
     <Group>
-      <Row
-        className="min-h-14"
-        title="审查员"
-        description="最强的模型，负责审查有风险的请求"
-        trailing={<RoleSelect modelRole="reviewer" label="审查员的模型" />}
+      <RoleRow
+        modelRole="pi"
+        title="Pi"
+        description="Pi 干活时默认用的模型；不选就用 Pi 自己的登录和设置"
       />
       {count === 0 && (
         <div className="bg-warning-soft/40 px-4 py-2.5 text-sm text-warning-text">
-          还没有模型服务。先添加一个服务，再回来选模型。
+          还没有模型服务。先在下面添加一个服务，再回来选模型。
         </div>
       )}
     </Group>

@@ -21,7 +21,7 @@ export const HERDER_STYLE_LABELS: readonly HerderStyleLabel[] = [
     style: "friend",
     title: "能干的朋友",
     from: "参考 open-instinct",
-    hint: "温和直接，少说多做，一条只说一件事",
+    hint: "温和直接，像朋友发消息，说重点",
     sample:
       "learnspace 那个查完了，#2000 还剩三处小问题，我顺手改了？另外有 8 个没人认领的，最好上手的是 #1743。",
   },

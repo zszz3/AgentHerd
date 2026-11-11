@@ -14,7 +14,6 @@ import {
   X,
 } from "lucide-react";
 import { useState } from "react";
-import { RoleSelect } from "../components/RolePicker";
 import { Badge, Button, Group, IconTile, Section } from "../components/ui";
 import { call, useApp } from "../store";
 
@@ -227,15 +226,6 @@ function AgentRow({ agent }: { agent: AgentView }) {
           <Actions agent={agent} />
         </div>
       </div>
-      {agent.id === "pi" && (
-        <div className="mt-3 ml-10 flex items-center justify-between gap-3 border-line border-t pt-3">
-          <div className="text-sm">
-            <div className="text-ink">Pi 用的模型</div>
-            <div className="text-ink-muted">从模型列表里选；不选就用 Pi 自己的登录和设置</div>
-          </div>
-          <RoleSelect modelRole="pi" label="Pi 的模型" className="w-56" />
-        </div>
-      )}
     </div>
   );
 }

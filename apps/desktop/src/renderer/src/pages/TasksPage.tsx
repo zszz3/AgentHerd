@@ -102,7 +102,6 @@ function RequestLine({ item }: { item: ItemSummary }) {
       >
         {item.body === "" ? item.title : item.body}
       </span>
-      <span className="shrink-0 text-ink-muted text-xs">在飞书里批准或拒绝</span>
     </div>
   );
 }
@@ -183,24 +182,16 @@ export function TasksPage() {
           <EmptyState
             icon={<ListTodo size={18} strokeWidth={1.75} />}
             title="还没有任务"
-            text={
-              <>
-                在飞书里给 AgentHerd 发消息，或者发{" "}
-                <code className="rounded-xs bg-control-hover px-1 py-px font-mono text-ink-2 text-sm">
-                  /run
-                </code>{" "}
-                开始一个任务。
-              </>
-            }
+            text="在飞书里跟主管说要做什么，它会替你开任务。"
           />
         </div>
       </div>
     );
   }
 
-  const taskGroup = (title: string, list: readonly Task[]) =>
+  const taskGroup = (title: string, list: readonly Task[], hint?: string) =>
     list.length > 0 && (
-      <Section title={<CountTitle title={title} count={list.length} />}>
+      <Section title={<CountTitle title={title} count={list.length} />} hint={hint}>
         <Group>
           {list.map((t) => (
             <TaskRow key={t.id} task={t} items={itemsOf(t)} onOpen={(x) => setOpenId(x.id)} />
@@ -226,10 +217,11 @@ export function TasksPage() {
       <Segmented label="筛选任务" options={FILTERS} value={filter} onChange={setFilter} />
       {nothing && <p className="px-0.5 text-ink-muted text-md">{FILTER_EMPTY[filter]}</p>}
 
+      {showOwner && taskGroup("等你处理", owner, "在飞书里批准或拒绝")}
       {showOwner && others.length > 0 && (
         <Section
           title={<CountTitle title="其他请求" count={others.length} />}
-          hint="这些请求不属于下面的任务"
+          hint="不属于哪个任务的请求，也在飞书里批准或拒绝"
         >
           <Group>
             {others.map((item) => (
@@ -245,7 +237,6 @@ export function TasksPage() {
           </Group>
         </Section>
       )}
-      {showOwner && taskGroup("等你处理", owner)}
       {showActive && taskGroup("进行中", active)}
       {showRest && taskGroup("卡住", stuck)}
       {showRest && ended.length > 0 && (
