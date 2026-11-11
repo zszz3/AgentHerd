@@ -140,6 +140,21 @@ export {
   SCHEDULES_MAX,
   Schedules,
 } from "./schedules.ts";
+export type {
+  SocialKind,
+  SocialNotice,
+  SocialPlatform,
+  SocialSource,
+  SocialWatchOptions,
+} from "./social-watch.ts";
+export {
+  DEFAULT_SOCIAL_WATCH,
+  SOCIAL_JITTER_MINUTES,
+  SOCIAL_KINDS,
+  SOCIAL_PLATFORMS,
+  SOCIAL_POLL_MINUTES,
+  SocialWatches,
+} from "./social-watch.ts";
 export type { SourceId, SourceState } from "./source-health.ts";
 export { SOURCE_DOWN_MINUTES, SourceHealth, sourceHint } from "./source-health.ts";
 export type {
@@ -148,6 +163,7 @@ export type {
   IntakeOffer,
   IntakeWatch,
   MailWatch,
+  PrWatch,
   SessionRow,
   StoredItem,
   StoredTask,
@@ -157,6 +173,7 @@ export type {
 export {
   ftsQuery,
   type HerderTurn,
+  prKey,
   Store,
   TRANSCRIPT_MAX_CHARS,
   TRANSCRIPT_MAX_ENTRIES,

@@ -263,7 +263,16 @@ function replyOf(contentType: string, text: string, id: number): RpcReply | unde
   return undefined;
 }
 
-export function mcpHttpClient(url: string, key: string, fetchFn: Fetch = fetch): McpHttpClient {
+/**
+ * A streamable-HTTP MCP client. Composio takes its key as `x-api-key`; the 小红书 server
+ * AgentHerd runs takes a bearer token (`bearer: true`).
+ */
+export function mcpHttpClient(
+  url: string,
+  key: string,
+  fetchFn: Fetch = fetch,
+  bearer = false,
+): McpHttpClient {
   let session: string | undefined;
   let ready: Promise<void> | undefined;
   let next = 1;
@@ -273,7 +282,7 @@ export function mcpHttpClient(url: string, key: string, fetchFn: Fetch = fetch):
       return await fetchFn(url, {
         method: "POST",
         headers: {
-          "x-api-key": key,
+          ...(bearer ? { authorization: `Bearer ${key}` } : { "x-api-key": key }),
           "content-type": "application/json",
           accept: "application/json, text/event-stream",
           "mcp-protocol-version": MCP_VERSION,

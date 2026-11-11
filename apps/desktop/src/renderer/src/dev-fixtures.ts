@@ -1,13 +1,16 @@
 // Sample data for the in-memory dev bridge (dev-bridge.ts): a placeholder QR code,
-// tasks, model services, the provider catalog and the Herder's schedules.
+// tasks, model services, the provider catalog, the Herder's schedules,
+// and the platforms and watches of 应用连接.
 
 import type {
   MemoryView,
   ModelsView,
   ProviderView,
   SchedulesView,
+  SocialView,
   TasksView,
   TranscriptView,
+  WatchView,
 } from "@agentherd/host/api";
 
 export const PLACEHOLDER_QR = `data:image/svg+xml;utf8,${encodeURIComponent(
@@ -387,4 +390,71 @@ export function sampleSchedules(empty: boolean): SchedulesView {
       },
     ],
   };
+}
+
+/** The platforms in the browser preview: 小红书 signed in with mentions on, 知乎 off. */
+export function sampleSocials(): SocialView[] {
+  return [
+    {
+      platform: "xiaohongshu",
+      name: "小红书",
+      enabled: true,
+      state: "ready",
+      account: "小羊不吃草",
+      watch: { mentions: true, likes: false, follows: false },
+      checkedAt: hoursFromNow(-0.2),
+    },
+    {
+      platform: "zhihu",
+      name: "知乎",
+      enabled: false,
+      state: "off",
+      watch: { mentions: true, likes: false, follows: false },
+    },
+  ];
+}
+
+/** What the 监听 section shows in the browser preview; `empty` shows the empty state. */
+export function sampleWatches(empty: boolean): WatchView[] {
+  if (empty) return [];
+  return [
+    {
+      id: "pr:zszz3/AgentHerd#212",
+      kind: "pr",
+      title: "AgentHerd #212 小红书接入",
+      detail: "CI、评审和合并，每 5 分钟看一次",
+      paused: false,
+      removable: true,
+      createdAt: hoursFromNow(-30),
+      activeAt: hoursFromNow(-0.3),
+    },
+    {
+      id: "mail:m1",
+      kind: "mail",
+      title: "Apple 开发者账号续费的回信",
+      detail: "Gmail，有回信就告诉你",
+      paused: false,
+      removable: true,
+      createdAt: hoursFromNow(-50),
+    },
+    {
+      id: "intake:i1",
+      kind: "intake",
+      title: "PI-Desktop 新 issue",
+      detail: "GitHub 上分给你或没人认领的新 issue，每 30 分钟看一次",
+      paused: true,
+      removable: true,
+      createdAt: hoursFromNow(-120),
+      activeAt: hoursFromNow(-52),
+    },
+    {
+      id: "social:xiaohongshu:mentions",
+      kind: "social",
+      title: "小红书 · 评论和@",
+      detail: "每 20 分钟左右看一次通知",
+      paused: false,
+      removable: false,
+      activeAt: hoursFromNow(-2),
+    },
+  ];
 }

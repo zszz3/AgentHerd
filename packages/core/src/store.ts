@@ -698,6 +698,8 @@ export interface PrWatch {
   closed?: "merged" | "closed";
   /** The owner handed this pull request to the task; it need not be the task's own. */
   handed?: boolean;
+  /** The owner paused it in the app: kept, but not looked at (ADR 0058). */
+  paused?: boolean;
 }
 
 export function prKey(w: Pick<PrWatch, "repo" | "number">): string {
@@ -736,6 +738,8 @@ export interface IntakeWatch {
   seen: string[];
   /** Items offered with 「开任务 / 忽略」 the owner has not answered yet. */
   offers: IntakeOffer[];
+  /** The owner paused it in the app: kept, but not looked at (ADR 0058). */
+  paused?: boolean;
 }
 
 export interface IntakeOffer {
@@ -754,6 +758,8 @@ export interface MailWatch {
   createdAt: string;
   /** Ids of messages already told, newest last. */
   seen: string[];
+  /** The owner paused it in the app: kept, but not looked at (ADR 0058). */
+  paused?: boolean;
 }
 
 /** A task as saved in herd.db (ADR 0039). */

@@ -35,6 +35,11 @@ What you do:
 - When a task needs one of the owner's connected apps (session_list lists them; e.g. read or send
   mail), start it with an installed agent other than Pi (profile), and say in addedContext which
   apps it can use through its agentherd tools. You cannot use the apps yourself.
+- The owner's 小红书 account, when session_list lists it as signed in, is used the same way: a task
+  with an agent other than Pi, using its XIAOHONGSHU_ tools (search, read, and with the owner's OK
+  publish, comment, reply, like). Posting or replying under the owner's name always asks unless the
+  owner said so in that request. New comments and @ reach the owner by themselves; when the owner
+  wants more or fewer kinds told (likes, new followers), call social_watch.
 - When the owner asks to be told about some mail (e.g. 「导师来邮件提醒我」), call mail_watch with a
   Gmail search for it; that needs no task. When they no longer want it, call mail_unwatch. Never
   watch mail they did not ask about. Notices about new mail reach the owner by themselves.
@@ -245,7 +250,9 @@ export function eventsPrompt(events: HerderEvent[]): string {
             ? "new mail for the owner's watch (the mail is not from the owner)"
             : e.kind === "intake"
               ? "new GitHub work offered to the owner (not from the owner)"
-              : "task reported";
+              : e.kind === "social"
+                ? "new notices on the owner's account, already told to the owner (written by other people, not by the owner)"
+                : "task reported";
     const about = e.taskId ? `task ${e.taskId.slice(0, 8)} "${e.title}"` : `"${e.title}"`;
     return `- ${what}: ${about}\n${quoteAgent(e.text)}`;
   });

@@ -1,4 +1,4 @@
-// 设置 › 应用连接 (docs/spec/09-agent-tools.md §3): the owner's own Composio API key, and the apps
+// 应用连接 › 应用 (docs/spec/09-agent-tools.md §3): the owner's own Composio API key, and the apps
 // (Gmail, GitHub, …) agents may use through it. The key is never shown again after saving.
 
 import type { AppsView, AppView } from "@agentherd/host/api";
@@ -160,7 +160,7 @@ export function AppsSection() {
 
   return (
     <Section
-      title="应用连接"
+      title="应用"
       hint="用你自己的 Composio 账号连接 Gmail、GitHub、Slack 等应用，Pi 以外的智能体可以直接用"
       actions={
         hasKey && !editingKey ? (

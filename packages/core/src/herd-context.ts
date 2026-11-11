@@ -24,6 +24,7 @@ import type { AppTools, HerdReport, McpGateway } from "./mcp-gateway.ts";
 import type { Completer, Embedder } from "./memory-store.ts";
 import type { Outbox } from "./outbox.ts";
 import type { Registry } from "./registry.ts";
+import type { SocialSource } from "./social-watch.ts";
 import type { SourceHealth } from "./source-health.ts";
 import type { Store } from "./store.ts";
 import type { Task } from "./tasks.ts";
@@ -94,6 +95,12 @@ export interface HerdOptions {
   intakePollMinutes?: number;
   /** Minutes between two looks at the owner's mail watches (ADR 0048). */
   mailPollMinutes?: number;
+  /** The owner's 小红书 and 知乎 accounts the host has turned on (ADR 0058). Read on every look. */
+  socials?: () => readonly SocialSource[];
+  /** Minutes between two looks at those accounts (default 20, give or take 5). */
+  socialPollMinutes?: number;
+  /** Called when watched things change, for the app. */
+  watchesChanged?: () => void;
   /** A watched source failing this long is told to the owner (default 30, ADR 0050). */
   sourceDownMinutes?: number;
   /**

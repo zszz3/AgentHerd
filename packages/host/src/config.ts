@@ -25,6 +25,8 @@ export interface CliConfig {
   modelTiers?: Partial<ModelTiers>;
   /** Connected apps (docs/spec/09-agent-tools.md §3). The Composio key is in secrets.json. */
   apps?: { composioUserId?: string };
+  /** 小红书 and 知乎 (ADR 0058). Sign-ins are in ~/.agentherd/<platform>/, not here. */
+  socials?: Partial<Record<"xiaohongshu" | "zhihu", import("./socials.ts").SocialConfig>>;
 }
 
 export function agentherdHome(env: NodeJS.ProcessEnv = process.env): string {

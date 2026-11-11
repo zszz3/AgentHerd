@@ -239,6 +239,7 @@ export class MailWatches {
       return;
     }
     for (const watch of this.ctx.store.mailWatches()) {
+      if (watch.paused === true) continue;
       try {
         const messages = await fetchMail(apps, searchSince(watch.query, watch.createdAt));
         this.ctx.sources.ok("mail");

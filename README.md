@@ -38,7 +38,9 @@ English · [简体中文](README.zh-CN.md)
   said to do it. Unanswered questions close after an hour instead of nagging.
   A watchdog notices a stuck task, and urgent news reaches you before small news.
 - **Watches the work around your code.** It follows the pull requests its tasks open, offers new
-  GitHub issues and reviews as "start a task / ignore", and watches mail when you ask it to.
+  GitHub issues and reviews as "start a task / ignore", and watches mail when you ask it to. Turn on
+  your 小红书 account and agents can search, read and (with your OK) post and reply there, and new
+  comments reach you. Every watch is listed in one place, where you can pause it.
 - **Schedules in plain words.** "Every weekday at 9, check for new issues" — the Herder makes the
   schedule, and missed runs happen once when your Mac wakes.
 - **Memory that stays useful.** The whole conversation is kept, and the Herder folds old parts
