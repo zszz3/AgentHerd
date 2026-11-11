@@ -16,6 +16,52 @@ const KIND_LABELS: Record<SocialPlatform, Record<SocialKind, string>> = {
 const KINDS: readonly SocialKind[] = ["mentions", "likes", "follows"];
 
 /**
+ * What agents can do with each account (the XIAOHONGSHU_ / ZHIHU_ tools, ADR 0058). Writes show
+ * under the owner's name, so each one asks first (ADR 0056).
+ */
+const ABILITIES: Record<
+  SocialPlatform,
+  { reads: readonly string[]; writes: readonly string[]; example: string }
+> = {
+  xiaohongshu: {
+    reads: ["搜索笔记", "首页推荐", "看笔记和评论", "看博主主页", "看我的主页", "看通知"],
+    writes: ["发图文笔记", "发视频笔记", "评论", "回复评论", "点赞", "收藏"],
+    example: "「在小红书搜一下 AI Agent 的笔记，挑三篇说说」",
+  },
+  zhihu: {
+    reads: ["搜索", "看热榜", "看问题和回答", "看专栏文章", "看评论", "看我的主页", "看通知"],
+    writes: ["评论", "回复评论", "赞同回答"],
+    example: "「看看知乎上怎么评价 Claude Code，总结一下」",
+  },
+};
+
+/** The chips listing what agents can do with a platform; shown connected or not. */
+function Abilities({ platform, ready }: { platform: SocialPlatform; ready: boolean }) {
+  const a = ABILITIES[platform];
+  return (
+    <div className={`space-y-2 py-2.5 pr-4 pl-14 ${ready ? "" : "opacity-60"}`}>
+      <div className="flex flex-wrap items-center gap-1.5">
+        <span className="mr-1 text-ink-muted text-xs">直接做</span>
+        {a.reads.map((r) => (
+          <Badge key={r}>{r}</Badge>
+        ))}
+      </div>
+      <div className="flex flex-wrap items-center gap-1.5">
+        <span className="mr-1 text-ink-muted text-xs">先问你</span>
+        {a.writes.map((w) => (
+          <Badge key={w} tone="amber">
+            {w}
+          </Badge>
+        ))}
+      </div>
+      <div className="text-ink-muted text-xs">
+        {ready ? `跟主管说就行，比如${a.example}` : "连接后，跟主管说就能用"}
+      </div>
+    </div>
+  );
+}
+
+/**
  * Connecting a platform, in one dialog: the account-risk notice the first time, then AgentHerd
  * gets ready, then the QR code. It closes by itself once the account is signed in.
  */
@@ -241,6 +287,7 @@ function PlatformRows({ social, onConnect }: { social: SocialView; onConnect: ()
         }
         trailing={trailing}
       />
+      {social.available && <Abilities platform={social.platform} ready={ready} />}
       {ready &&
         KINDS.map((kind) => (
           <Row
