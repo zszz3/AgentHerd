@@ -19,6 +19,9 @@ export {
 export type { AgentModels, HerdOptions, ModelLaunch, RelayState, RunResult } from "./herd.ts";
 export { Herd } from "./herd.ts";
 export type {
+  FeedItem,
+  FeedQuery,
+  FeedSource,
   HerderEvent,
   HerderFactory,
   HerderHost,
@@ -27,7 +30,7 @@ export type {
   OwnerImage,
   VoiceRequest,
 } from "./herder-port.ts";
-export { HERDER_RETRY_TARGET } from "./herder-port.ts";
+export { FEED_SOURCES, HERDER_RETRY_TARGET } from "./herder-port.ts";
 export type { Answerable, InboxOptions, OwnerAnswer } from "./inbox.ts";
 export { BODY_MAX_LINES, DEFAULT_REMIND_MINUTES, Inbox, itemBody, itemView } from "./inbox.ts";
 export type { IntakeItem, IntakeKind, IntakeOptions, IntakeRequest } from "./intake.ts";

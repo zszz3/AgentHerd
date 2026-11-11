@@ -34,6 +34,11 @@ describe("outboundCheck (ADR 0056)", () => {
     ["terraform apply", "deploy"],
     ["git send-email 0001.patch", "send"],
     ["lark-cli im +send --chat x --text hi", "send"],
+    ["lark-cli docs +update --doc abc --markdown hi", "edit"],
+    ["lark-cli calendar +create --summary 周会", "send"],
+    ["lark-cli calendar events create --data '{}'", "send"],
+    ["lark-cli base +record-create --base b", "edit"],
+    ["lark-cli api POST /open-apis/docx/v1/documents", "edit"],
     ["echo $(date) && git push", "push"],
   ])("%s → %s", (command, step) => {
     expect(outboundCheck(run(command))?.step).toBe(step);
@@ -57,6 +62,16 @@ describe("outboundCheck (ADR 0056)", () => {
     "kubectl get pods",
     "echo git push",
     "grep -r publish src",
+    "lark-cli docs +fetch --doc abc",
+    "lark-cli docs +search --query 周报",
+    "lark-cli docs +create --title 调研",
+    "lark-cli sheets +create --title 数据",
+    "lark-cli calendar +agenda",
+    "lark-cli im messages list --chat x",
+    "lark-cli im +messages-search --query hi",
+    "lark-cli api GET /open-apis/calendar/v4/calendars",
+    "lark-cli auth status",
+    "lark-cli calendar +create --help",
   ])("%s stays on the Mac", (command) => {
     expect(outboundCheck(run(command))).toBeUndefined();
   });

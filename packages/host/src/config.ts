@@ -27,6 +27,10 @@ export interface CliConfig {
   apps?: { composioUserId?: string };
   /** 小红书 and 知乎 (ADR 0058). Sign-ins are in ~/.agentherd/<platform>/, not here. */
   socials?: Partial<Record<"xiaohongshu" | "zhihu", import("./socials.ts").SocialConfig>>;
+  /** News sources turned off in 应用连接 (ADR 0059); all are on unless listed. */
+  feedsOff?: ("github-trending" | "hacker-news" | "arxiv")[];
+  /** The owner's Obsidian vault, told to every new task (ADR 0059). */
+  obsidianVault?: string;
 }
 
 export function agentherdHome(env: NodeJS.ProcessEnv = process.env): string {

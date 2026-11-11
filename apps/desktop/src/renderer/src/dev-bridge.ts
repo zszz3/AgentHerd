@@ -19,8 +19,10 @@
 import type {
   AgentView,
   AppsView,
+  FeedView,
   HostEvent,
   HostStatus,
+  LarkView,
   MemoryView,
   ModelsView,
   ModelTiersView,
@@ -36,6 +38,8 @@ import {
   hoursFromNow,
   PLACEHOLDER_QR,
   providers,
+  sampleFeeds,
+  sampleLark,
   sampleMemory,
   sampleSchedules,
   sampleServices,
@@ -122,6 +126,13 @@ function installFakeBridge(): void {
   const appsChanged = (): void => emit({ topic: "apps", data: structuredClone(apps) });
   let socials: SocialView[] = sampleSocials();
   let watches: WatchView[] = sampleWatches(sim === "empty" || sim === "no-agent");
+  let lark: LarkView = sampleLark(sim === "empty" || sim === "no-agent");
+  let feeds: FeedView[] = sampleFeeds();
+  /** Changes 飞书 and tells the page, as the host's "lark" event does. */
+  const setLark = (next: LarkView): void => {
+    lark = next;
+    emit({ topic: "lark", data: structuredClone(lark) });
+  };
   /** Changes one platform and tells the page, as the host's "socials" event does. */
   const setSocial = (platform: SocialView["platform"], patch: Partial<SocialView>): void => {
     socials = socials.map((s) => (s.platform === platform ? { ...s, ...patch } : s));
@@ -250,6 +261,33 @@ function installFakeBridge(): void {
           ],
         };
       return delay(apps, 600);
+    },
+    lark: () => delay(lark),
+    connectLark: () => {
+      // The preview installs lark-cli when it is missing, then "scans" by itself.
+      const installing = lark.state === "missing";
+      if (installing) setLark({ state: "installing" });
+      const wait = installing ? 2500 : 800;
+      setTimeout(
+        () => setLark({ state: "ready", account: "预览账号", version: "1.4.0" }),
+        wait + 4000,
+      );
+      return delay({ image: PLACEHOLDER_QR, url: "https://open.feishu.cn/example" }, wait);
+    },
+    testLark: () =>
+      delay({
+        ok: lark.state === "ready",
+        message: lark.state === "ready" ? "飞书连接正常，读到了你的日历" : "还没登录飞书",
+        lark,
+      }),
+    logoutLark: () => {
+      lark = { state: "signed-out", version: "1.4.0" };
+      return delay(lark);
+    },
+    feeds: () => delay(feeds),
+    setFeed: (source, on) => {
+      feeds = feeds.map((f) => (f.source === source ? { ...f, on } : f));
+      return delay(feeds);
     },
     socials: () => delay(socials),
     enableSocial: (platform) => {
@@ -548,7 +586,16 @@ function installFakeBridge(): void {
       return delay(tiersView());
     },
     updateSettings: (patch) => {
-      status = { ...status, ...patch };
+      const { obsidianVault, ...rest } = patch;
+      if (obsidianVault !== undefined) {
+        // The preview has no file system: paths with "missing" in them do not exist.
+        if (obsidianVault.includes("missing")) {
+          return Promise.reject(new Error(`没有这个文件夹：${obsidianVault}`));
+        }
+        const { obsidianVault: _, ...kept } = status;
+        status = obsidianVault === "" ? kept : { ...kept, obsidianVault };
+      }
+      status = { ...status, ...rest };
       emit({ topic: "status", data: structuredClone(status) });
       return delay(status);
     },

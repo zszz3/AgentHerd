@@ -15,6 +15,7 @@ export const OUTBOUND_STEPS = [
   "publish",
   "deploy",
   "send",
+  "edit",
 ] as const;
 export type OutboundStep = (typeof OUTBOUND_STEPS)[number];
 
@@ -123,10 +124,43 @@ function segmentHit(words: readonly string[]): OutboundResult | undefined {
   if ((program === "mail" || program === "sendmail" || program === "mutt") && args.length > 0) {
     return hit("send", "sends mail");
   }
-  if (program === "lark-cli" && args.some((w) => /^\+?(send|reply|forward)/.test(w))) {
-    return hit("send", "sends a message");
-  }
+  if (program === "lark-cli") return larkCli(args);
   return undefined;
+}
+
+/** lark-cli verbs that only read (ADR 0059). Anything else writes. */
+const LARK_READ =
+  /^\+?(agenda|get|list|search|fetch|freebusy|suggestion|room-find|meeting|query|view|info|detail|read|export|download|preview|status|history-list|primary|instance_view|share_info)([-_].*)?$|-(download|preview|list|get|search)$/;
+/** Files a new one of which lands in the owner's own space: making one passes. */
+const LARK_NEW_FILE = new Set(["docs", "markdown", "sheets", "slides", "mindnotes", "base"]);
+const LARK_LOCAL = new Set(["auth", "config", "schema", "skills", "help", "version", "completion"]);
+const LARK_SENDS = new Set(["im", "mail", "calendar", "vc", "approval"]);
+
+/** The official Feishu CLI (ADR 0059): reads and new files of the owner's pass; the rest asks. */
+function larkCli(args: readonly string[]): OutboundResult | undefined {
+  if (args.some((w) => w === "--help" || w === "-h" || w === "--dry-run")) return undefined;
+  const sub = plain(args);
+  const domain = sub[0];
+  if (domain === undefined || LARK_LOCAL.has(domain)) return undefined;
+  if (domain === "api") {
+    return /^get$/i.test(sub[1] ?? "")
+      ? undefined
+      : hit("edit", "writes to Feishu through its API");
+  }
+  // `docs +fetch`, `calendar events create`: the verb is the last plain word that is not a value.
+  const verbs = sub.slice(1, 3);
+  if (
+    verbs.length > 0 &&
+    verbs.every((w) => !w.startsWith("+")) &&
+    LARK_READ.test(verbs.at(-1) ?? "")
+  ) {
+    return undefined;
+  }
+  const verb = verbs.find((w) => w.startsWith("+")) ?? verbs.at(-1) ?? "";
+  if (LARK_READ.test(verb)) return undefined;
+  if (LARK_NEW_FILE.has(domain) && /^\+?create$/.test(verb)) return undefined;
+  if (LARK_SENDS.has(domain)) return hit("send", `changes Feishu ${domain} for the owner`);
+  return hit("edit", `changes Feishu ${domain}`);
 }
 
 /** Whether a tool call's effect leaves the owner's Mac, and which kind of step it is. */

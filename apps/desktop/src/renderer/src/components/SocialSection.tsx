@@ -19,10 +19,7 @@ const KINDS: readonly SocialKind[] = ["mentions", "likes", "follows"];
  * What agents can do with each account (the XIAOHONGSHU_ / ZHIHU_ tools, ADR 0058). Writes show
  * under the owner's name, so each one asks first (ADR 0056).
  */
-const ABILITIES: Record<
-  SocialPlatform,
-  { reads: readonly string[]; writes: readonly string[]; example: string }
-> = {
+const ABILITIES: Record<SocialPlatform, AbilityList> = {
   xiaohongshu: {
     reads: ["搜索笔记", "首页推荐", "看笔记和评论", "看博主主页", "看我的主页", "看通知"],
     writes: ["发图文笔记", "发视频笔记", "评论", "回复评论", "点赞", "收藏"],
@@ -35,9 +32,15 @@ const ABILITIES: Record<
   },
 };
 
-/** The chips listing what agents can do with a platform; shown connected or not. */
-function Abilities({ platform, ready }: { platform: SocialPlatform; ready: boolean }) {
-  const a = ABILITIES[platform];
+/** What agents can do with one connection: done directly, asked first, and a sample request. */
+export interface AbilityList {
+  reads: readonly string[];
+  writes: readonly string[];
+  example: string;
+}
+
+/** The chips listing what agents can do with a connection; shown connected or not. */
+export function Abilities({ abilities: a, ready }: { abilities: AbilityList; ready: boolean }) {
   return (
     <div className={`space-y-2 py-2.5 pr-4 pl-14 ${ready ? "" : "opacity-60"}`}>
       <div className="flex flex-wrap items-center gap-1.5">
@@ -287,7 +290,7 @@ function PlatformRows({ social, onConnect }: { social: SocialView; onConnect: ()
         }
         trailing={trailing}
       />
-      {social.available && <Abilities platform={social.platform} ready={ready} />}
+      {social.available && <Abilities abilities={ABILITIES[social.platform]} ready={ready} />}
       {ready &&
         KINDS.map((kind) => (
           <Row

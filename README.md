@@ -41,6 +41,10 @@ English · [简体中文](README.zh-CN.md)
   GitHub issues and reviews as "start a task / ignore", and watches mail when you ask it to. Turn on
   your 小红书 or 知乎 account and agents can search, read and (with your OK) post and reply there, and new
   comments reach you. Every watch is listed in one place, where you can pause it.
+- **Your 飞书, news and notes.** Sign in 飞书 once (official lark-cli) and agents read your docs,
+  sheets and calendar and write results as new docs; changing existing things asks you. GitHub
+  Trending, Hacker News and arXiv need no sign-in: ask for a daily digest and nothing repeats.
+  Notion comes through Composio, and your Obsidian vault is handed to every task.
 - **Schedules in plain words.** "Every weekday at 9, check for new issues" — the Herder makes the
   schedule, and missed runs happen once when your Mac wakes.
 - **Memory that stays useful.** The whole conversation is kept, and the Herder folds old parts

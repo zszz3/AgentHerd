@@ -17,7 +17,14 @@ import type { ExtraGuard, OutboundStep } from "@agentherd/rules";
 import type { Board } from "./board.ts";
 import type { Clock, Timer } from "./clock.ts";
 import type { GitHubOptions, GitHubWatch } from "./github-watch.ts";
-import type { HerderFactory, HerderPort, OwnerImage } from "./herder-port.ts";
+import type {
+  FeedItem,
+  FeedQuery,
+  FeedSource,
+  HerderFactory,
+  HerderPort,
+  OwnerImage,
+} from "./herder-port.ts";
 import type { Inbox } from "./inbox.ts";
 import type { Intake } from "./intake.ts";
 import type { AppTools, HerdReport, McpGateway } from "./mcp-gateway.ts";
@@ -97,6 +104,13 @@ export interface HerdOptions {
   mailPollMinutes?: number;
   /** The owner's 小红书 and 知乎 accounts the host has turned on (ADR 0058). Read on every look. */
   socials?: () => readonly SocialSource[];
+  /** Public news sources (ADR 0059). */
+  feeds?: {
+    on(): readonly FeedSource[];
+    read(source: FeedSource, query: FeedQuery, mark: boolean): Promise<FeedItem[]>;
+  };
+  /** Lines every new task gets about tools on this Mac (ADR 0059). Read on every task. */
+  toolNotes?: () => string[];
   /** Minutes between two looks at those accounts (default 20, give or take 5). */
   socialPollMinutes?: number;
   /** Called when watched things change, for the app. */

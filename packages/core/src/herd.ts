@@ -23,6 +23,8 @@ import {
   send,
 } from "./herd-context.ts";
 import {
+  type FeedQuery,
+  type FeedSource,
   HERDER_RETRY_TARGET,
   type HerderFactory,
   type HerderHost,
@@ -249,6 +251,14 @@ export class Herd {
       decisions: (limit) => this.store.recentDecisions(limit),
       models: () => this.opts.agentModels?.list() ?? [],
       apps: () => this.opts.appNames?.() ?? [],
+      toolNotes: () => this.opts.toolNotes?.() ?? [],
+      ...(this.opts.feeds === undefined
+        ? {}
+        : {
+            feeds: () => this.opts.feeds?.on() ?? [],
+            readFeed: (source: FeedSource, query: FeedQuery, mark: boolean) =>
+              (this.opts.feeds as NonNullable<HerdOptions["feeds"]>).read(source, query, mark),
+          }),
       ...(this.mail === undefined
         ? {}
         : {
