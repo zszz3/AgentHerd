@@ -181,8 +181,7 @@ function socialLines(host: HerderHost): string[] {
     ...socials.map(
       (s) =>
         `- ${s.platform} (${s.name}) ${s.ready ? "signed in" : "not signed in (the owner scans a code in the app)"}; tells: ${
-          (["mentions", "likes", "follows"] as const).filter((k) => s.watch[k]).join(", ") ||
-          "nothing"
+          s.watch.mentions ? "comments and @" : "nothing"
         }`,
     ),
   ];
@@ -563,9 +562,9 @@ const socialWatchSchema = obj({
   platform: oneOf(["xiaohongshu", "zhihu"] as const, {
     description: "xiaohongshu = 小红书, zhihu = 知乎",
   }),
-  kind: oneOf(["mentions", "likes", "follows"] as const, {
+  kind: oneOf(["mentions"] as const, {
     description:
-      "mentions = comments, answers and @; likes = likes and saves; follows = new followers",
+      "mentions = comments, answers and @; likes, saves and new followers are never told",
   }),
   on: bool({ description: "true to tell the owner about this kind, false to stop" }),
 });
@@ -923,7 +922,7 @@ export function herderTools(
         _id: string,
         args: {
           platform: "xiaohongshu" | "zhihu";
-          kind: "mentions" | "likes" | "follows";
+          kind: "mentions";
           on: boolean;
         },
       ) => {

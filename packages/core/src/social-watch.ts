@@ -10,7 +10,12 @@ export type SocialPlatform = "xiaohongshu" | "zhihu";
 export type SocialKind = "mentions" | "likes" | "follows";
 
 export const SOCIAL_PLATFORMS: readonly SocialPlatform[] = ["xiaohongshu", "zhihu"];
-export const SOCIAL_KINDS: readonly SocialKind[] = ["mentions", "likes", "follows"];
+/**
+ * The kinds AgentHerd tells the owner about: comments, answers and @ only. Likes, saves and new
+ * followers are never told (the owner, 2026-11-11: 「告诉我赞和收藏，还有谁关注根本没意义」);
+ * agents can still list them through the platform's tools.
+ */
+export const SOCIAL_KINDS: readonly SocialKind[] = ["mentions"];
 
 /** Minutes between looks, and how far each look may move either way (so they do not tick). */
 export const SOCIAL_POLL_MINUTES = 20;
@@ -139,6 +144,7 @@ export class SocialWatches {
 
   /** Turns telling about one kind on or off. */
   setWatch(platform: SocialPlatform, kind: SocialKind, on: boolean): void {
+    if (!SOCIAL_KINDS.includes(kind)) throw new Error("only comments and @ are told");
     const state = this.state(platform);
     if (state.watch[kind] === on) return;
     state.watch[kind] = on;
@@ -242,7 +248,7 @@ export class SocialWatches {
     });
   }
 
-  /** Comments and @ one per line; likes and follows counted. */
+  /** Comments and @ one per line. */
   private ownerText(name: string, fresh: SocialNotice[]): string {
     const { texts } = this.ctx;
     const mentions = fresh.filter((n) => n.kind === "mentions");
@@ -252,10 +258,6 @@ export class SocialWatches {
         texts.socialMention(n.who, clip(n.text), n.on === undefined ? "" : clip(n.on, 30)),
       );
     if (mentions.length > TOLD_MAX) lines.push(texts.socialMore(mentions.length - TOLD_MAX));
-    const likes = fresh.filter((n) => n.kind === "likes").length;
-    const follows = fresh.filter((n) => n.kind === "follows").length;
-    if (likes > 0) lines.push(texts.socialLikes(likes));
-    if (follows > 0) lines.push(texts.socialFollows(follows));
     return texts.socialNew(name, lines.join("\n"));
   }
 }

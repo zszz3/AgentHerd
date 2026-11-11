@@ -13,7 +13,8 @@ const KIND_LABELS: Record<SocialPlatform, Record<SocialKind, string>> = {
   xiaohongshu: { mentions: "评论和@", likes: "赞和收藏", follows: "新增关注" },
   zhihu: { mentions: "评论、回答和@", likes: "赞同和喜欢", follows: "新增关注" },
 };
-const KINDS: readonly SocialKind[] = ["mentions", "likes", "follows"];
+// Likes, saves and new followers are never told (ADR 0058).
+const KINDS: readonly SocialKind[] = ["mentions"];
 
 /**
  * What agents can do with each account (the XIAOHONGSHU_ / ZHIHU_ tools, ADR 0058). Writes show
