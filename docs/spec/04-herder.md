@@ -346,7 +346,7 @@ What the Herder does at set times, made only when the owner asks ([ADR 0055](../
   A scheduled turn cannot make schedules, watches or memory. Times missed while AgentHerd was
   off or the Mac slept run once on start, not once per missed time. A `once` schedule is
   removed after it ran.
-- **Keeping.** Table `schedules` (schema 13). The app's 主管 › 「定时任务」 tab lists them with the
+- **Keeping.** Table `schedules` (schema 13). The app's 「定时任务」 page lists them with the
   next run, and pauses, resumes or removes one.
 
 ### Source health
