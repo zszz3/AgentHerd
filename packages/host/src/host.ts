@@ -65,6 +65,7 @@ import type {
   SocialKind,
   SocialLoginCode,
   SocialPlatform,
+  SocialTest,
   SocialView,
   TasksView,
   Tier,
@@ -219,6 +220,11 @@ export class Host implements HostApi {
   async socialLogout(platform: SocialPlatform): Promise<SocialView[]> {
     await this.socialList.logout(platform);
     return this.socials();
+  }
+
+  async testSocial(platform: SocialPlatform): Promise<SocialTest> {
+    const found = await this.socialList.test(platform);
+    return { ...found, socials: this.socials() };
   }
 
   setSocialWatch(platform: SocialPlatform, kind: SocialKind, on: boolean): SocialView[] {

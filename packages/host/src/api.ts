@@ -233,6 +233,13 @@ export type SocialPlatform = "xiaohongshu" | "zhihu";
 /** What a platform watch can tell the owner about. */
 export type SocialKind = "mentions" | "likes" | "follows";
 
+/** What 测试连接 found. */
+export interface SocialTest {
+  ok: boolean;
+  message: string;
+  socials: SocialView[];
+}
+
 /**
  * One platform in 应用连接 (ADR 0058). Turning it on needs the owner to accept the account-risk
  * notice once; signing in is a QR code scanned with the platform's phone app.
@@ -348,6 +355,8 @@ export interface HostApi {
   socialLoginCode(platform: SocialPlatform): Promise<SocialLoginCode>;
   /** Forgets the sign-in on this Mac. */
   socialLogout(platform: SocialPlatform): Promise<SocialView[]>;
+  /** Checks now whether the platform is reachable and signed in; says what it found, in Chinese. */
+  testSocial(platform: SocialPlatform): Promise<SocialTest>;
   setSocialWatch(platform: SocialPlatform, kind: SocialKind, on: boolean): SocialView[];
   /** Everything AgentHerd watches: pull requests, mail, new GitHub work, platforms. */
   watches(): WatchView[];
@@ -397,6 +406,7 @@ export const HOST_METHODS: readonly HostMethod[] = [
   "disableSocial",
   "socialLoginCode",
   "socialLogout",
+  "testSocial",
   "setSocialWatch",
   "watches",
   "setWatchPaused",

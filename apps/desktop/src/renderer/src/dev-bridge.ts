@@ -274,6 +274,18 @@ function installFakeBridge(): void {
       });
       return delay(socials);
     },
+    testSocial: (platform) => {
+      const s = socials.find((x) => x.platform === platform);
+      const ok = s?.state === "ready";
+      return delay(
+        {
+          ok,
+          message: ok ? `连接正常，账号「${s?.account ?? ""}」` : "登录已失效，点「重连」扫码",
+          socials,
+        },
+        800,
+      );
+    },
     setSocialWatch: (platform, kind, on) => {
       socials = socials.map((s) =>
         s.platform === platform ? { ...s, watch: { ...s.watch, [kind]: on } } : s,

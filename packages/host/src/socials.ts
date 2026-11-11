@@ -151,6 +151,24 @@ export class Socials {
     await this.xiaohongshu.logout();
   }
 
+  /** Checks the platform now (测试连接). */
+  async test(platform: SocialPlatform): Promise<{ ok: boolean; message: string }> {
+    if (platform !== "xiaohongshu") return { ok: false, message: `${NAMES[platform]}还没接好` };
+    if (this.settings(platform).enabled !== true) return { ok: false, message: "还没连接" };
+    const x = this.xiaohongshu;
+    try {
+      if (x.state === "off" || x.state === "failed") await x.start();
+      else await x.check();
+    } catch (error) {
+      return { ok: false, message: `连不上：${(error as Error).message}` };
+    }
+    if (x.state === "ready") {
+      return { ok: true, message: `连接正常${x.account ? `，账号「${x.account}」` : ""}` };
+    }
+    if (x.state === "signed-out") return { ok: false, message: "登录已失效，点「重连」扫码" };
+    return { ok: false, message: x.problem ?? "连不上" };
+  }
+
   /** Tools of the signed-in platforms, beside the owner's Composio apps. */
   tools(composio: AppTools | undefined): AppTools | undefined {
     const xhs =

@@ -2,7 +2,7 @@
 // button: the account-risk notice the first time, then a QR code scanned with the platform's app.
 
 import type { SocialKind, SocialPlatform, SocialView } from "@agentherd/host/api";
-import { Link2, Loader2, LogOut } from "lucide-react";
+import { Activity, Link2, Loader2, LogOut, RefreshCw } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { call, useApp } from "../store";
 import { Modal } from "./Modal";
@@ -151,31 +151,71 @@ function ConnectDialog({ social, onClose }: { social: SocialView; onClose: () =>
  */
 function PlatformRows({ social, onConnect }: { social: SocialView; onConnect: () => void }) {
   const [busy, setBusy] = useState(false);
+  const [tested, setTested] = useState<{ ok: boolean; message: string } | undefined>();
   const ready = social.state === "ready";
 
   const disconnect = async () => {
     setBusy(true);
+    setTested(undefined);
     await call((h) => h.socialLogout(social.platform));
     const next = await call((h) => h.disableSocial(social.platform));
     setBusy(false);
     if (next !== undefined) useApp.setState({ socials: next });
   };
+  /** 测试连接: asks the platform now whether the account is still signed in. */
+  const test = async () => {
+    setBusy(true);
+    setTested(undefined);
+    const result = await call((h) => h.testSocial(social.platform));
+    setBusy(false);
+    if (result === undefined) return;
+    useApp.setState({ socials: result.socials });
+    setTested({ ok: result.ok, message: result.message });
+  };
+  /** 重连: forgets the old sign-in and scans again. */
+  const reconnect = async () => {
+    setBusy(true);
+    setTested(undefined);
+    if (ready) await call((h) => h.socialLogout(social.platform));
+    setBusy(false);
+    onConnect();
+  };
 
   const trailing = !social.available ? (
     <Badge>即将支持</Badge>
-  ) : ready ? (
-    <Button variant="ghost" size="sm" disabled={busy} onClick={() => void disconnect()}>
-      <LogOut size={12} />
-      断开
-    </Button>
   ) : social.state === "starting" ? (
     <Badge tone="blue">准备中</Badge>
+  ) : social.enabled ? (
+    <>
+      <Button variant="ghost" size="sm" disabled={busy} onClick={() => void test()}>
+        {busy ? <Loader2 size={12} className="animate-spin" /> : <Activity size={12} />}
+        测试连接
+      </Button>
+      <Button size="sm" disabled={busy} onClick={() => void reconnect()}>
+        <RefreshCw size={12} />
+        重连
+      </Button>
+      <Button variant="ghost" size="sm" disabled={busy} onClick={() => void disconnect()}>
+        <LogOut size={12} />
+        断开
+      </Button>
+    </>
   ) : (
     <Button size="sm" onClick={onConnect}>
       <Link2 size={12} />
       连接
     </Button>
   );
+
+  const description = !social.available
+    ? undefined
+    : tested !== undefined
+      ? tested.message
+      : social.state === "failed"
+        ? social.problem
+        : social.state === "signed-out" && social.enabled
+          ? "登录已失效，点「重连」扫码"
+          : undefined;
 
   return (
     <>
@@ -193,7 +233,11 @@ function PlatformRows({ social, onConnect }: { social: SocialView; onConnect: ()
           </span>
         }
         description={
-          social.available ? (social.state === "failed" ? social.problem : undefined) : undefined
+          description === undefined ? undefined : (
+            <span className={tested?.ok === true ? "text-green-600" : undefined}>
+              {description}
+            </span>
+          )
         }
         trailing={trailing}
       />
