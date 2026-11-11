@@ -18,8 +18,10 @@ function ToolStatus({ status }: { status?: string }) {
   return <Loader2 size={13} className="shrink-0 animate-spin text-ink-muted" />;
 }
 
-/** Prompts longer than this show folded, with a 展开 button. */
-const PROMPT_FOLD_CHARS = 300;
+/** A command without a leading `cd <folder> &&`: the task's folder says nothing new. */
+export function shortCommand(text: string): string {
+  return text.replace(/^cd\s+("[^"]*"|'[^']*'|\S+)\s*&&\s*/, "");
+}
 
 /** A tool call: one line; a click shows the whole command. */
 function ToolEntry({ text, status }: { text: string; status?: string }) {
@@ -41,7 +43,7 @@ function ToolEntry({ text, status }: { text: string; status?: string }) {
           open ? "whitespace-pre-wrap break-all" : "truncate"
         }`}
       >
-        {text}
+        {open ? text : shortCommand(text).split("\n")[0]}
       </span>
       <span className="mt-[3px]">
         <ToolStatus status={status} />
@@ -50,30 +52,157 @@ function ToolEntry({ text, status }: { text: string; status?: string }) {
   );
 }
 
-/** What AgentHerd sent the agent; a long one shows folded. */
+/** The labelled parts AgentHerd puts in what it sends an agent, and how the app names them. */
+const PROMPT_PARTS: readonly { label: string; name: string; main: boolean }[] = [
+  { label: "[Owner's message]", name: "你说的", main: true },
+  { label: "[Message from the Herder, not from the owner]", name: "主管转达", main: true },
+  { label: "[Context added by the Herder, for reference]", name: "主管补充的背景", main: false },
+];
+
+interface PromptPart {
+  name: string;
+  main: boolean;
+  text: string;
+}
+
+/** Splits a prompt at its label lines; text without a label is shown as it is. */
+export function promptParts(text: string): PromptPart[] {
+  const parts: PromptPart[] = [];
+  let current: PromptPart | undefined;
+  for (const line of text.split("\n")) {
+    const known = PROMPT_PARTS.find((p) => line.trim() === p.label);
+    const hint = line.startsWith("[AgentHerd] ");
+    if (known !== undefined || hint) {
+      current = known
+        ? { name: known.name, main: known.main, text: "" }
+        : { name: "AgentHerd 的说明", main: false, text: line.slice("[AgentHerd] ".length) };
+      parts.push(current);
+      continue;
+    }
+    if (current === undefined) {
+      current = { name: "", main: true, text: "" };
+      parts.push(current);
+    }
+    current.text = current.text === "" ? line : `${current.text}\n${line}`;
+  }
+  return parts.map((p) => ({ ...p, text: p.text.trim() })).filter((p) => p.text !== "");
+}
+
+/** What AgentHerd sent the agent: the owner's or Herder's words, with the added context folded. */
 function PromptEntry({ text, at }: { text: string; at: string }) {
-  const long = text.length > PROMPT_FOLD_CHARS;
-  const [open, setOpen] = useState(!long);
+  const parts = promptParts(text);
+  const main = parts.filter((p) => p.main);
+  const extra = parts.filter((p) => !p.main);
+  const [open, setOpen] = useState(false);
   return (
     <div className="flex flex-col items-end gap-1">
       <span className="text-ink-muted text-xs">发给 Agent · {hhmm(at)}</span>
-      <div className="selectable max-w-[85%] whitespace-pre-wrap break-words rounded-lg bg-accent-soft px-3 py-2 text-ink text-md">
-        {open ? text : `${text.slice(0, PROMPT_FOLD_CHARS)}…`}
-        {long && (
-          <button
-            type="button"
-            onClick={() => setOpen(!open)}
-            className="mt-1 block text-accent-text text-sm hover:underline"
-          >
-            {open ? "收起" : "展开全部"}
-          </button>
+      <div className="selectable max-w-[85%] break-words rounded-lg bg-accent-soft px-3 py-2 text-ink text-md">
+        {main.map((p, i) => (
+          // biome-ignore lint/suspicious/noArrayIndexKey: parts never reorder
+          <div key={i} className={i > 0 ? "mt-2" : undefined}>
+            {p.name !== "" && main.length + extra.length > 1 && (
+              <div className="text-ink-muted text-xs">{p.name}</div>
+            )}
+            <div className="whitespace-pre-wrap">{p.text}</div>
+          </div>
+        ))}
+        {extra.length > 0 && (
+          <>
+            <button
+              type="button"
+              aria-expanded={open}
+              onClick={() => setOpen(!open)}
+              className="mt-1.5 flex items-center gap-1 text-accent-text text-sm hover:underline"
+            >
+              <ChevronRight
+                size={13}
+                className={`transition-transform duration-150 ${open ? "rotate-90" : ""}`}
+              />
+              {extra.map((p) => p.name).join("、")}
+            </button>
+            {open &&
+              extra.map((p, i) => (
+                // biome-ignore lint/suspicious/noArrayIndexKey: parts never reorder
+                <div key={i} className="mt-1.5 whitespace-pre-wrap text-ink-2 text-sm">
+                  {extra.length > 1 && <div className="text-ink-muted text-xs">{p.name}</div>}
+                  {p.text}
+                </div>
+              ))}
+          </>
         )}
       </div>
     </div>
   );
 }
 
-function Entry({ entry }: { entry: TranscriptView["entries"][number] }) {
+type TranscriptEntry = TranscriptView["entries"][number];
+
+/** Runs of at least this many tool calls in a row fold into one line. */
+const TOOL_RUN_FOLD = 3;
+
+/** Several tool calls in a row: one line with the count; a click lists them. */
+function ToolRun({ entries }: { entries: readonly TranscriptEntry[] }) {
+  const [open, setOpen] = useState(false);
+  const last = entries[entries.length - 1];
+  const failed = entries.filter((e) => e.status === "failed").length;
+  return (
+    <div className="flex flex-col gap-1.5">
+      <button
+        type="button"
+        aria-expanded={open}
+        onClick={() => setOpen(!open)}
+        className="flex w-full items-center gap-2 rounded-md px-1 py-1 text-left text-ink-muted text-sm hover:text-ink"
+      >
+        <ChevronRight
+          size={13}
+          className={`shrink-0 transition-transform duration-150 ${open ? "rotate-90" : ""}`}
+        />
+        <Terminal size={13} className="shrink-0" />
+        <span className="min-w-0 flex-1 truncate">
+          执行了 {entries.length} 个操作
+          {failed > 0 && <span className="text-danger-text">，{failed} 个失败</span>}
+          {!open && last !== undefined && (
+            <span className="font-mono text-ink-dim">
+              {" "}
+              · {shortCommand(last.text).split("\n")[0]}
+            </span>
+          )}
+        </span>
+        <ToolStatus status={last?.status} />
+      </button>
+      {open && (
+        <div className="flex flex-col gap-1.5 border-line border-l pl-3">
+          {entries.map((e) => (
+            <ToolEntry key={e.id} text={e.text} status={e.status} />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** The transcript as rows: runs of tool calls grouped, the rest one by one. */
+function rows(entries: readonly TranscriptEntry[]): (TranscriptEntry | TranscriptEntry[])[] {
+  const out: (TranscriptEntry | TranscriptEntry[])[] = [];
+  let run: TranscriptEntry[] = [];
+  const flush = () => {
+    if (run.length >= TOOL_RUN_FOLD) out.push(run);
+    else out.push(...run);
+    run = [];
+  };
+  for (const e of entries) {
+    if (e.role === "tool") run.push(e);
+    else {
+      flush();
+      out.push(e);
+    }
+  }
+  flush();
+  return out;
+}
+
+function Entry({ entry }: { entry: TranscriptEntry }) {
   switch (entry.role) {
     case "prompt":
       return <PromptEntry text={entry.text} at={entry.at} />;
@@ -150,9 +279,13 @@ export function TaskTranscript({ task, onClose }: { task: Task; onClose: () => v
             还没有对话记录。这个功能上线前开始的任务没有记录。
           </p>
         )}
-        {entries.map((e) => (
-          <Entry key={e.id} entry={e} />
-        ))}
+        {rows(entries).map((r) =>
+          Array.isArray(r) ? (
+            <ToolRun key={r[0]?.id} entries={r} />
+          ) : (
+            <Entry key={r.id} entry={r} />
+          ),
+        )}
         {live !== "" && (
           <div>
             <Markdown text={live} className="text-ink text-md leading-relaxed" />

@@ -74,9 +74,49 @@ export function sampleTranscript(taskId: string): TranscriptView {
   if (taskId !== "s2") return { entries: [], live: "" };
   return {
     entries: [
-      { id: 1, at: at(9), role: "prompt", text: "给订单服务补单元测试，重点覆盖退款和部分发货。" },
+      {
+        id: 1,
+        at: at(9),
+        role: "prompt",
+        text: [
+          "[Owner's message]",
+          "给订单服务补单元测试，重点覆盖退款和部分发货。",
+          "",
+          "[Context added by the Herder, for reference]",
+          "测试放在 test/orders 下，用现有的 vitest 配置；不要改业务代码。",
+          "",
+          "过去类似任务的记录（仅供参考）：",
+          "- [经验] 改测试前先跑一遍现有测试，确认基线是绿的。",
+        ].join("\n"),
+      },
       { id: 2, at: at(9), role: "agent", text: "我先看一下订单服务的结构和现有测试。" },
-      { id: 3, at: at(9), role: "tool", text: "ls src/orders test", status: "completed" },
+      {
+        id: 3,
+        at: at(9),
+        role: "tool",
+        text: "cd /Users/me/.agentherd/worktrees/order-service-1d9a25/s2 && ls src/orders test",
+        status: "completed",
+      },
+      {
+        id: 31,
+        at: at(9),
+        role: "tool",
+        text: "cd /Users/me/.agentherd/worktrees/order-service-1d9a25/s2 && git log --oneline -5 -- src/orders",
+        status: "completed",
+      },
+      {
+        id: 32,
+        at: at(9),
+        role: "tool",
+        text: [
+          "cd /Users/me/.agentherd/worktrees/order-service-1d9a25/s2 && python3 - <<'EOF'",
+          "import json",
+          "cases = json.load(open('test/fixtures/orders.json'))",
+          "print(len([c for c in cases if c['refund']]))",
+          "EOF",
+        ].join("\n"),
+        status: "completed",
+      },
       { id: 4, at: at(8), role: "tool", text: "Read src/orders/refund.ts", status: "completed" },
       {
         id: 5,
