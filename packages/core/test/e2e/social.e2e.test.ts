@@ -1,6 +1,6 @@
 // E2E for 小红书 / 知乎 notices (ADR 0058): nothing is looked at until a platform is ready and
 // watches something; the first look only learns what is there; new comments and @ are told one
-// per line, likes counted; lists are opened only when something is unread; kinds turned off are
+// per line, likes and follows never; lists are opened only when something is unread; kinds turned off are
 // not told; the Herder hears what the owner was told.
 
 import { mkdtempSync } from "node:fs";
@@ -126,22 +126,12 @@ describe("E2E-SOCIAL", () => {
     await herd.pollSocials();
     expect(texts(channel)).toHaveLength(1);
 
-    // Likes turned on: the first look learns them, the next new one is counted.
-    host.setSocialWatch?.("xiaohongshu", "likes", true);
+    // Likes and new followers are never told and cannot be turned on.
+    expect(() => host.setSocialWatch?.("xiaohongshu", "likes", true)).toThrow(/only comments/);
+    platform.receive({ id: "l2", kind: "likes", who: "C", text: "" });
     await herd.pollSocials();
     expect(texts(channel)).toHaveLength(1);
-    platform.receive({ id: "l2", kind: "likes", who: "C", text: "" });
-    platform.receive({ id: "l3", kind: "likes", who: "D", text: "" });
-    await herd.pollSocials();
-    expect(texts(channel).at(-1)).toBe("New on 小红书:\n- 2 new likes and saves");
-    expect(host.socialWatches?.()).toEqual([
-      {
-        platform: "xiaohongshu",
-        name: "小红书",
-        ready: true,
-        watch: { mentions: true, likes: true, follows: false },
-      },
-    ]);
+    expect(platform.opened).not.toContain("likes");
   });
 
   it("looks rarely, and not at all while the platform is off", async () => {

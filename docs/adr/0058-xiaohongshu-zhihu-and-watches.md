@@ -37,10 +37,12 @@ notice before a platform is turned on, and one page 「应用连接」 that list
 4. **Notices are looked at rarely.** Every 20 minutes give or take 5, only while a platform is
    signed in and watches something. A look reads the unread counts first and opens a list only
    when it has something unread; the first look of a kind only learns what is there. New comments
-   and @ are told one per line (three at most, then a count); likes and follows are counted. The
+   and @ are told one per line (three at most, then a count). The
    Herder hears what was told, so 「回她一下」 makes sense.
-5. **Defaults:** comments and @ on; likes and saves, new followers off. The owner switches them in
-   the app or by telling the Herder (`social_watch`).
+5. **Only comments and @ are told**, on by default; the owner turns them off and on in the app or
+   by telling the Herder (`social_watch`). Likes, saves and new followers are never told and have
+   no switch (amended 2026-11-11, the owner: 「告诉我赞和收藏，还有谁关注根本没意义」); agents can
+   still list them with the platform's tools.
 6. **One list of watches.** 应用连接 → 监听 lists pull requests tasks opened, mail watches, new
    GitHub work and platform watches. Each can be paused (kept, not looked at; `paused` in its
    herd.db row) and, except platform kinds, removed. Composio apps moved from 设置 to this page.

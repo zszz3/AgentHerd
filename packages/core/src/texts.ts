@@ -79,8 +79,6 @@ export interface CoreTexts {
   socialNew(platform: string, lines: string): string;
   socialMention(who: string, text: string, on: string): string;
   socialMore(count: number): string;
-  socialLikes(count: number): string;
-  socialFollows(count: number): string;
   mailLine(sender: string, subject: string, preview: string, url: string): string;
   mailMore(n: number): string;
   intakeOffer(
@@ -267,8 +265,6 @@ const zh: CoreTexts = {
   socialNew: (platform, lines) => `${platform}有新动静：\n${lines}`,
   socialMention: (who, text, on) => `- ${who}${on ? `在「${on}」` : ""}：${text}`,
   socialMore: (count) => `- 还有 ${count} 条`,
-  socialLikes: (count) => `- ${count} 个新的赞和收藏`,
-  socialFollows: (count) => `- ${count} 个新关注`,
   mailLine: (sender, subject, preview, url) =>
     `- ${sender}：「${subject}」${preview === "" ? "" : `\n  ${preview}`}\n  ${url}`,
   mailMore: (n) => `还有 ${n} 封`,
@@ -438,8 +434,6 @@ const en: CoreTexts = {
   socialNew: (platform, lines) => `New on ${platform}:\n${lines}`,
   socialMention: (who, text, on) => `- ${who}${on ? ` on "${on}"` : ""}: ${text}`,
   socialMore: (count) => `- ${count} more`,
-  socialLikes: (count) => `- ${count} new likes and saves`,
-  socialFollows: (count) => `- ${count} new followers`,
   mailLine: (sender, subject, preview, url) =>
     `- ${sender}: "${subject}"${preview === "" ? "" : `\n  ${preview}`}\n  ${url}`,
   mailMore: (n) => `and ${n} more`,
