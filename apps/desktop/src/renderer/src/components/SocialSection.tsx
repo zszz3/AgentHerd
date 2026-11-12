@@ -1,12 +1,20 @@
-// 应用连接 › 平台 (ADR 0058): 小红书 and 知乎 with the owner's own account. Each has one 连接
-// button: the account-risk notice the first time, then a QR code scanned with the platform's app.
+// 应用连接 › 账号 (ADR 0058): 小红书 and 知乎 with the owner's own account. 连接 shows the
+// account-risk notice the first time, then a QR code scanned with the platform's app.
 
 import type { SocialKind, SocialPlatform, SocialView } from "@agentherd/host/api";
 import { Activity, Link2, Loader2, LogOut, RefreshCw } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { call, useApp } from "../store";
+import {
+  Abilities,
+  type AbilityList,
+  ConnectionRow,
+  RowActions,
+  subtitle,
+  type Tested,
+} from "./ConnectionRow";
 import { Modal } from "./Modal";
-import { Badge, Button, Group, IconTile, Row, Section, Switch } from "./ui";
+import { Badge, Button, IconTile, Switch } from "./ui";
 
 /** What each watch kind is called on each platform. */
 const KIND_LABELS: Record<SocialPlatform, Record<SocialKind, string>> = {
@@ -32,38 +40,6 @@ const ABILITIES: Record<SocialPlatform, AbilityList> = {
     example: "「看看知乎上怎么评价 Claude Code，总结一下」",
   },
 };
-
-/** What agents can do with one connection: done directly, asked first, and a sample request. */
-export interface AbilityList {
-  reads: readonly string[];
-  writes: readonly string[];
-  example: string;
-}
-
-/** The chips listing what agents can do with a connection; shown connected or not. */
-export function Abilities({ abilities: a, ready }: { abilities: AbilityList; ready: boolean }) {
-  return (
-    <div className={`space-y-2 py-2.5 pr-4 pl-14 ${ready ? "" : "opacity-60"}`}>
-      <div className="flex flex-wrap items-center gap-1.5">
-        <span className="mr-1 text-ink-muted text-xs">直接做</span>
-        {a.reads.map((r) => (
-          <Badge key={r}>{r}</Badge>
-        ))}
-      </div>
-      <div className="flex flex-wrap items-center gap-1.5">
-        <span className="mr-1 text-ink-muted text-xs">先问你</span>
-        {a.writes.map((w) => (
-          <Badge key={w} tone="amber">
-            {w}
-          </Badge>
-        ))}
-      </div>
-      <div className="text-ink-muted text-xs">
-        {ready ? `跟主管说就行，比如${a.example}` : "连接后，跟主管说就能用"}
-      </div>
-    </div>
-  );
-}
 
 /**
  * Connecting a platform, in one dialog: the account-risk notice the first time, then AgentHerd
@@ -195,153 +171,126 @@ function ConnectDialog({ social, onClose }: { social: SocialView; onClose: () =>
   );
 }
 
-/**
- * A platform row, and its watch switches while it is connected. The dialog lives in
- * `SocialSection`: a Group draws a line above each child, so it must not be its child.
- */
-function PlatformRows({ social, onConnect }: { social: SocialView; onConnect: () => void }) {
+function stateBadge(social: SocialView) {
+  if (!social.available) return <Badge>即将支持</Badge>;
+  switch (social.state) {
+    case "ready":
+      return (
+        <Badge tone="green">
+          已连接{social.account !== undefined ? ` · ${social.account}` : ""}
+        </Badge>
+      );
+    case "starting":
+      return <Badge tone="blue">准备中</Badge>;
+    case "failed":
+      return <Badge tone="red">出错</Badge>;
+    case "signed-out":
+      return social.enabled ? <Badge tone="amber">登录失效</Badge> : <Badge>未连接</Badge>;
+    case "off":
+      return <Badge>未连接</Badge>;
+  }
+}
+
+/** One platform as a folded row: 连接 or 测试连接 on the row, the rest when opened. */
+function PlatformRow({ social }: { social: SocialView }) {
   const [busy, setBusy] = useState(false);
-  const [tested, setTested] = useState<{ ok: boolean; message: string } | undefined>();
+  const [tested, setTested] = useState<Tested | undefined>();
+  const [connecting, setConnecting] = useState(false);
+  const close = useCallback(() => setConnecting(false), []);
   const ready = social.state === "ready";
 
-  const disconnect = async () => {
+  const run = async (action: () => Promise<void>) => {
     setBusy(true);
     setTested(undefined);
-    await call((h) => h.socialLogout(social.platform));
-    const next = await call((h) => h.disableSocial(social.platform));
+    await action();
     setBusy(false);
-    if (next !== undefined) useApp.setState({ socials: next });
   };
+  const disconnect = () =>
+    run(async () => {
+      await call((h) => h.socialLogout(social.platform));
+      const next = await call((h) => h.disableSocial(social.platform));
+      if (next !== undefined) useApp.setState({ socials: next });
+    });
   /** 测试连接: asks the platform now whether the account is still signed in. */
-  const test = async () => {
-    setBusy(true);
-    setTested(undefined);
-    const result = await call((h) => h.testSocial(social.platform));
-    setBusy(false);
-    if (result === undefined) return;
-    useApp.setState({ socials: result.socials });
-    setTested({ ok: result.ok, message: result.message });
-  };
+  const test = () =>
+    run(async () => {
+      const result = await call((h) => h.testSocial(social.platform));
+      if (result === undefined) return;
+      useApp.setState({ socials: result.socials });
+      setTested({ ok: result.ok, message: result.message });
+    });
   /** 重连: forgets the old sign-in and scans again. */
-  const reconnect = async () => {
-    setBusy(true);
-    setTested(undefined);
-    if (ready) await call((h) => h.socialLogout(social.platform));
-    setBusy(false);
-    onConnect();
-  };
+  const reconnect = () =>
+    run(async () => {
+      await call((h) => h.socialLogout(social.platform));
+      setConnecting(true);
+    });
 
-  const trailing = !social.available ? (
-    <Badge>即将支持</Badge>
-  ) : social.state === "starting" ? (
-    <Badge tone="blue">准备中</Badge>
-  ) : social.enabled ? (
-    <>
+  const action =
+    !social.available || social.state === "starting" ? undefined : ready ? (
       <Button variant="ghost" size="sm" disabled={busy} onClick={() => void test()}>
         {busy ? <Loader2 size={12} className="animate-spin" /> : <Activity size={12} />}
         测试连接
       </Button>
-      <Button size="sm" disabled={busy} onClick={() => void reconnect()}>
-        <RefreshCw size={12} />
-        重连
+    ) : (
+      <Button size="sm" disabled={busy} onClick={() => setConnecting(true)}>
+        <Link2 size={12} />
+        连接
       </Button>
-      <Button variant="ghost" size="sm" disabled={busy} onClick={() => void disconnect()}>
-        <LogOut size={12} />
-        断开
-      </Button>
-    </>
-  ) : (
-    <Button size="sm" onClick={onConnect}>
-      <Link2 size={12} />
-      连接
-    </Button>
-  );
-
-  const description = !social.available
-    ? undefined
-    : tested !== undefined
-      ? tested.message
-      : social.state === "failed"
-        ? social.problem
-        : social.state === "signed-out" && social.enabled
-          ? "登录已失效，点「重连」扫码"
-          : undefined;
+    );
 
   return (
-    <>
-      <Row
-        icon={<IconTile tone={ready ? "green" : "gray"}>{social.name.slice(0, 1)}</IconTile>}
-        title={
-          <span className="flex items-center gap-2">
-            {social.name}
-            {ready && (
-              <Badge tone="green">
-                已连接{social.account !== undefined ? ` · ${social.account}` : ""}
-              </Badge>
-            )}
-            {social.state === "failed" && <Badge tone="red">出错</Badge>}
-          </span>
-        }
-        description={
-          description === undefined ? undefined : (
-            <span className={tested?.ok === true ? "text-green-600" : undefined}>
-              {description}
-            </span>
-          )
-        }
-        trailing={trailing}
-      />
-      {social.available && <Abilities abilities={ABILITIES[social.platform]} ready={ready} />}
+    <ConnectionRow
+      icon={<IconTile tone={ready ? "green" : "gray"}>{social.name.slice(0, 1)}</IconTile>}
+      name={social.name}
+      badge={stateBadge(social)}
+      subtitle={subtitle(social.state === "failed" ? social.problem : undefined, tested)}
+      action={action}
+      alert={social.state === "failed"}
+      dialog={connecting && <ConnectDialog social={social} onClose={close} />}
+    >
+      <Abilities abilities={ABILITIES[social.platform]} />
       {ready &&
         KINDS.map((kind) => (
-          <Row
-            key={kind}
-            className="min-h-10! py-1.5 pl-14"
-            title={
-              <span className="font-normal text-ink-2 text-md">
-                告诉我{KIND_LABELS[social.platform][kind]}
-              </span>
-            }
-            trailing={
-              <Switch
-                label={`${social.name}${KIND_LABELS[social.platform][kind]}`}
-                checked={social.watch[kind]}
-                onChange={(value) =>
-                  void call((h) => h.setSocialWatch(social.platform, kind, value)).then(
-                    (next) => next && useApp.setState({ socials: next }),
-                  )
-                }
-              />
-            }
-          />
+          <div key={kind} className="flex items-center justify-between gap-3">
+            <span className="text-ink-2 text-md">告诉我{KIND_LABELS[social.platform][kind]}</span>
+            <Switch
+              label={`${social.name}${KIND_LABELS[social.platform][kind]}`}
+              checked={social.watch[kind]}
+              onChange={(value) =>
+                void call((h) => h.setSocialWatch(social.platform, kind, value)).then(
+                  (next) => next && useApp.setState({ socials: next }),
+                )
+              }
+            />
+          </div>
         ))}
-    </>
+      {social.available && social.enabled && (
+        <RowActions>
+          {ready && (
+            <Button size="sm" disabled={busy} onClick={() => void reconnect()}>
+              <RefreshCw size={12} />
+              重连
+            </Button>
+          )}
+          <Button variant="ghost" size="sm" disabled={busy} onClick={() => void disconnect()}>
+            <LogOut size={12} />
+            断开
+          </Button>
+        </RowActions>
+      )}
+    </ConnectionRow>
   );
 }
 
-export function SocialSection() {
+/** 小红书 and 知乎, one folded row each, for the 账号 group. */
+export function SocialRows() {
   const socials = useApp((s) => s.socials);
-  const [connecting, setConnecting] = useState<SocialPlatform | undefined>();
-  const close = useCallback(() => setConnecting(undefined), []);
-  const current = socials?.find((s) => s.platform === connecting);
   return (
-    <Section
-      title="平台"
-      hint="用你自己的账号让 Agent 读写小红书、知乎，并盯着新通知；跟主管说一句也能开关"
-    >
-      <Group>
-        {socials === undefined ? (
-          <div className="flex items-center gap-2 px-4 py-3 text-ink-muted text-md">
-            <Loader2 size={14} className="animate-spin" />
-            正在加载…
-          </div>
-        ) : (
-          socials.map((s) => (
-            <PlatformRows key={s.platform} social={s} onConnect={() => setConnecting(s.platform)} />
-          ))
-        )}
-      </Group>
-      {current !== undefined && <ConnectDialog social={current} onClose={close} />}
-    </Section>
+    <>
+      {socials?.map((s) => (
+        <PlatformRow key={s.platform} social={s} />
+      ))}
+    </>
   );
 }

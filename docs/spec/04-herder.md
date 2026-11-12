@@ -345,7 +345,7 @@ New GitHub work is offered only when the owner asks for it ([ADR 0052](../adr/00
   mark them `[told before]`, which the Herder leaves out. `session_start` adds what the host says
   the Mac offers (lark-cli signed in as the owner, the Obsidian vault) to every new task's
   context.
-- **Watches list.** 应用连接 → 监听 lists pull requests, mail watches, new-work watches and
+- **Watches list.** 定时任务 → 在盯的 lists pull requests, mail watches, new-work watches and
   platform kinds; pausing keeps a watch without looking (`paused` in its row), removing deletes it.
 
 ### Schedules

@@ -1,11 +1,13 @@
-// 应用连接 › 应用 (docs/spec/09-agent-tools.md §3): the owner's own Composio API key, and the apps
-// (Gmail, GitHub, …) agents may use through it. The key is never shown again after saving.
+// 应用连接 › 账号 › Notion and 更多应用 (docs/spec/09-agent-tools.md §3): the owner's own Composio
+// API key, and the apps (Notion, Gmail, GitHub, …) agents may use through it. The key is never
+// shown again after saving.
 
 import type { AppsView, AppView } from "@agentherd/host/api";
-import { Blocks, KeyRound, Link2, Search, TriangleAlert } from "lucide-react";
+import { Blocks, KeyRound, Link2, LogOut, Search, TriangleAlert } from "lucide-react";
 import { useEffect, useState } from "react";
 import { call, useApp } from "../store";
-import { Badge, Button, Group, IconTile, inputClass, Row, Section } from "./ui";
+import { Abilities, type AbilityList, ConnectionRow, RowActions } from "./ConnectionRow";
+import { Badge, Button, Group, IconTile, inputClass, Row } from "./ui";
 
 const COMPOSIO_KEYS = "https://platform.composio.dev/";
 /** Reveal app rows in small batches, including search results. */
@@ -118,7 +120,8 @@ function AppRow({ app }: { app: AppView }) {
   );
 }
 
-export function AppsSection() {
+/** The Composio key, search and app list, shown when 更多应用 is opened. */
+function AppsPanel() {
   const apps = useApp((s) => s.apps);
   const [search, setSearch] = useState("");
   const [visible, setVisible] = useState(SHOWN);
@@ -159,18 +162,7 @@ export function AppsSection() {
   const shown = matching.slice(0, visible);
 
   return (
-    <Section
-      title="应用"
-      hint="用你自己的 Composio 账号连接 Gmail、GitHub、Slack 等应用，Pi 以外的智能体可以直接用"
-      actions={
-        hasKey && !editingKey ? (
-          <Button variant="ghost" size="sm" onClick={() => setEditingKey(true)}>
-            <KeyRound size={12} />
-            更换 Key
-          </Button>
-        ) : undefined
-      }
-    >
+    <>
       <Group>
         {/* Until the host answers, nothing is known: do not ask for a key it may already have. */}
         {view === undefined && <Row description="正在读取…" />}
@@ -256,6 +248,134 @@ export function AppsSection() {
           <Row description="没有找到应用" />
         )}
       </Group>
-    </Section>
+      {hasKey && !editingKey && (
+        <RowActions>
+          <Button variant="ghost" size="sm" onClick={() => setEditingKey(true)}>
+            <KeyRound size={12} />
+            更换 Key
+          </Button>
+        </RowActions>
+      )}
+    </>
+  );
+}
+
+const NOTION = "notion";
+const NOTION_ABILITIES: AbilityList = {
+  reads: ["搜页面", "读页面和数据库"],
+  writes: ["新建页面", "改页面", "写数据库"],
+  example: "「把今天的会议要点记到 Notion」",
+};
+
+/**
+ * Notion through Composio. It is not always in the default app list, so the row asks for it by
+ * name when it is missing, and again whenever the list changes.
+ */
+export function NotionRow({ onNeedKey }: { onNeedKey: () => void }) {
+  const apps = useApp((s) => s.apps);
+  const [found, setFound] = useState<AppView | undefined>();
+  const [busy, setBusy] = useState(false);
+  const listed = apps?.apps.find((a) => a.slug === NOTION);
+  const hasKey = apps?.hasKey === true;
+
+  useEffect(() => {
+    if (!hasKey || listed !== undefined) return;
+    let active = true;
+    void call((h) => h.apps(NOTION)).then((view) => {
+      if (active) setFound(view?.apps.find((a) => a.slug === NOTION));
+    });
+    return () => {
+      active = false;
+    };
+  }, [hasKey, listed]);
+
+  if (apps === undefined) return null;
+  const notion = listed ?? found;
+  const connected = notion?.connected === true;
+
+  const connect = async () => {
+    if (!hasKey) {
+      onNeedKey();
+      return;
+    }
+    setBusy(true);
+    const link = await call((h) => h.connectApp(NOTION));
+    setBusy(false);
+    if (link !== undefined) window.open(link.url, "_blank");
+  };
+  const disconnect = async () => {
+    setBusy(true);
+    const view = await call((h) => h.disconnectApp(NOTION));
+    setBusy(false);
+    if (view !== undefined) useApp.setState({ apps: view });
+    setFound(undefined);
+  };
+
+  return (
+    <ConnectionRow
+      icon={<IconTile tone={connected ? "green" : "gray"}>N</IconTile>}
+      name="Notion"
+      badge={
+        connected ? (
+          <Badge tone="green">已连接</Badge>
+        ) : notion?.connecting ? (
+          <Badge tone="blue">等待登录</Badge>
+        ) : (
+          <Badge>未连接</Badge>
+        )
+      }
+      subtitle={hasKey ? undefined : "先在下面「更多应用」里填 Composio Key"}
+      action={
+        connected ? undefined : (
+          <Button size="sm" disabled={busy || notion?.connecting} onClick={() => void connect()}>
+            <Link2 size={12} />
+            连接
+          </Button>
+        )
+      }
+    >
+      <Abilities abilities={NOTION_ABILITIES} />
+      {connected && (
+        <RowActions>
+          <Button variant="ghost" size="sm" disabled={busy} onClick={() => void disconnect()}>
+            <LogOut size={12} />
+            断开
+          </Button>
+        </RowActions>
+      )}
+    </ConnectionRow>
+  );
+}
+
+/** 更多应用: every other Composio app. Folded it shows how many are connected. */
+export function MoreAppsRow({
+  open,
+  onOpenChange,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}) {
+  const apps = useApp((s) => s.apps);
+  const connected = apps?.apps.filter((a) => a.connected && a.slug !== NOTION).length ?? 0;
+  return (
+    <ConnectionRow
+      icon={
+        <IconTile>
+          <Blocks size={15} strokeWidth={1.75} />
+        </IconTile>
+      }
+      name="更多应用"
+      subtitle={
+        apps === undefined
+          ? undefined
+          : apps.hasKey
+            ? `Composio · ${connected} 个已连接`
+            : "Composio · 还没填 Key"
+      }
+      open={open}
+      onOpenChange={onOpenChange}
+    >
+      <AppsPanel />
+    </ConnectionRow>
   );
 }

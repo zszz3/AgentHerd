@@ -29,7 +29,7 @@ level, high-risk writes need `--yes`) and ships guides (`lark-cli skills read la
    owner's own account).
 2. **Every new task is told what the Mac offers.** When lark-cli is signed in, session_start adds
    one paragraph: it is there, as whom, where its guides are, and what asks. The same goes for an
-   Obsidian vault folder the owner set in 应用连接 → 笔记. Agents use lark-cli and the vault with
+   Obsidian vault folder the owner set in 应用连接 → 账号 → Obsidian. Agents use lark-cli and the vault with
    their own shell and file tools; no gateway tools.
 3. **What a lark-cli command may do** (rules/outbound.ts, a new step `edit` 「改飞书等线上的文档、
    表格或日程」): reads (`+fetch`, `+search`, `list`, `get`, `+agenda` …), `--help`, `--dry-run`,
@@ -48,7 +48,7 @@ level, high-risk writes need `--yes`) and ships guides (`lark-cli skills read la
    ~/.agentherd/feeds/told.json (last 2,000); later reads mark them `[told before]` and the
    Herder leaves them out unless asked. Agents' reads never mark. A digest is an ordinary
    schedule (ADR 0055): 「每天早上 9 点把 AI 相关的 Trending 挑几个发我」.
-6. **Notion is Composio.** It is one more app in 应用连接 → 应用; 笔记 says so and points there.
+6. **Notion is Composio.** Its row in 应用连接 → 账号 connects it through Composio (更多应用 holds the key and the other apps).
 
 ## Alternatives
 

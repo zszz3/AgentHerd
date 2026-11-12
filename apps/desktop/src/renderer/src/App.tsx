@@ -51,11 +51,11 @@ const HEADERS: Record<Page, { title: string; hint: string }> = {
   },
   schedules: {
     title: "定时任务",
-    hint: "主管按时去做的事；在飞书里跟主管说就能加，这里可以暂停或删除",
+    hint: "主管按时去做的事和在盯的东西；在飞书里跟主管说就能加，这里可以暂停或删除",
   },
   connections: {
     title: "应用连接",
-    hint: "小红书、知乎、飞书、Composio 应用、资讯和笔记，以及主管在盯的东西",
+    hint: "Agent 能用的账号和资讯来源",
   },
   models: { title: "模型", hint: "模型服务和 Key，Pi 和各档任务用哪个模型" },
   agents: { title: "Agent", hint: "替你干活的编程 Agent；主管开任务时按模型自动挑" },
