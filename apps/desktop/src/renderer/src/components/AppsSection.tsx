@@ -121,7 +121,7 @@ function AppRow({ app }: { app: AppView }) {
 }
 
 /** The Composio key, search and app list, shown when 更多应用 is opened. */
-function AppsPanel() {
+export function AppsPanel() {
   const apps = useApp((s) => s.apps);
   const [search, setSearch] = useState("");
   const [visible, setVisible] = useState(SHOWN);

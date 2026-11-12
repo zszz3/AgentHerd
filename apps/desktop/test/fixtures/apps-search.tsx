@@ -1,5 +1,5 @@
 import { createRoot } from "react-dom/client";
-import { AppsSection } from "../../src/renderer/src/components/AppsSection";
+import { AppsPanel } from "../../src/renderer/src/components/AppsSection";
 import { useApp } from "../../src/renderer/src/store";
 
 const apps = [
@@ -39,4 +39,4 @@ Object.assign(window, {
 useApp.setState({ apps: all });
 const root = document.getElementById("root");
 if (root === null) throw new Error("missing root");
-createRoot(root).render(<AppsSection />);
+createRoot(root).render(<AppsPanel />);
