@@ -3,7 +3,6 @@
 // The question travels as an RPC `extension_ui_request` (`select`) whose title carries the
 // call as JSON after GATE_PREFIX. Anything but "allow" blocks the call.
 
-import { readFileSync } from "node:fs";
 import { isAbsolute, relative, resolve } from "node:path";
 
 export const GATE_PREFIX = "agentherd-gate:";
@@ -11,8 +10,6 @@ export const ALLOW = "allow";
 export const DENY = "deny";
 /** Tools that only read; they run without asking when they stay inside the session folder. */
 export const READ_TOOLS: readonly string[] = ["read", "grep", "find", "ls"];
-const MCP_ENV = "AGENTHERD_PI_MCP";
-const BUILTIN_TOOLS: readonly string[] = ["read", "bash", "edit", "write", "grep", "find", "ls"];
 
 export interface GateQuestion {
   toolCallId: string;
@@ -59,48 +56,14 @@ function inside(cwd: string, path: unknown): boolean {
   return rel === "" || (!rel.startsWith("..") && !isAbsolute(rel));
 }
 
-/** Reads trusted MCP tool names from `AGENTHERD_PI_MCP`. Fails closed (empty set). */
-export function trustedMcpTools(env: NodeJS.ProcessEnv = process.env): Set<string> {
-  const path = env[MCP_ENV];
-  if (path === undefined || path === "") return new Set();
-  try {
-    const parsed = JSON.parse(readFileSync(path, "utf8")) as {
-      tools?: { name?: unknown; trusted?: unknown }[];
-    };
-    const out = new Set<string>();
-    for (const tool of Array.isArray(parsed.tools) ? parsed.tools : []) {
-      if (
-        tool?.trusted === true &&
-        typeof tool.name === "string" &&
-        !BUILTIN_TOOLS.includes(tool.name)
-      ) {
-        out.add(tool.name);
-      }
-    }
-    return out;
-  } catch {
-    return new Set();
-  }
-}
-
-/**
- * True when the call may run without asking: a read tool inside the session folder, or a
- * trusted `agentherd` gateway tool (whose own approval pipeline handles confirmations).
- */
-export function runsWithoutAsking(
-  toolName: string,
-  input: Record<string, unknown>,
-  cwd: string,
-  trusted?: ReadonlySet<string>,
-): boolean {
-  if (!BUILTIN_TOOLS.includes(toolName) && trusted?.has(toolName) === true) return true;
+/** True when the call may run without asking: a read tool inside the session folder. */
+export function runsWithoutAsking(toolName: string, input: Record<string, unknown>, cwd: string) {
   return READ_TOOLS.includes(toolName) && inside(cwd, input.path);
 }
 
 export default function gate(pi: GateApi): void {
-  const trusted = trustedMcpTools(process.env);
   pi.on("tool_call", async (event, ctx) => {
-    if (runsWithoutAsking(event.toolName, event.input, ctx.cwd, trusted)) return undefined;
+    if (runsWithoutAsking(event.toolName, event.input, ctx.cwd)) return undefined;
     if (!ctx.hasUI) return { block: true, reason: "AgentHerd could not ask the owner." };
     const answer = await ctx.ui.select(
       encodeQuestion({

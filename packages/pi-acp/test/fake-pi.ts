@@ -1,28 +1,17 @@
 #!/usr/bin/env node
-// A fake `pi --mode rpc` for tests. It loads every `-e <path>` extension (gate, mcp, model)
-// and plays FAKE_PI (JSON): { calls, reply, error?, startFail?, turns? }.
-// Each prompt runs every call through the gate and executes registered extension tools, then
-// replies. "{images}" becomes the prompt's image mime types; "{results}" becomes tool outputs.
+// A fake `pi --mode rpc` for tests. It loads the real gate extension (`-e <path>`) and plays
+// FAKE_PI (JSON): { calls: [{ toolName, input }], reply, error?, startFail? }.
+// Each prompt runs every call through the gate, then replies. "{images}" in the reply becomes
+// the mime types of the images the prompt carried.
 
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import { dirname, join } from "node:path";
 import { pathToFileURL } from "node:url";
-import { type GateApi, LineSplitter, type McpExtensionApi } from "../src/index.ts";
+import { type GateApi, LineSplitter } from "../src/index.ts";
 
-interface Call {
-  toolName: string;
-  input: Record<string, unknown>;
-}
-
-interface TurnPlan {
-  calls?: Call[];
-  reply?: string;
+interface Plan {
+  calls: { toolName: string; input: Record<string, unknown> }[];
+  reply: string;
   error?: string;
-}
-
-interface Plan extends TurnPlan {
   startFail?: boolean;
-  turns?: TurnPlan[];
 }
 
 const plan = JSON.parse(process.env.FAKE_PI ?? '{"calls":[],"reply":"ok"}') as Plan;
@@ -31,59 +20,21 @@ if (plan.startFail === true) {
   process.exit(1);
 }
 const write = (r: object) => process.stdout.write(`${JSON.stringify(r)}\n`);
-
-function flagValues(flag: string): string[] {
-  const out: string[] = [];
-  for (let i = 2; i < process.argv.length - 1; i++) {
-    if (process.argv[i] === flag) out.push(process.argv[i + 1] ?? "");
-  }
-  return out;
-}
-
-const sessionDir = flagValues("--session-dir")[0];
-const sessionId = flagValues("--session-id")[0];
-const markerFile =
-  sessionDir !== undefined && sessionId !== undefined
-    ? join(sessionDir, `${sessionId}.json`)
-    : undefined;
-
+const ext = process.argv[process.argv.indexOf("-e") + 1] ?? "";
 const answers = new Map<string, (r: Record<string, unknown>) => void>();
 let nextUi = 1;
 let images: { mimeType: string }[] = [];
 let aborted = false;
 let abortRun: (() => void) | undefined;
-let turnIndex = 0;
-if (markerFile !== undefined && existsSync(markerFile)) {
-  try {
-    const saved = JSON.parse(readFileSync(markerFile, "utf8")) as { turn?: unknown };
-    if (typeof saved.turn === "number") turnIndex = saved.turn + 1;
-  } catch {
-    turnIndex = 0;
-  }
-}
 
 type Handler = Parameters<GateApi["on"]>[1];
-type RegisteredTool = Parameters<McpExtensionApi["registerTool"]>[0];
 let gate: Handler | undefined;
-const registeredTools = new Map<string, RegisteredTool>();
-
-const extensionApi = {
-  on: (_event: string, h: Handler) => {
+const mod = (await import(pathToFileURL(ext).href)) as { default: (pi: GateApi) => void };
+mod.default({
+  on: (_e, h) => {
     gate = h;
   },
-  registerTool: (tool: RegisteredTool) => {
-    registeredTools.set(tool.name, tool);
-  },
-  registerProvider: () => {},
-};
-
-for (const ext of flagValues("-e")) {
-  if (ext === "") continue;
-  const mod = (await import(pathToFileURL(ext).href)) as {
-    default?: (pi: typeof extensionApi) => void;
-  };
-  mod.default?.(extensionApi);
-}
+});
 
 const ctx = {
   cwd: process.cwd(),
@@ -99,11 +50,10 @@ const ctx = {
   },
 };
 
-async function run(turn: TurnPlan): Promise<void> {
+async function run(): Promise<void> {
   aborted = false;
   const abortP = new Promise<"aborted">((r) => (abortRun = () => r("aborted")));
-  const results: string[] = [];
-  for (const [i, call] of (turn.calls ?? []).entries()) {
+  for (const [i, call] of plan.calls.entries()) {
     const toolCallId = `call-${i}`;
     write({ type: "tool_execution_start", toolCallId, toolName: call.toolName, args: call.input });
     const verdict = await Promise.race([
@@ -114,45 +64,26 @@ async function run(turn: TurnPlan): Promise<void> {
       write({ type: "agent_settled", aborted: true });
       return;
     }
-    if (verdict !== undefined) {
-      write({ type: "tool_execution_end", toolCallId, toolName: call.toolName, isError: true });
-      process.stderr.write(`blocked: ${verdict.reason}\n`);
-      results.push(`blocked: ${verdict.reason}`);
-      continue;
-    }
-    const tool = registeredTools.get(call.toolName);
-    if (tool === undefined) {
-      write({ type: "tool_execution_end", toolCallId, toolName: call.toolName, isError: false });
-      continue;
-    }
-    let isError = false;
-    try {
-      const out = await Promise.race([tool.execute(toolCallId, call.input), abortP]);
-      if (out === "aborted" || aborted) {
-        write({ type: "agent_settled", aborted: true });
-        return;
-      }
-      results.push(
-        out.content.map((c) => (c.type === "text" ? c.text : `[${c.mimeType}]`)).join("\n"),
-      );
-    } catch (error) {
-      isError = true;
-      results.push(`error: ${(error as Error).message}`);
-    }
-    write({ type: "tool_execution_end", toolCallId, toolName: call.toolName, isError });
+    write({
+      type: "tool_execution_end",
+      toolCallId,
+      toolName: call.toolName,
+      isError: verdict !== undefined,
+    });
+    if (verdict !== undefined) process.stderr.write(`blocked: ${verdict.reason}\n`);
   }
-  if (turn.error !== undefined) {
+  if (plan.error !== undefined) {
     write({
       type: "message_end",
-      message: { role: "assistant", stopReason: "error", errorMessage: turn.error },
+      message: { role: "assistant", stopReason: "error", errorMessage: plan.error },
     });
   } else {
-    const text = (turn.reply ?? "")
-      .replace("{images}", images.map((i) => i.mimeType).join(","))
-      .replace("{results}", results.join("|"));
     write({
       type: "message_update",
-      assistantMessageEvent: { type: "text_delta", delta: text },
+      assistantMessageEvent: {
+        type: "text_delta",
+        delta: plan.reply.replace("{images}", images.map((i) => i.mimeType).join(",")),
+      },
     });
     write({ type: "message_end", message: { role: "assistant", stopReason: "stop" } });
   }
@@ -168,23 +99,13 @@ process.stdin.on("data", (chunk: Buffer) =>
       write({ id: r.id, type: "response", command: r.type, success: true, data });
     switch (r.type) {
       case "get_state":
-        respond({
-          isStreaming: false,
-          messageCount: markerFile !== undefined && existsSync(markerFile) ? 1 : 0,
-        });
+        respond({ isStreaming: false });
         break;
-      case "prompt": {
+      case "prompt":
         images = (r.images as { mimeType: string }[] | undefined) ?? [];
-        if (markerFile !== undefined) {
-          mkdirSync(dirname(markerFile), { recursive: true });
-          writeFileSync(markerFile, JSON.stringify({ turn: turnIndex }));
-        }
-        const turn = plan.turns?.[turnIndex] ?? plan;
-        turnIndex += 1;
         respond({ disposition: "started" });
-        void run(turn);
+        void run();
         break;
-      }
       case "abort":
         aborted = true;
         abortRun?.();
