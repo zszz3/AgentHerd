@@ -161,7 +161,7 @@ export function AppsSection() {
   return (
     <Section
       title="应用"
-      hint="用你自己的 Composio 账号连接 Gmail、GitHub、Slack 等应用，智能体可以直接用"
+      hint="用你自己的 Composio 账号连接 Gmail、GitHub、Slack 等应用，Pi 以外的智能体可以直接用"
       actions={
         hasKey && !editingKey ? (
           <Button variant="ghost" size="sm" onClick={() => setEditingKey(true)}>

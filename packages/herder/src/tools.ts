@@ -153,7 +153,9 @@ function oneTask(host: HerderHost, query: string): Task {
 function appLines(host: HerderHost): string[] {
   const apps = host.apps?.() ?? [];
   if (apps.length === 0) return [];
-  return [`Connected apps (agents use them through their agentherd tools): ${apps.join(", ")}`];
+  return [
+    `Connected apps (agents other than Pi use them through their agentherd tools): ${apps.join(", ")}`,
+  ];
 }
 
 /** The owner's mail watches, when mail can be watched (ADR 0048). */

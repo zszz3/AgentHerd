@@ -97,21 +97,13 @@ task before an agent starts, rather than using the agent's native defaults.
 
 ### Pi
 
-Pi has no native ACP or MCP client and never asks before a tool call. AgentHerd's bridge
-(`packages/pi-acp`, ADR 0022, [ADR 0060](../adr/0060-pi-tools-through-the-mcp-gateway.md)) starts
-`pi --mode rpc --no-session -e extension/gate.ts` (plus `-e extension/mcp.ts` when stdio
-`mcpServers` offer tools) for each ACP session:
+Pi has no ACP server and never asks before a tool call. AgentHerd's bridge
+(`packages/pi-acp`, ADR 0022) starts `pi --mode rpc --no-session -e extension/gate.ts` for each
+ACP session:
 
 - The gate asks before every tool except `read`, `grep`, `find`, `ls` inside the session
-  folder and trusted tools from the `agentherd` MCP server (`McpGateway` runs its own approval
-  pipeline for app/platform calls). Other MCP servers' tools still ask through the gate. The
-  question goes out as `session/request_permission` (`allow-once` / `reject-once`); anything but
-  allow blocks the call. Other extension dialogs are cancelled.
-- MCP tools: `bridge.ts` queries `tools/list` on stdio `mcpServers` during `session/new` and
-  `session/load`, writes the discovered definitions into a mode-`0600` per-session file referenced
-  by `AGENTHERD_PI_MCP` (deleted on exit), and `extension/mcp.ts` registers them in Pi (`inputSchema`,
-  one-line `promptSnippet`, and `tools/call` over `AGENTHERD_MCP_SOCKET` or stdio). Built-in Pi
-  tools cannot be shadowed.
+  folder. The question goes out as `session/request_permission` (`allow-once` /
+  `reject-once`); anything but allow blocks the call. Other extension dialogs are cancelled.
 - `text_delta` becomes `agent_message_chunk`; `tool_execution_start/end` become `tool_call`
   and `tool_call_update` (`bash` → `execute`, `edit`/`write` → `edit`, `read`/`ls` → `read`,
   `grep`/`find` → `search`). `agent_settled` ends the turn; `session/cancel` sends `abort`.

@@ -256,14 +256,8 @@ describe("tools", () => {
       {},
     );
     expect(some).toContain(
-      "Connected apps (agents use them through their agentherd tools): Gmail, GitHub",
+      "Connected apps (agents other than Pi use them through their agentherd tools): Gmail, GitHub",
     );
-  });
-
-  it("systemPrompt allows any agent (including Pi) to use apps and platforms", async () => {
-    const { systemPrompt } = await import("../src/prompt.ts");
-    expect(systemPrompt("zh-CN")).not.toContain("other than Pi");
-    expect(systemPrompt("en")).not.toContain("other than Pi");
   });
 
   it("session_list shows the models and session_start passes the chosen one", async () => {

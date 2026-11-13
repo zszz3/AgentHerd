@@ -7,16 +7,11 @@ import {
   encodeQuestion,
   LineSplitter,
   MAX_ARG_CHARS,
-  MCP_ENV,
-  MCP_PATH,
-  normalizeInputSchema,
   piArgsFor,
   piCommand,
   runsWithoutAsking,
   SESSION_DIR_ENV,
-  snippetOf,
   toolCallOf,
-  trustedMcpTools,
 } from "../src/index.ts";
 
 describe("gate", () => {
@@ -33,29 +28,6 @@ describe("gate", () => {
     expect(runsWithoutAsking("bash", { command: "ls" }, "/p")).toBe(false);
     expect(runsWithoutAsking("write", { path: "a" }, "/p")).toBe(false);
     expect(runsWithoutAsking("mcp__x", {}, "/p")).toBe(false);
-  });
-
-  it("trusts only explicit trusted MCP tool names, never built-in tools", () => {
-    const dir = mkdtempSync(join(tmpdir(), "pi-gate-mcp-"));
-    const file = join(dir, "mcp.json");
-    writeFileSync(
-      file,
-      JSON.stringify({
-        servers: [],
-        tools: [
-          { name: "herd_report", trusted: true },
-          { name: "custom_tool", trusted: false },
-          { name: "bash", trusted: true },
-        ],
-      }),
-    );
-    const trusted = trustedMcpTools({ [MCP_ENV]: file });
-    expect([...trusted]).toEqual(["herd_report"]);
-    expect(runsWithoutAsking("herd_report", {}, "/p", trusted)).toBe(true);
-    expect(runsWithoutAsking("custom_tool", {}, "/p", trusted)).toBe(false);
-    expect(runsWithoutAsking("bash", { command: "rm -rf /" }, "/p", trusted)).toBe(false);
-    expect([...trustedMcpTools({})]).toEqual([]);
-    expect([...trustedMcpTools({ [MCP_ENV]: join(dir, "missing.json") })]).toEqual([]);
   });
 
   it("round-trips a question and ignores other titles", () => {
@@ -77,39 +49,6 @@ describe("piArgsFor", () => {
       "--session-id",
       "pi-1",
     ]);
-  });
-
-  it("loads the MCP extension only when AGENTHERD_PI_MCP is set", () => {
-    expect(piArgsFor([], {}, "pi-1")).not.toContain(MCP_PATH);
-    expect(piArgsFor([], { [MCP_ENV]: "/tmp/mcp.json" }, "pi-1")).toContain(MCP_PATH);
-  });
-});
-
-describe("mcp schema & snippet", () => {
-  it("normalizes missing or partial JSON schemas to object schemas", () => {
-    expect(normalizeInputSchema(undefined)).toEqual({ type: "object", properties: {} });
-    expect(normalizeInputSchema({ required: ["x"] })).toEqual({
-      type: "object",
-      properties: {},
-      required: ["x"],
-    });
-    expect(
-      normalizeInputSchema({
-        type: "object",
-        properties: { text: { type: "string" } },
-        required: ["text"],
-      }),
-    ).toEqual({
-      type: "object",
-      properties: { text: { type: "string" } },
-      required: ["text"],
-    });
-  });
-
-  it("extracts a concise one-line promptSnippet", () => {
-    expect(snippetOf("herd_ack", "")).toBe("herd_ack");
-    expect(snippetOf("herd_ack", "Send one line. More details here.")).toBe("Send one line.");
-    expect(snippetOf("long", "a".repeat(200)).length).toBe(140);
   });
 });
 
