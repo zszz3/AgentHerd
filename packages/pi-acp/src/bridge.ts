@@ -4,6 +4,9 @@
 // has no UI for them.
 
 import { randomUUID } from "node:crypto";
+import { chmodSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
   type AgentApp,
@@ -16,11 +19,13 @@ import {
   type StopReason,
 } from "@agentclientprotocol/sdk";
 import { ALLOW, DENY, decodeQuestion } from "../extension/gate.ts";
+import { discoverMcpTools, MCP_ENV } from "../extension/mcp.ts";
 import { modelFromEnv, PI_PROVIDER } from "../extension/model.ts";
 import { toolCallOf } from "./map.ts";
 import { type PiRecord, PiRpc } from "./rpc.ts";
 
 export const GATE_PATH = fileURLToPath(new URL("../extension/gate.ts", import.meta.url));
+export const MCP_PATH = fileURLToPath(new URL("../extension/mcp.ts", import.meta.url));
 export const MODEL_PATH = fileURLToPath(new URL("../extension/model.ts", import.meta.url));
 export const BRIDGE_NAME = "pi-acp (AgentHerd)";
 /**
@@ -63,7 +68,7 @@ interface Session {
 
 /**
  * Pi's arguments: RPC mode, the session (saved under {@link SESSION_DIR_ENV} with the ACP session
- * id, or none), the gate, and the owner's model if one is set.
+ * id, or none), the gate, optional MCP bridge, and the owner's model if one is set.
  */
 export function piArgsFor(
   piArgs: readonly string[],
@@ -76,6 +81,7 @@ export function piArgsFor(
       ? ["--session-dir", dir, "--session-id", sessionId]
       : ["--no-session"];
   const args = ["--mode", "rpc", ...session, "-e", GATE_PATH];
+  if ((env[MCP_ENV] ?? "") !== "") args.push("-e", MCP_PATH);
   const model = modelFromEnv(env);
   if (model !== undefined)
     args.push("-e", MODEL_PATH, "--provider", PI_PROVIDER, "--model", model.id);
@@ -180,41 +186,67 @@ export function createPiBridge(opts: BridgeOptions): AgentApp & { closeAll(): Pr
    * Starts Pi for a session. With `load`, the session must exist in Pi's saved sessions.
    * @returns The session, after Pi answered `get_state`.
    */
-  async function startPi(cwd: string, id = `pi-${randomUUID()}`, load = false): Promise<Session> {
+  async function startPi(
+    cwd: string,
+    id = `pi-${randomUUID()}`,
+    load = false,
+    mcpServers: readonly unknown[] = [],
+  ): Promise<Session> {
     const s: Session = { id, cwd, turn: null, pi: undefined as never };
     const stderr: string[] = [];
     const env = baseEnv();
-    s.pi = new PiRpc({
-      command: opts.pi,
-      args: piArgsFor(opts.piArgs ?? [], env, id),
-      cwd,
-      env,
-      stderr: (chunk) => {
-        stderr.push(chunk);
-        if (stderr.length > 20) stderr.shift();
-        for (const line of chunk.split("\n")) if (line !== "") log(`[pi] ${line}`);
-      },
-    });
-    s.pi.onRecord((r) => onRecord(s, r));
-    void s.pi.exited.then((e) => {
-      sessions.delete(s.id);
-      const turn = s.turn;
-      s.turn = null;
-      turn?.done(new Error(`Pi exited (code ${e.code}, signal ${e.signal})\n${stderr.join("")}`));
-    });
-    const state = await s.pi.request({ type: "get_state" });
-    if (!state.success) {
-      await s.pi.close();
-      throw new Error(`Pi did not start: ${state.error ?? "no answer"}\n${stderr.join("")}`);
+    const mcp = await discoverMcpTools(mcpServers, log);
+    let mcpDir: string | undefined;
+    if (mcp.tools.length > 0) {
+      mcpDir = mkdtempSync(join(tmpdir(), "pi-acp-mcp-"));
+      if (process.platform !== "win32") chmodSync(mcpDir, 0o700);
+      const mcpFile = join(mcpDir, "mcp.json");
+      writeFileSync(mcpFile, JSON.stringify(mcp), { mode: 0o600 });
+      env[MCP_ENV] = mcpFile;
     }
-    if (
-      load &&
-      Number((state.data as { messageCount?: number } | undefined)?.messageCount ?? 0) === 0
-    ) {
-      await s.pi.close();
-      throw new Error(`no saved Pi session ${id}`);
+    let cleaned = false;
+    const cleanup = () => {
+      if (cleaned || mcpDir === undefined) return;
+      cleaned = true;
+      rmSync(mcpDir, { recursive: true, force: true });
+    };
+    try {
+      s.pi = new PiRpc({
+        command: opts.pi,
+        args: piArgsFor(opts.piArgs ?? [], env, id),
+        cwd,
+        env,
+        stderr: (chunk) => {
+          stderr.push(chunk);
+          if (stderr.length > 20) stderr.shift();
+          for (const line of chunk.split("\n")) if (line !== "") log(`[pi] ${line}`);
+        },
+      });
+      s.pi.onRecord((r) => onRecord(s, r));
+      void s.pi.exited.then((e) => {
+        cleanup();
+        sessions.delete(s.id);
+        const turn = s.turn;
+        s.turn = null;
+        turn?.done(new Error(`Pi exited (code ${e.code}, signal ${e.signal})\n${stderr.join("")}`));
+      });
+      const state = await s.pi.request({ type: "get_state" });
+      if (!state.success) {
+        await s.pi.close();
+        throw new Error(`Pi did not start: ${state.error ?? "no answer"}\n${stderr.join("")}`);
+      }
+      if (
+        load &&
+        Number((state.data as { messageCount?: number } | undefined)?.messageCount ?? 0) === 0
+      ) {
+        await s.pi.close();
+        throw new Error(`no saved Pi session ${id}`);
+      }
+      return s;
+    } catch (error) {
+      cleanup();
+      throw error;
     }
-    return s;
   }
 
   const app = agent({ name: BRIDGE_NAME })
@@ -225,14 +257,14 @@ export function createPiBridge(opts: BridgeOptions): AgentApp & { closeAll(): Pr
       authMethods: [],
     }))
     .onRequest(methods.agent.session.new, async ({ params }) => {
-      const s = await startPi(params.cwd).catch(fail);
+      const s = await startPi(params.cwd, undefined, false, params.mcpServers).catch(fail);
       sessions.set(s.id, s);
       return { sessionId: s.id };
     })
     .onRequest(methods.agent.session.load, async ({ params }) => {
       if (!savesSessions()) fail(new Error("this Pi bridge does not save sessions"));
-      sessions.get(params.sessionId)?.pi.close();
-      const s = await startPi(params.cwd, params.sessionId, true).catch(fail);
+      await sessions.get(params.sessionId)?.pi.close();
+      const s = await startPi(params.cwd, params.sessionId, true, params.mcpServers).catch(fail);
       sessions.set(s.id, s);
       return {};
     })
