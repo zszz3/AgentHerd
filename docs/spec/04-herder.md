@@ -338,8 +338,8 @@ New GitHub work is offered only when the owner asks for it ([ADR 0052](../adr/00
   something unread; the first look of a kind only learns what is there. New comments and @ go to
   the owner one per line (three at most, then a count) and to the Herder as a `social` event;
   likes, saves and new followers are never told. `social_watch` turns this off or on when the
-  owner asks; `session_list` shows platforms. Agents other than Pi use the account
-  through `XIAOHONGSHU_` and `ZHIHU_` tools; writes ask (ADR 0056).
+  owner asks; `session_list` shows platforms. Agents use the account through `XIAOHONGSHU_` and
+  `ZHIHU_` tools; writes ask (ADR 0056).
 - **News and this Mac's tools** (ADR 0059). `feed_read` reads GitHub Trending, Hacker News or
   arXiv; with `told: true` (a digest, often a schedule) the items are recorded and later reads
   mark them `[told before]`, which the Herder leaves out. `session_start` adds what the host says

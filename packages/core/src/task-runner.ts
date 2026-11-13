@@ -605,6 +605,14 @@ export class TaskRunner {
         }
         if (u.type === "tool_call" && u.toolCall !== undefined) {
           f.turn.toolCalls += 1;
+          // `herd_report` runs on mcp.sock (1 hop) while ACP `tool_call` travels 2 hops; keep them aligned.
+          if (
+            f.report !== undefined &&
+            f.reportAt === f.turn.toolCalls - 1 &&
+            /(?:^|[:/_])herd_report$/.test(u.toolCall.command ?? u.toolCall.title)
+          ) {
+            f.reportAt = f.turn.toolCalls;
+          }
           flushReply(ctx, f);
           ctx.store.addTranscript(sessionId, "tool", u.toolCall.command ?? u.toolCall.title, {
             id: u.toolCallId ?? "",
