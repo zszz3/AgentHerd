@@ -3,6 +3,7 @@
 import type { AgentConnection } from "@agentherd/acp-client";
 import type { MessageRef, TextTone } from "@agentherd/protocol";
 import type { Timer } from "./clock.ts";
+import { headTail } from "./cut-text.ts";
 import { type Following, firstLine, type HerdContext, say } from "./herd-context.ts";
 import type { VoiceRequest } from "./herder-port.ts";
 import type { HerdReport } from "./mcp-gateway.ts";
@@ -95,12 +96,11 @@ export function applyReport(ctx: HerdContext, f: Following, report: HerdReport):
 /** How long a message waits for the Herder's words before it goes out without them. */
 export const VOICE_TIMEOUT_MS = 3 * 60_000;
 
-/** Characters of a task's reply the Herder gets with a result that did not ring the phone. */
+/**
+ * Characters of a task's reply the Herder gets with a result that did not ring the phone. A longer
+ * reply keeps its start and its end; task_read gives the whole (ADR 0062).
+ */
 export const EVENT_REPLY_MAX = 1000;
-
-function clip(text: string, max: number): string {
-  return text.length <= max ? text : `${text.slice(0, max - 1)}…`;
-}
 
 /**
  * The Herder's words for a task's result (ADR 0053): "" when it chose to say nothing, undefined
@@ -189,7 +189,7 @@ export async function sendReport(
         kind: "task-reported",
         taskId: f.task.id,
         title: f.task.title,
-        text: summary ?? clip(reply.trim(), EVENT_REPLY_MAX),
+        text: summary ?? headTail(reply.trim(), EVENT_REPLY_MAX, "task_read gives the whole reply"),
         shown: level === "board" ? "board" : "none",
       });
       return;

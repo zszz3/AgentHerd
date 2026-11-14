@@ -220,7 +220,7 @@ describe("E2E-RESUME-ASK (ADR 0040)", () => {
 });
 
 describe("historyText", () => {
-  it("keeps prompts and replies, newest when long", () => {
+  it("keeps prompts and replies, newest when long, and says what is left out (ADR 0062)", () => {
     const at = "2026-01-01T00:00:00Z";
     const text = historyText(
       [
@@ -232,7 +232,7 @@ describe("historyText", () => {
     );
     expect(text).toBe("AgentHerd: Fix it\n\nyou: Fixed.");
     expect(historyText([{ id: 1, at, role: "agent", text: "x".repeat(50) }], 10)).toBe(
-      `…${"x".repeat(10)}`,
+      `[… the earlier 45 characters are left out …]\n${"x".repeat(10)}`,
     );
   });
 });

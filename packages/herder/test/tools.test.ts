@@ -12,7 +12,9 @@ import {
   namedBy,
   resolveProject,
   searchTasks,
+  TASK_READ_CHARS_MAX,
   type TurnContext,
+  taskReplies,
 } from "../src/tools.ts";
 import { fakeHost, task } from "./helpers.ts";
 
@@ -812,5 +814,70 @@ describe("notice levels (ADR 0061)", () => {
       );
       expect(notices["task-ack"]).toBe("board");
     }
+  });
+});
+
+describe("task_read (ADR 0062)", () => {
+  const at = (minute: number) => `2026-11-04T07:${String(minute).padStart(2, "0")}:00.000Z`;
+  const entries = (long = "") => [
+    { id: 1, at: at(0), role: "prompt" as const, text: "[Owner's message]\n找出可做的 issue" },
+    { id: 2, at: at(1), role: "tool" as const, text: "gh issue list" },
+    { id: 3, at: at(2), role: "agent" as const, text: "找到 9 个：\n1. #2000 文档收尾" },
+    { id: 4, at: at(3), role: "agent" as const, text: `清单在 ~/issues.md${long}` },
+    { id: 5, at: at(4), role: "note" as const, text: "the agent stopped" },
+    { id: 6, at: at(5), role: "prompt" as const, text: "(AgentHerd) 先核对\n\n哪九个？" },
+    { id: 7, at: at(6), role: "agent" as const, text: "1. #2000\n2. #2174" },
+  ];
+
+  it("reads a task's latest reply whole, or several, quoted as the agent's words", async () => {
+    expect(tools({}, { tasks: [task("t1-0000", "找 issue")] }).names).not.toContain("task_read");
+    const { call } = tools(
+      {},
+      { tasks: [task("t1-0000", "找 issue")], transcripts: { "t1-0000": entries() } },
+    );
+    const latest = await call("task_read", { task: "t1" });
+    expect(latest).toContain('Task t1-0000 "找 issue" [working]');
+    expect(latest).toContain(`(${at(5)}, to "哪九个？")`);
+    expect(latest).toContain(quoteAgent("1. #2000\n2. #2174"));
+    expect(latest).not.toContain("清单在");
+
+    // Every part of a turn's reply comes together; tool calls and notes do not.
+    const both = await call("task_read", { task: "找 issue", replies: 2 });
+    expect(both).toContain(`Reply 1 of 2 (${at(0)}, to "找出可做的 issue")`);
+    expect(both).toContain(quoteAgent("找到 9 个：\n1. #2000 文档收尾\n\n清单在 ~/issues.md"));
+    expect(both).not.toContain("gh issue list");
+    expect(both).not.toContain("the agent stopped");
+    expect(both.indexOf("Reply 1 of 2")).toBeLessThan(both.indexOf("Reply 2 of 2"));
+  });
+
+  it("keeps the start and the end of a very long reply", async () => {
+    const long = `\n${"x".repeat(60_000)}\n结论：先做 #2000`;
+    const { call } = tools(
+      {},
+      { tasks: [task("t1-0000", "找 issue")], transcripts: { "t1-0000": entries(long) } },
+    );
+    const text = await call("task_read", { task: "t1", replies: 2 });
+    expect(text).toContain("找到 9 个");
+    expect(text).toContain("结论：先做 #2000");
+    expect(text).toMatch(/characters left out; ask for one reply to see more of it/);
+    expect(text.length).toBeLessThan(TASK_READ_CHARS_MAX + 1000);
+  });
+
+  it("says when a task has not replied yet, and groups by turn", () => {
+    const { call } = tools({}, { tasks: [task("t2-0000", "新任务")], transcripts: {} });
+    return expect(call("task_read", { task: "t2" })).resolves.toContain(
+      "the agent has not replied yet",
+    );
+  });
+
+  it("groups replies by the prompt they answer", () => {
+    expect(taskReplies(entries(), 5)).toEqual([
+      {
+        at: at(0),
+        asked: "找出可做的 issue",
+        text: "找到 9 个：\n1. #2000 文档收尾\n\n清单在 ~/issues.md",
+      },
+      { at: at(5), asked: "哪九个？", text: "1. #2000\n2. #2174" },
+    ]);
   });
 });

@@ -221,6 +221,8 @@ export class Herd {
     await old?.stop();
     this.herder = factory?.(this.herderHost());
     this.store.audit("herder.changed", { on: this.herder !== undefined });
+    // What the old one had not finished is the new one's to take up (ADR 0062).
+    if (this.started) this.herder?.resume?.();
   }
 
   hasHerder(): boolean {
@@ -255,6 +257,7 @@ export class Herd {
       profiles: () => this.opts.profiles.map((p) => ({ id: p.id, name: p.name })),
       tasks: () => this.tasks(),
       openTasks: () => this.openTasks(),
+      transcript: (taskId) => this.store.transcript(taskId),
       relayTaskId: () => this.relay()?.taskId,
       decisions: (limit) => this.store.recentDecisions(limit),
       models: () => this.opts.agentModels?.list() ?? [],
@@ -405,6 +408,8 @@ export class Herd {
     this.schedules.start();
     await this.endOldRelay(relay?.taskId);
     await this.askToResume();
+    // The owner's messages the last run had not finished are taken up now (ADR 0062).
+    this.herder?.resume?.();
     if (this.opts.closeStaleTasks !== false) {
       void this.runner.cleanupWorkspaces().catch((error: Error) => {
         this.store.audit("workspace.error", { step: "cleanup", message: error.message });

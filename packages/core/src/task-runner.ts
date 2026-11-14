@@ -329,6 +329,9 @@ export class TaskRunner {
     const forOwner = from !== "pull-request";
     const trigger = forOwner ? this.takeOwnerMessage() : undefined;
     if (forOwner) this.ctx.github()?.handed(taskId, text);
+    // Pull request news that waited for the owner goes along with their message (ADR 0062).
+    const held = forOwner ? this.ctx.github()?.ownerWrote(taskId) : undefined;
+    const prompt = held === undefined ? text : `${text}\n\n${held}`;
     // An ended task (also one from before a restart) is started again (ADR 0039).
     if (f.ended && f.reopening === undefined) {
       f.reopening = this.reopen(f).finally(() => {
@@ -339,7 +342,7 @@ export class TaskRunner {
       if (f.ended) return Promise.reject(new Error(`task ${taskId} is not open`));
       const done = new Promise<RunResult>((resolve, reject) => {
         f.queue.push({
-          text,
+          text: prompt,
           images,
           from,
           resolve,
@@ -475,10 +478,13 @@ export class TaskRunner {
             throw error;
           }
         }
+        // Cut off in the middle of its work by AgentHerd going away, not ended by it (ADR 0062).
+        const cutOff = f.endedWhy === ctx.texts.agentherdStopped && !f.finished;
         f.connection = connection;
         f.agentSessionId = sessionId;
         f.profile = profile;
         f.ended = false;
+        if (cutOff) f.cutOff = true;
         delete f.endedWhy;
         delete f.endedAt;
         f.failed = false;
@@ -929,6 +935,11 @@ export class TaskRunner {
     f.alarm = false;
     // An agent that takes no images gets where they are saved instead.
     let prompt = connection.acceptsImages ? text : withImagePaths(text, images, ctx.texts);
+    // What a stop cut off may be half done, pushed or commented on already (ADR 0062).
+    if (f.cutOff === true) {
+      prompt = `${ctx.texts.cutOffCheck}\n\n${prompt}`;
+      delete f.cutOff;
+    }
     // Every prompt carries the length hint (ADR 0036); follow-ups were long without it.
     if (history !== "") prompt = `${ctx.texts.priorConversation(history)}\n\n${prompt}`;
     // With a Herder that speaks for the task the agent writes for it, not for a phone (ADR 0053).
@@ -1011,7 +1022,9 @@ export function historyText(entries: readonly TranscriptEntry[], max = HISTORY_M
     .filter((e) => e.role === "prompt" || e.role === "agent")
     .map((e) => `${e.role === "prompt" ? "AgentHerd" : "you"}: ${e.text.trim()}`);
   let text = lines.join("\n\n");
-  if (text.length > max) text = `…${text.slice(text.length - max)}`;
+  if (text.length > max) {
+    text = `[… the earlier ${text.length - max} characters are left out …]\n${text.slice(text.length - max)}`;
+  }
   return text;
 }
 

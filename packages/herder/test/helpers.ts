@@ -12,6 +12,7 @@ import type {
   NoticeLevel,
   Schedule,
   Task,
+  TranscriptEntry,
 } from "@agentherd/core";
 import { CORE_TEXTS, checkWhen, nextRun } from "@agentherd/core";
 
@@ -166,6 +167,8 @@ export function fakeHost(
     feed?: FeedItem[];
     /** Where small news goes, kept in memory (ADR 0061). */
     notices?: Record<NoticeKind, NoticeLevel>;
+    /** What each task's agent was sent and wrote, by task id (task_read, ADR 0062). */
+    transcripts?: Record<string, TranscriptEntry[]>;
   } = {},
 ): {
   host: HerderHost;
@@ -233,6 +236,9 @@ export function fakeHost(
     ...(opts.intake === undefined ? {} : intakeHost(opts.intake)),
     ...(opts.schedules === undefined ? {} : scheduleHost(opts.schedules)),
     ...(opts.toolNotes === undefined ? {} : { toolNotes: () => opts.toolNotes ?? [] }),
+    ...(opts.transcripts === undefined
+      ? {}
+      : { transcript: (taskId: string) => opts.transcripts?.[taskId] ?? [] }),
     ...(opts.notices === undefined
       ? {}
       : {

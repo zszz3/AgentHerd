@@ -95,7 +95,7 @@ class FakeGitHub {
   };
 }
 
-async function setup() {
+async function setup(script = SCRIPT) {
   const channel = new FakeChannel("owner");
   const clock = new FakeClock();
   const store = Store.open(":memory:");
@@ -107,7 +107,7 @@ async function setup() {
     binding: { channelId: "fake", ownerId: "owner", data: {} },
     mode: "assist",
     locale: "en",
-    profiles: [profile(SCRIPT)],
+    profiles: [profile(script)],
     store,
     clock,
     boardDebounceMs: 10,
@@ -239,6 +239,65 @@ describe("E2E-GITHUB", () => {
     expect(noticed(store, "pr-merged")).toMatchObject([{ data: { level: "off" } }]);
     expect(texts(channel)).not.toContain("PR #7 was merged.");
     expect(boardReport(herd, taskId)).not.toBe("PR #7 was merged.");
+  }, 20_000);
+
+  it("waits for the owner after three wake-ups in a row (ADR 0062)", async () => {
+    const rounds = [1, 2, 3, 4, 5]
+      .map((n) => `  - - message: "Round ${n}."\n    - end_turn: end_turn\n`)
+      .join("");
+    const script = `turns:\n  - - message: "Opened https://github.com/acme/app/pull/7"\n    - end_turn: end_turn\n${rounds}`;
+    const { herd, channel, clock, store, github } = await setup(script);
+    const { taskId, turn } = await herd.startTask("mock", dir, "Fix the bug and open a PR");
+    await turn;
+    await until(() => store.prWatches().length > 0);
+    await clock.advance(120_000);
+    const prompts = () => store.transcript(taskId).filter((e) => e.role === "prompt");
+
+    // Three comments in a row: the task handles each one by itself.
+    for (const n of [1, 2, 3]) {
+      github.comment("alice", `Comment ${n}`);
+      await clock.advance(120_000);
+      await until(() => boardReport(herd, taskId) === `Round ${n}.`);
+      expect(boardReport(herd, taskId)).toBe(`Round ${n}.`);
+    }
+    expect(store.prWatches()[0]?.wakesInRow).toBe(3);
+
+    // The fourth is not handed to it: the owner is asked once.
+    github.comment("alice", "Comment 4");
+    await clock.advance(120_000);
+    const asked =
+      "More on PR #7 (alice wrote: Comment 4).\nThe task already handled this PR 3 times in a row on its own, so it was not woken this time. Reply to this message to have it go on; it gets this news with your reply.";
+    await until(() => texts(channel).includes(asked));
+    expect(texts(channel)).toEqual([asked]);
+    expect(prompts()).toHaveLength(4);
+
+    // More news while it waits only changes the board.
+    github.comment("bob", "Comment 5");
+    await clock.advance(120_000);
+    await until(() => boardReport(herd, taskId) === "More news on PR #7, waiting for your reply");
+    expect(boardReport(herd, taskId)).toBe("More news on PR #7, waiting for your reply");
+    expect(texts(channel)).toEqual([asked]);
+    expect(store.prWatches()[0]?.held).toHaveLength(2);
+
+    // The owner's reply goes to the task with everything held back, and the count starts over.
+    const message = channel.ofKind("text").find((m) => (m.view as TextView).text === asked);
+    if (message?.ref === undefined) throw new Error("no message to reply to");
+    void channel.reply(message.ref, "Go on.");
+    await until(() => boardReport(herd, taskId) === "Round 4.");
+    const fifth = prompts()[4]?.text ?? "";
+    expect(fifth).toMatch(/^Go on\.\n\n\(AgentHerd\) Also new on the pull request you follow/);
+    expect(fifth).toContain("alice commented: Comment 4");
+    expect(fifth).toContain("bob commented: Comment 5");
+    expect(store.prWatches()[0]?.wakesInRow).toBe(0);
+    expect(store.prWatches()[0]?.held).toBeUndefined();
+
+    // So the next comment wakes the task again.
+    github.comment("carol", "Comment 6");
+    await clock.advance(120_000);
+    await until(() => boardReport(herd, taskId) === "Round 5.");
+    expect(boardReport(herd, taskId)).toBe("Round 5.");
+    expect(prompts().at(-1)?.text).toContain("carol commented: Comment 6");
+    expect(store.prWatches()[0]?.wakesInRow).toBe(1);
   }, 20_000);
 
   it("follows a pull request the owner hands to a task, whoever opened it", async () => {

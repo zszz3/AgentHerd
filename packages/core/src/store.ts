@@ -4,6 +4,7 @@ import type { StatementSync } from "node:sqlite";
 import { DatabaseSync } from "node:sqlite";
 import type { Decision, Item, MessageRef, Rule, View } from "@agentherd/protocol";
 import { redact } from "@agentherd/rules";
+import { headTail } from "./cut-text.ts";
 import type { HerderTurnRole } from "./herder-port.ts";
 import { ftsQuery, MEMORY_TABLES_SQL, MemoryStore } from "./memory-store.ts";
 import type { Schedule } from "./schedules.ts";
@@ -374,8 +375,7 @@ export class Store {
     text: string,
     tool?: { id: string; status?: string },
   ): void {
-    const cut =
-      text.length > TRANSCRIPT_MAX_CHARS ? `${text.slice(0, TRANSCRIPT_MAX_CHARS)}…` : text;
+    const cut = headTail(text, TRANSCRIPT_MAX_CHARS, "the rest was not kept");
     this.db
       .prepare(
         "INSERT INTO transcript(task_id, at, role, text, tool_call_id, status) VALUES (?, ?, ?, ?, ?, ?)",
@@ -418,8 +418,7 @@ export class Store {
 
   /** Adds a line of the Herder's conversation with the owner (secrets redacted). */
   addHerderTurn(role: HerderTurnRole, text: string, taskId?: string): void {
-    const cut =
-      text.length > TRANSCRIPT_MAX_CHARS ? `${text.slice(0, TRANSCRIPT_MAX_CHARS)}…` : text;
+    const cut = headTail(text, TRANSCRIPT_MAX_CHARS, "the rest was not kept");
     this.db
       .prepare("INSERT INTO herder_turns(at, role, text, task_id) VALUES (?, ?, ?, ?)")
       .run(new Date().toISOString(), role, redact(cut, this.secrets), taskId ?? null);
@@ -700,6 +699,10 @@ export interface PrWatch {
   handed?: boolean;
   /** The owner paused it in the app: kept, but not looked at (ADR 0058). */
   paused?: boolean;
+  /** Automatic wake-ups since the owner last wrote to the task; at three it waits (ADR 0062). */
+  wakesInRow?: number;
+  /** News that waits for the owner; it goes to the task with their next message (ADR 0062). */
+  held?: string[];
 }
 
 export function prKey(w: Pick<PrWatch, "repo" | "number">): string {

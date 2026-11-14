@@ -98,7 +98,7 @@ The Herder may add, never rewrite.
 | Group | Tools |
 | --- | --- |
 | Sessions | `session_start(project, name, profile?, ownerText, addedContext, model?)` (name: the task's short name, shown on the board and every report, [ADR 0034](../adr/0034-herder-names-tasks.md)) (model: `service/model` the agent can run, picked by the Herder, [ADR 0025](../adr/0025-herder-picks-model-per-task.md)), `session_prompt(sessionId, text, name?)` (name renames the task), `session_cancel(sessionId)` (stops the running turn), `session_end(sessionId)` (closes the task when the owner says it is finished), `session_list()` (also lists models, the agents that can run each, and the owner's model guide, [ADR 0026](../adr/0026-model-guide-for-the-herder.md)) |
-| Owner | `ask(text, options)` (AgentHerd adds 「其他」), `project_find(name)`, `notify(text)`, `relay_start(sessionId)`, `relay_end()`, `style_set(style)` (ADR 0053), `task_search(query)` (earlier tasks by title, project and last report; up to 10, [ADR 0054](../adr/0054-say-what-matters.md)), `notice_level(kind, level)` (where one kind of small news goes: push, board or off, [ADR 0061](../adr/0061-small-news-on-the-board.md)) |
+| Owner | `ask(text, options)` (AgentHerd adds 「其他」), `project_find(name)`, `notify(text)`, `relay_start(sessionId)`, `relay_end()`, `style_set(style)` (ADR 0053), `task_search(query)` (earlier tasks by title, project and last report; up to 10, [ADR 0054](../adr/0054-say-what-matters.md)), `task_read(task, replies?)` (a task's latest reply, or its last 5, whole and quoted; at most 40,000 characters, [ADR 0062](../adr/0062-restarts-lose-nothing-and-wake-ups-stop-at-three.md)), `notice_level(kind, level)` (where one kind of small news goes: push, board or off, [ADR 0061](../adr/0061-small-news-on-the-board.md)) |
 | Read | `task_get`, `task_list`, `session_transcript`, `decisions_list`, `read`, `grep`, `list`, `git_log`, `git_diff` (read tools only inside known project directories) |
 | Schedules | `schedule_add(about, prompt, kind, at?, days?, hours?)`, `schedule_change(schedule, …, paused?)`, `schedule_remove(schedule)`: what the Herder does at set times, only when the owner asks ([ADR 0055](../adr/0055-schedules-the-herder-makes.md)) |
 | Context | `compress`, `decompress`, `search_context`, `acp_status`: fold finished parts of its own conversation, find and show them again ([ADR 0045](../adr/0045-herder-context-folded-by-the-model.md)) |
@@ -123,6 +123,10 @@ later task gets and which counts as the owner allowing that step.
 
 - A failed Herder turn is retried, then run on the next model, then held with a 「重试」 card;
   key, balance and request errors are not retried ([ADR 0037](../adr/0037-herder-retries-and-never-drops.md), spec 08 §5).
+- The owner's messages and answers wait in `herd.db` (state `herder.pending`) until their turn is
+  done. After a restart the Herder takes up what is left, oldest first, each turn told that it came
+  before the restart; what it already did gets `[quiet]`, and what waited more than 24 hours is
+  dropped ([ADR 0062](../adr/0062-restarts-lose-nothing-and-wake-ups-stop-at-three.md)).
 - The session holds the conversation with the owner and short notes. Task state is read from
   `herd.db` with the read tools; after a fold the Herder must re-read it.
 - The whole conversation is kept in `herd.db` (`herder_log`) and reloaded after a restart; nothing
@@ -138,6 +142,12 @@ later task gets and which counts as the owner allowing that step.
   session, other agents get the earlier conversation as text ([ADR 0039](../adr/0039-tasks-kept-and-continued.md)).
 - Tasks cut off by a stop or crash are not restarted on their own: after the restart the Herder
   asks the owner with buttons whether to continue them ([ADR 0040](../adr/0040-ask-before-continuing-cut-off-tasks.md)).
+  The first prompt a cut-off task gets tells it to look at the files, git and its pull requests
+  before it goes on and not to do again what is done (ADR 0062).
+- Long text given to a model keeps its start and its end with a note of how much is left out:
+  a board-only result the Herder gets (1000 characters), pull request comments in a task's prompt
+  (1500), saved transcript entries (20,000), the earlier conversation of a reopened task (newest
+  8000). `task_read` gives the Herder a reply whole (ADR 0062).
 - Agent output is untrusted data. It is quoted, and it cannot change rules, mode or the
   Herder's instructions ([06-security.md](06-security.md)).
 - If the Herder fails (model error, invalid output), the owner gets a plain message and the
@@ -322,6 +332,12 @@ follows its tickets' pull requests ([ADR 0047](../adr/0047-follow-the-pull-reque
   of a closed pull request are ignored; reopening goes on the board once (`pr-reopened`). A watch
   with no activity for 14 days ends silently. At most 20 wakes per pull request; later activity
   is told to the owner, as is activity whose prompt the task never read.
+- **Three in a row.** A pull request wakes its task by itself at most 3 times in a row
+  (`wakesInRow`, [ADR 0062](../adr/0062-restarts-lose-nothing-and-wake-ups-stop-at-three.md)). The
+  next time the task is not woken and the owner is told once (「PR #n 又有新动静（…）。任务已经连着自己处理了 3 次，
+  这次先不叫它…」); more news while it waits goes on the board (「PR #n 又有新动静，等你回话」) and is held
+  (`held`). The owner's reply, or anything the owner or the Herder sends the task, carries the held
+  news and starts the count over.
 - **Failures.** `gh` missing, logged out or offline is audited (`github.error`) once per distinct
   error; after 30 minutes the owner is told once (see Source health). `gh` runs with the
   system proxy. `agentherd run` does not follow pull requests.
