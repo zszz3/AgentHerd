@@ -7,6 +7,11 @@ import {
   describeWhen,
   type FeedSource,
   type HerderHost,
+  NOTICE_ABOUT,
+  NOTICE_KINDS,
+  NOTICE_LEVELS,
+  type NoticeKind,
+  type NoticeLevel,
   type OwnerImage,
   type Schedule,
   type ScheduleWhen,
@@ -182,6 +187,16 @@ function socialLines(host: HerderHost): string[] {
           s.watch.mentions ? "comments and @" : "nothing"
         }`,
     ),
+  ];
+}
+
+/** Where each kind of small news goes (ADR 0061). */
+function noticeLines(host: HerderHost): string[] {
+  const levels = host.noticeLevels?.();
+  if (levels === undefined) return [];
+  return [
+    "Notices (where small news goes; push = the owner's phone, board = the task board only, off = nowhere; notice_level changes one):",
+    ...NOTICE_KINDS.map((k) => `- ${k}: ${levels[k]} (${NOTICE_ABOUT[k]})`),
   ];
 }
 
@@ -567,6 +582,16 @@ const socialWatchSchema = obj({
   on: bool({ description: "true to tell the owner about this kind, false to stop" }),
 });
 
+const noticeLevelSchema = obj({
+  kind: oneOf(NOTICE_KINDS, {
+    description: NOTICE_KINDS.map((k) => `${k} = ${NOTICE_ABOUT[k]}`).join("; "),
+  }),
+  level: oneOf(NOTICE_LEVELS, {
+    description:
+      "push = a message to the owner's phone; board = only the task's row on the task board; off = not shown at all",
+  }),
+});
+
 const feedReadSchema = obj({
   source: oneOf(["github-trending", "hacker-news", "arxiv"] as const, {
     description: "github-trending, hacker-news or arxiv",
@@ -627,6 +652,7 @@ export function herderTools(
           ...socialLines(host),
           ...intakeLines(host),
           ...scheduleLines(host),
+          ...noticeLines(host),
           ...sourceLines(host),
         ];
         return ok(lines.join("\n"));
@@ -932,6 +958,22 @@ export function herderTools(
       },
     };
     all.push(socialTool as unknown as AgentTool);
+  }
+  const setNoticeLevel = host.setNoticeLevel;
+  if (setNoticeLevel !== undefined) {
+    const noticeTool = {
+      name: "notice_level",
+      label: "Where news goes",
+      description:
+        "Sets where one kind of small news goes: the owner's phone, only the task board, or nowhere. Only when the owner asks. Results the owner asked for, questions, approvals, stuck or failed tasks and alarms always reach the owner and cannot be changed.",
+      parameters: noticeLevelSchema,
+      execute: async (_id: string, args: { kind: NoticeKind; level: NoticeLevel }) => {
+        ownerOnly(turn, "change where notices go");
+        setNoticeLevel(args.kind, args.level);
+        return ok(`${args.kind} now goes to: ${args.level}; tell the owner in one short line`);
+      },
+    };
+    all.push(noticeTool as unknown as AgentTool);
   }
   const readFeed = host.readFeed;
   if (readFeed !== undefined && (host.feeds?.() ?? []).length > 0) {

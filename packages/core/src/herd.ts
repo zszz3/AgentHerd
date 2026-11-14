@@ -17,6 +17,7 @@ import {
   type HerdContext,
   type HerdOptions,
   openTasks,
+  type PromptFrom,
   type RunResult,
   saveTask,
   say,
@@ -35,6 +36,7 @@ import { Inbox, type OwnerAnswer } from "./inbox.ts";
 import { Intake, type IntakeItem, type IntakeRequest, itemLine } from "./intake.ts";
 import { MailWatches } from "./mail-watch.ts";
 import { type JsonRpcMessage, McpGateway } from "./mcp-gateway.ts";
+import { noticeLevels, setNoticeLevel } from "./notices.ts";
 import { Outbox } from "./outbox.ts";
 import { OwnerCommands } from "./owner-commands.ts";
 import { Registry } from "./registry.ts";
@@ -50,7 +52,13 @@ import { type CoreTexts, coreTexts } from "./texts.ts";
 import { Watchdog } from "./watchdog.ts";
 import { Workspaces } from "./workspace.ts";
 
-export type { AgentModels, HerdOptions, ModelLaunch, RunResult } from "./herd-context.ts";
+export type {
+  AgentModels,
+  HerdOptions,
+  ModelLaunch,
+  PromptFrom,
+  RunResult,
+} from "./herd-context.ts";
 export { RELAY_IDLE_MINUTES, RELAY_KEY, type RelayState } from "./relay.ts";
 export { SESSION_IDLE_MINUTES } from "./task-runner.ts";
 
@@ -202,7 +210,7 @@ export class Herd {
       opts.github === undefined
         ? undefined
         : new GitHubWatch(this.ctx, opts.github, {
-            prompt: (taskId, text) => this.runner.promptTask(taskId, text, [], false),
+            prompt: (taskId, text) => this.runner.promptTask(taskId, text, [], "pull-request"),
           });
   }
 
@@ -303,12 +311,13 @@ export class Herd {
           model,
           images,
           allowed,
+          "herder",
         );
         turn.catch(() => {});
         return taskId;
       },
       promptTask: (taskId, text, images) =>
-        void this.promptTask(taskId, text, images).catch(() => {}),
+        void this.promptTask(taskId, text, images, "herder").catch(() => {}),
       renameTask: (taskId, name) => this.runner.renameTask(taskId, name),
       cancelTurn: (taskId) => this.cancelTurn(taskId),
       endTask: (taskId) => this.endTask(taskId, this.texts.endedByOwner),
@@ -334,6 +343,8 @@ export class Herd {
             style: () => this.opts.herderStyle?.get() ?? DEFAULT_HERDER_STYLE,
             setStyle: (style: HerderStyle) => this.opts.herderStyle?.set(style),
           }),
+      noticeLevels: () => noticeLevels(this.store),
+      setNoticeLevel: (kind, level) => setNoticeLevel(this.store, kind, level),
       audit: (type, data) => this.store.audit(type, data),
       recordTurn: (role, text, taskId) => this.store.addHerderTurn(role, text, taskId),
       memory: this.store.memory,
@@ -473,18 +484,32 @@ export class Herd {
     model?: string,
     images?: OwnerImage[],
     allowed?: readonly OutboundStep[],
+    from: PromptFrom = "owner",
   ): Promise<{ taskId: string; turn: Promise<RunResult> }> {
-    return this.runner.startTask(profileId, cwd, ownerText, prompt, model, images, allowed);
+    return this.runner.startTask(profileId, cwd, ownerText, prompt, model, images, allowed, from);
   }
 
-  /** Sends a prompt to an open task. Queued while a turn runs; settles when its turn ends. */
-  promptTask(taskId: string, text: string, images?: OwnerImage[]): Promise<RunResult> {
-    return this.runner.promptTask(taskId, text, images);
+  /**
+   * Sends a prompt to an open task. Queued while a turn runs; settles when its turn ends.
+   * `from` says who sent it, which decides what reaches the owner's phone (ADR 0061).
+   */
+  promptTask(
+    taskId: string,
+    text: string,
+    images?: OwnerImage[],
+    from: PromptFrom = "owner",
+  ): Promise<RunResult> {
+    return this.runner.promptTask(taskId, text, images, from);
   }
 
   /** Cancels the current turn of a task, then sends the text as the next prompt. */
-  interruptTask(taskId: string, text: string, images?: OwnerImage[]): Promise<RunResult> {
-    return this.runner.interruptTask(taskId, text, images);
+  interruptTask(
+    taskId: string,
+    text: string,
+    images?: OwnerImage[],
+    from: PromptFrom = "owner",
+  ): Promise<RunResult> {
+    return this.runner.interruptTask(taskId, text, images, from);
   }
 
   /** Cancels the current turn of a task, if one is running. */

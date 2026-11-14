@@ -8,6 +8,7 @@ import type { OutboundStep } from "@agentherd/rules";
 import type { IntakeRequest } from "./intake.ts";
 import type { HerdReport } from "./mcp-gateway.ts";
 import type { Completer, Embedder, MemoryStore } from "./memory-store.ts";
+import type { NoticeKind, NoticeLevel } from "./notices.ts";
 import type { Schedule, ScheduleInput, SchedulePatch } from "./schedules.ts";
 import type { DecisionRow, IntakeWatch, MailWatch } from "./store.ts";
 import type { Task } from "./tasks.ts";
@@ -48,6 +49,7 @@ export interface HerderEvent {
   /**
    * `ask-closed`: one of the Herder's own questions closed without a pick (ADR 0056). `approval`:
    * how the owner answered an approval card, so the Herder can offer to keep it (ADR 0057).
+   * `unread`: a message for a task that ended before it read it (ADR 0061).
    */
   kind:
     | "task-reported"
@@ -57,7 +59,8 @@ export interface HerderEvent {
     | "intake"
     | "ask-closed"
     | "approval"
-    | "social";
+    | "social"
+    | "unread";
   /** The task it is about; mail is about no task. */
   taskId?: string;
   /** The task's title, or for mail what the owner asked to hear about. */
@@ -66,6 +69,13 @@ export interface HerderEvent {
   text: string;
   /** `approval` only: how the card was answered. */
   outcome?: "allowed" | "refused" | "skipped" | "timed out";
+  /** `unread` only: why the task ended. */
+  why?: string;
+  /**
+   * Set when the owner's phone did not ring for it (ADR 0061): `board`, only the task's row on
+   * the board changed; `none`, the owner was not shown it at all. Unset: it was sent.
+   */
+  shown?: "board" | "none";
 }
 
 /**
@@ -161,6 +171,10 @@ export interface HerderHost {
   style?(): HerderStyle;
   /** Changes it when the owner asks in chat. */
   setStyle?(style: HerderStyle): void;
+  /** How each informational notice reaches the owner (ADR 0061). */
+  noticeLevels?(): Record<NoticeKind, NoticeLevel>;
+  /** Changes one when the owner asks (「合并了不用告诉我」); throws on an unknown kind or level. */
+  setNoticeLevel?(kind: NoticeKind, level: NoticeLevel): void;
   audit(type: string, data: Record<string, unknown>): void;
   /** Keeps a line of the Herder's conversation with the owner (`herder_turns`). */
   recordTurn(role: HerderTurnRole, text: string, taskId?: string): void;

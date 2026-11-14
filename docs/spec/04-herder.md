@@ -98,7 +98,7 @@ The Herder may add, never rewrite.
 | Group | Tools |
 | --- | --- |
 | Sessions | `session_start(project, name, profile?, ownerText, addedContext, model?)` (name: the task's short name, shown on the board and every report, [ADR 0034](../adr/0034-herder-names-tasks.md)) (model: `service/model` the agent can run, picked by the Herder, [ADR 0025](../adr/0025-herder-picks-model-per-task.md)), `session_prompt(sessionId, text, name?)` (name renames the task), `session_cancel(sessionId)` (stops the running turn), `session_end(sessionId)` (closes the task when the owner says it is finished), `session_list()` (also lists models, the agents that can run each, and the owner's model guide, [ADR 0026](../adr/0026-model-guide-for-the-herder.md)) |
-| Owner | `ask(text, options)` (AgentHerd adds 「其他」), `project_find(name)`, `notify(text)`, `relay_start(sessionId)`, `relay_end()`, `style_set(style)` (ADR 0053), `task_search(query)` (earlier tasks by title, project and last report; up to 10, [ADR 0054](../adr/0054-say-what-matters.md)) |
+| Owner | `ask(text, options)` (AgentHerd adds 「其他」), `project_find(name)`, `notify(text)`, `relay_start(sessionId)`, `relay_end()`, `style_set(style)` (ADR 0053), `task_search(query)` (earlier tasks by title, project and last report; up to 10, [ADR 0054](../adr/0054-say-what-matters.md)), `notice_level(kind, level)` (where one kind of small news goes: push, board or off, [ADR 0061](../adr/0061-small-news-on-the-board.md)) |
 | Read | `task_get`, `task_list`, `session_transcript`, `decisions_list`, `read`, `grep`, `list`, `git_log`, `git_diff` (read tools only inside known project directories) |
 | Schedules | `schedule_add(about, prompt, kind, at?, days?, hours?)`, `schedule_change(schedule, …, paused?)`, `schedule_remove(schedule)`: what the Herder does at set times, only when the owner asks ([ADR 0055](../adr/0055-schedules-the-herder-makes.md)) |
 | Context | `compress`, `decompress`, `search_context`, `acp_status`: fold finished parts of its own conversation, find and show them again ([ADR 0045](../adr/0045-herder-context-folded-by-the-model.md)) |
@@ -113,7 +113,8 @@ The Herder runs only when the owner writes to it or answers its question (ADR 00
 schedule the owner made is due (ADR 0055), or to tell a task's result (ADR 0053). Task
 reports and watchdog alarms reach the owner by themselves; the Herder gets them, quoted as agent
 data under "[Already sent to the owner]", in front of the owner's next message (the last 10), so
-it knows what happened without repeating it. How each approval card was answered (allowed, refused, 「先不管」, timed
+it knows what happened without repeating it. What went only on the task board or nowhere comes
+under "[Not pushed to the owner]" (see Notices). How each approval card was answered (allowed, refused, 「先不管」, timed
 out) comes the same way; when the same kind of step comes back, the Herder may ask once whether to
 keep it as a decision 「定了的事」 ([ADR 0057](../adr/0057-decisions-the-owner-made.md)), which every
 later task gets and which counts as the owner allowing that step.
@@ -199,7 +200,8 @@ The Herder handles the alarm: it may prompt the agent, cancel the turn, or tell 
 
 When a task ends, the owner always gets a report ([05-channels.md](05-channels.md#2-what-the-owner-sees)):
 a title (task, project, agent, duration, result) added by code, the body, and the automatic
-decisions during the task.
+decisions during the task. The one exception is a turn its pull request woke that ended done:
+it goes on the board (`pr-follow-up`, see Notices).
 
 With a Herder, the body is the Herder's own words ([ADR 0053](../adr/0053-the-herder-tells-task-results.md)):
 core calls `HerderPort.voice` with the task, how it ended, the agent's last reply and its
@@ -245,7 +247,9 @@ ending the task cancels it ([ADR 0046](../adr/0046-tell-the-owner-at-the-right-t
 An agent may call `herd_ack` once per turn with one line (≤ 30 words) about what it is
 starting; the owner gets it at once, as a reply to the owner's message that started the turn
 when there is one ([09-agent-tools.md](09-agent-tools.md), ADR 0049). Turns AgentHerd starts
-itself (background checks) are not acknowledged.
+itself (background checks) are not acknowledged. In a turn the owner did not ask for directly
+(the Herder started or prompted the task, or its pull request woke it) the line only goes on the
+board (`task-ack`, see Notices).
 
 ### Delivery
 
@@ -254,6 +258,39 @@ Messages for the owner (texts, reports, alarms, relay views) go through an outbo
 after 2 s, doubling up to 60 s; after 24 h it is dropped and audited (`send.dropped`). What a
 crash or stop left unsent goes out right after the next start. The board, approval cards and
 Herder questions are sent on their own paths.
+
+### Notices
+
+Not every notice rings the owner's phone ([ADR 0061](../adr/0061-small-news-on-the-board.md)).
+Each kind of small news has a level, decided by code from what sends it, never by a model:
+`push` (a message now), `board` (only the task's row on the pinned board changes) or `off` (only
+the audit log, `notice`). By default these go on the board:
+
+| Kind | What |
+| --- | --- |
+| `pr-approved` | a bare approval of a task's pull request |
+| `pr-merged`, `pr-closed`, `pr-reopened` | a task's pull request was merged, closed, reopened |
+| `pr-follow-up` | the result of a turn its pull request woke, when the task handled it (stage done) |
+| `task-ack` | the `herd_ack` line of a turn the owner did not ask for directly |
+| `model-switched` | a model switch (ADR 0030) in such a turn |
+
+Everything else is always pushed: results the owner asked for (also through the Herder),
+questions, approvals, a task that waits for the owner, is stuck or failed, watchdog alarms,
+pull request activity no task takes, and the mail and platform notices the owner watches. The
+owner changes a level by asking the Herder (`notice_level`); `session_list` shows them; herd.db
+state `notice.levels` keeps the kinds that differ from the default.
+
+Prompts carry who asked for the turn: `owner` (the owner's own message), `herder`
+(`session_start`, `session_prompt`) or `pull-request`; a background check belongs to whoever
+asked for the work.
+
+**Unread messages.** When a task ends with prompts it never read, they are not dropped: the
+owner's go to the Herder as the owner's message (after an `unread` event naming the task and
+why it ended), and the Herder sends them again with `session_prompt` or answers; the Herder's,
+or any when there is no Herder or AgentHerd is stopping, are shown to the owner
+(「这条没送到：任务还没读到就结束了（…）」, the message cut at 300 characters), and a reply to
+that notice opens the task again. A pull request's prompt the task never read is told by the
+watch.
 
 ### Pull requests
 
@@ -270,19 +307,21 @@ follows its tickets' pull requests ([ADR 0047](../adr/0047-follow-the-pull-reque
   not looked at yet, is skipped: while a task works, what its account writes on GitHub is the
   agent's. After a turn, new comments by the `gh` user are marked as the agent's own.
 - **People.** New comments, reviews with text, line comments and `CHANGES_REQUESTED` wake the
-  task with one prompt that quotes them (labeled as from GitHub, not from the owner); the owner
-  hears from the task itself (`herd_ack`, then its report), not from a separate notice
-  (ADR 0049). An ended task is started again, as with any prompt (ADR 0039). A bare approval is
-  only told: 「PR #n 已被 login 批准」.
+  task with one prompt that quotes them (labeled as from GitHub, not from the owner). What the
+  task does with them goes on the board when it handled them itself (`pr-follow-up`, ADR 0061);
+  when the owner has to decide, the task reports `waiting` and the owner hears it at once. An
+  ended task is started again, as with any prompt (ADR 0039). A bare approval only goes on the
+  board: 「PR #n 已被 login 批准」 (`pr-approved`).
 - **Bots** (`type: Bot` or a login ending in `[bot]`) are marked seen and never wake or notify.
 - **Checks.** When every check of the head commit finished and some failed, the task gets the
   names and how to read the logs, once per head commit; the owner hears only what the task
   reports.
-- **End.** Merged or closed: the owner is told once (「PR #n 已合并」/「已关闭，没有合并」) and the
-  Herder gets an event; the watch stays (`closed`), so later comments still wake the task, whose
-  prompt says the pull request is closed (ADR 0051). Checks of a closed pull request are
-  ignored; reopening is told once. A watch with no activity for 14 days ends silently.
-  At most 20 wakes per pull request; later activity is only told.
+- **End.** Merged or closed: the board says so once (「PR #n 已合并」/「已关闭，没有合并」,
+  `pr-merged`/`pr-closed`) and the Herder gets an event; the watch stays (`closed`), so later
+  comments still wake the task, whose prompt says the pull request is closed (ADR 0051). Checks
+  of a closed pull request are ignored; reopening goes on the board once (`pr-reopened`). A watch
+  with no activity for 14 days ends silently. At most 20 wakes per pull request; later activity
+  is told to the owner, as is activity whose prompt the task never read.
 - **Failures.** `gh` missing, logged out or offline is audited (`github.error`) once per distinct
   error; after 30 minutes the owner is told once (see Source health). `gh` runs with the
   system proxy. `agentherd run` does not follow pull requests.
