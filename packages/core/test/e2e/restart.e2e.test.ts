@@ -197,3 +197,33 @@ describe("E2E-RESTART", () => {
     expect(second.channel.ofKind("report")).toEqual([]);
   });
 });
+
+/** What the agent was sent in each turn: the mock agent says its prompt back. */
+const sent = (store: Store, taskId: string) =>
+  store
+    .transcript(taskId)
+    .filter((e) => e.role === "agent")
+    .map((e) => e.text);
+
+describe("E2E-CUT-OFF (ADR 0062)", () => {
+  it("a task a restart cut off looks at how things are before it goes on, once", async () => {
+    const store = crashedStore();
+    const echo = "turns:\n  - - echo_prompt: true\n  - - echo_prompt: true\n";
+    const { herd } = herdOn(store, { script: echo });
+    await herd.start();
+
+    await herd.promptTask("busy-1", "接着做");
+    const [first] = sent(store, "busy-1");
+    expect(first).toContain(`${T.cutOffCheck}\n\n接着做`);
+
+    // Only the first turn after the stop: the next one is ordinary work.
+    await herd.promptTask("busy-1", "再跑一遍测试");
+    expect(sent(store, "busy-1")[1]).toContain("再跑一遍测试");
+    expect(sent(store, "busy-1")[1]).not.toContain(T.cutOffCheck);
+
+    // A task that had finished before the stop has nothing half done.
+    await herd.promptTask("idle-1", "再加一节");
+    expect(sent(store, "idle-1")[0]).toContain("再加一节");
+    expect(sent(store, "idle-1")[0]).not.toContain(T.cutOffCheck);
+  });
+});

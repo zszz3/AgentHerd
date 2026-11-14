@@ -1,5 +1,7 @@
 // The Herder: one resident session on a light model (docs/spec/04-herder.md §1, ADR 0018).
 
+import { randomUUID } from "node:crypto";
+import { readFileSync } from "node:fs";
 import type { CompressionState } from "@agentherd/context-kernel";
 import type {
   HerderEvent,
@@ -33,6 +35,7 @@ import {
   ownerAnswerPrompt,
   ownerMessagePrompt,
   QUIET,
+  resumedNote,
   scheduledPrompt,
   systemPrompt,
   voicePrompt,
@@ -76,11 +79,28 @@ export interface HerderModel {
 
 type Job = (
   | { kind: "owner"; text: string; images: OwnerImage[] }
-  | { kind: "answer"; question: string; answer: string }
+  | { kind: "answer"; question: string; answer: string; ownerText?: string }
   | { kind: "intake"; text: string; auto: boolean }
   | { kind: "scheduled"; schedule: Schedule }
   | { kind: "voice"; request: VoiceRequest; done: (words: string | undefined) => void }
-) & { recorded?: boolean };
+) & {
+  recorded?: boolean;
+  /** The owner's message or answer kept in herd.db until its turn ran (ADR 0062). */
+  pendingId?: string;
+  /** When it came, for one the last run received but did not finish. */
+  resumedAt?: string;
+};
+
+/** Where the owner's messages and answers wait until their turn ran (ADR 0062). */
+export const PENDING_STATE_KEY = "herder.pending";
+/** A message older than this is not taken up after a restart: it is no longer what they want. */
+export const PENDING_MAX_AGE_MS = 24 * 60 * 60_000;
+
+/** An owner's message or answer kept until its turn ran. Images keep only their saved file. */
+export type PendingMessage = { id: string; at: string; recorded?: boolean } & (
+  | { kind: "owner"; text: string; images: { mimeType: string; path: string }[] }
+  | { kind: "answer"; question: string; answer: string; ownerText: string }
+);
 
 type Attempt = { ok: true } | { ok: false; message: string; acted: boolean; overflow: boolean };
 
@@ -135,6 +155,9 @@ export class Herder implements HerderPort {
   /** The style in the system prompt now. */
   private style: HerderStyle = DEFAULT_HERDER_STYLE;
   private reviewTimer: ReturnType<typeof setTimeout> | undefined;
+  /** Pending messages this Herder already queued, so a resume does not queue them twice. */
+  private readonly queuedPending = new Set<string>();
+  private resumed = false;
 
   constructor(opts: HerderOptions) {
     this.host = opts.host;
@@ -182,11 +205,60 @@ export class Herder implements HerderPort {
   }
 
   ownerMessage(text: string, images: OwnerImage[] = []): void {
-    this.enqueue({ kind: "owner", text, images });
+    if (this.stopped) return;
+    const id = this.keep({
+      id: randomUUID(),
+      at: new Date(this.now()).toISOString(),
+      kind: "owner",
+      text,
+      images: images.map(({ mimeType, path }) => ({ mimeType, path })),
+    });
+    this.enqueue({ kind: "owner", text, images, pendingId: id });
   }
 
   ownerAnswer(question: string, answer: string): void {
-    this.enqueue({ kind: "answer", question, answer });
+    if (this.stopped) return;
+    const id = this.keep({
+      id: randomUUID(),
+      at: new Date(this.now()).toISOString(),
+      kind: "answer",
+      question,
+      answer,
+      ownerText: this.lastOwnerText,
+    });
+    this.enqueue({ kind: "answer", question, answer, pendingId: id });
+  }
+
+  /**
+   * Takes up the owner's messages and answers that the last run received but did not finish
+   * (ADR 0062), oldest first. Each turn is told it came before the restart and may be done already.
+   */
+  resume(): void {
+    if (this.resumed || this.stopped) return;
+    this.resumed = true;
+    const now = this.now();
+    const kept: PendingMessage[] = [];
+    for (const p of this.pending()) {
+      if (this.queuedPending.has(p.id)) {
+        kept.push(p);
+        continue;
+      }
+      if (now - Date.parse(p.at) > PENDING_MAX_AGE_MS) {
+        this.host.audit("herder.pending.dropped", { kind: p.kind, at: p.at });
+        continue;
+      }
+      kept.push(p);
+      this.queuedPending.add(p.id);
+      const common = { pendingId: p.id, resumedAt: p.at, recorded: p.recorded === true };
+      this.host.audit("herder.pending.resumed", { kind: p.kind, at: p.at });
+      if (p.kind === "owner") {
+        this.enqueue({ kind: "owner", text: p.text, images: savedImages(p.images), ...common });
+      } else {
+        const { question, answer, ownerText } = p;
+        this.enqueue({ kind: "answer", question, answer, ownerText, ...common });
+      }
+    }
+    this.host.setState(PENDING_STATE_KEY, kept);
   }
 
   intake(text: string, auto: boolean): void {
@@ -264,8 +336,40 @@ export class Herder implements HerderPort {
   private async drain(): Promise<void> {
     for (let job = this.jobs.shift(); job !== undefined && !this.stopped; job = this.jobs.shift()) {
       await this.runJob(job);
+      // Handled, or given up on with the owner told: no longer waiting (ADR 0062). A held message,
+      // or one a stop cut off, stays for the next try or the next start.
+      if (job.pendingId !== undefined && this.held !== job && !this.stopped) {
+        this.settle(job.pendingId);
+      }
       if (this.held !== undefined) return; // Later messages wait behind the held one.
     }
+  }
+
+  private pending(): PendingMessage[] {
+    return this.host.getState<PendingMessage[]>(PENDING_STATE_KEY) ?? [];
+  }
+
+  /** Writes the message to herd.db before its turn runs; returns its id. */
+  private keep(message: PendingMessage): string {
+    this.host.setState(PENDING_STATE_KEY, [...this.pending(), message]);
+    this.queuedPending.add(message.id);
+    return message.id;
+  }
+
+  private settle(id: string): void {
+    this.queuedPending.delete(id);
+    this.host.setState(
+      PENDING_STATE_KEY,
+      this.pending().filter((p) => p.id !== id),
+    );
+  }
+
+  /** The owner's words are in the conversation record: a resumed turn must not add them again. */
+  private markRecorded(id: string): void {
+    this.host.setState(
+      PENDING_STATE_KEY,
+      this.pending().map((p) => (p.id === id ? { ...p, recorded: true } : p)),
+    );
   }
 
   private async runJob(job: Job): Promise<void> {
@@ -333,6 +437,8 @@ export class Herder implements HerderPort {
       if (!job.recorded) this.host.recordTurn("event", job.text);
       prompt = intakePrompt(job.text, job.auto);
     } else {
+      if (this.lastOwnerText === "" && job.ownerText !== undefined)
+        this.lastOwnerText = job.ownerText;
       const text = `${this.lastOwnerText}\n${job.answer}`;
       this.turn = {
         kind: "answer",
@@ -354,7 +460,11 @@ export class Herder implements HerderPort {
         job.answer.trim() === otherOption(this.host.locale),
       );
     }
+    const firstRun = job.recorded !== true;
     job.recorded = true;
+    if (firstRun && job.pendingId !== undefined) this.markRecorded(job.pendingId);
+    // It came before a restart: the Herder may have acted on it already (ADR 0062).
+    if (job.resumedAt !== undefined) prompt = `${resumedNote(job.resumedAt)}\n${prompt}`;
     if (this.events.length > 0) {
       for (const e of this.events) this.host.recordTurn("event", `${e.title}: ${e.text}`, e.taskId);
       prompt = `${eventsPrompt(this.events)}\n\n${prompt}`;
@@ -385,6 +495,11 @@ export class Herder implements HerderPort {
         this.host.texts.herderFailed("the model wrote broken tool calls"),
         false,
       );
+      return;
+    }
+    if (job.resumedAt !== undefined && text.includes(QUIET)) {
+      this.host.audit("herder.pending.quiet", { kind: job.kind });
+      this.save();
       return;
     }
     if (job.kind === "scheduled" && text.includes(QUIET)) {
@@ -666,4 +781,15 @@ export function beforeToolMarkup(text: string): string {
     .slice(0, at)
     .replace(/<acp\b[^>]*>?[^<]*$/, "")
     .trim();
+}
+
+/** Images of a message kept across a restart, read again from where they were saved. */
+function savedImages(images: readonly { mimeType: string; path: string }[]): OwnerImage[] {
+  return images.flatMap((image) => {
+    try {
+      return [{ ...image, data: readFileSync(image.path).toString("base64") }];
+    } catch {
+      return [];
+    }
+  });
 }

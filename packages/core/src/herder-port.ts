@@ -10,7 +10,7 @@ import type { HerdReport } from "./mcp-gateway.ts";
 import type { Completer, Embedder, MemoryStore } from "./memory-store.ts";
 import type { NoticeKind, NoticeLevel } from "./notices.ts";
 import type { Schedule, ScheduleInput, SchedulePatch } from "./schedules.ts";
-import type { DecisionRow, IntakeWatch, MailWatch } from "./store.ts";
+import type { DecisionRow, IntakeWatch, MailWatch, TranscriptEntry } from "./store.ts";
 import type { Task } from "./tasks.ts";
 import type { CoreTexts } from "./texts.ts";
 
@@ -102,6 +102,8 @@ export interface HerderHost {
   profiles(): { id: string; name: string }[];
   tasks(): Task[];
   openTasks(): Task[];
+  /** A task's conversation with its agent, oldest first: for reading its replies whole (ADR 0062). */
+  transcript?(taskId: string): readonly TranscriptEntry[];
   relayTaskId(): string | undefined;
   decisions(limit: number): DecisionRow[];
   /** Models in the owner's list ("service/model") and the profile ids that can run each. */
@@ -215,6 +217,11 @@ export interface HerderPort {
   voice?(request: VoiceRequest): Promise<string | undefined>;
   /** Runs a message held after every model failed (the owner tapped 「重试」). */
   retry?(): void;
+  /**
+   * Takes up the owner's messages and answers the last run received but did not finish (ADR 0062).
+   * Called once AgentHerd is up, and after the Herder is replaced.
+   */
+  resume?(): void;
   stop(): Promise<void>;
 }
 

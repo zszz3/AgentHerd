@@ -12,7 +12,14 @@ import {
   streamSimple,
 } from "@earendil-works/pi-ai/compat";
 import { afterEach, describe, expect, it } from "vitest";
-import { beforeToolMarkup, Herder, type HerderOptions, IMAGE_SEEN_NOTE } from "../src/herder.ts";
+import {
+  beforeToolMarkup,
+  Herder,
+  type HerderOptions,
+  IMAGE_SEEN_NOTE,
+  PENDING_MAX_AGE_MS,
+  PENDING_STATE_KEY,
+} from "../src/herder.ts";
 import { QUIET } from "../src/prompt.ts";
 import { fakeHost, task } from "./helpers.ts";
 
@@ -663,5 +670,109 @@ describe("Herder schedules (ADR 0055)", () => {
     expect(rec.said).toEqual([]);
     expect(schedules).toEqual([]);
     expect(rec.audits.some((a) => a.type === "schedule.quiet")).toBe(true);
+  });
+});
+
+describe("Herder after a restart (ADR 0062)", () => {
+  const types = (rec: { audits: { type: string }[] }) => rec.audits.map((a) => a.type);
+
+  it("keeps the owner's message until its turn is done, and takes it up after a restart", async () => {
+    const { herder, make, rec, faux } = setup();
+    let release = () => {};
+    const gate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    let called = false;
+    faux.setResponses([
+      async () => {
+        called = true;
+        await gate;
+        return fauxAssistantMessage("这条不会说出去。");
+      },
+    ]);
+    herder.ownerMessage("帮我看看 PR #7 的评论");
+    for (let i = 0; i < 200 && !called; i++) await new Promise((r) => setTimeout(r, 5));
+    expect(rec.state.get(PENDING_STATE_KEY)).toMatchObject([
+      { kind: "owner", text: "帮我看看 PR #7 的评论", recorded: true },
+    ]);
+    // AgentHerd stops in the middle of the turn.
+    const stopping = herder.stop();
+    release();
+    await stopping;
+    expect(rec.state.get(PENDING_STATE_KEY)).toHaveLength(1);
+
+    // The next run takes it up and is told when it came.
+    const prompts: string[] = [];
+    faux.setResponses([
+      (context) => {
+        prompts.push(JSON.stringify(context.messages.at(-1)?.content));
+        return fauxAssistantMessage("看过了，有两条评论要改名字。");
+      },
+    ]);
+    const next = make();
+    next.resume();
+    next.resume(); // once per run
+    await next.idle();
+    expect(prompts).toHaveLength(1);
+    expect(prompts[0]).toContain("before AgentHerd restarted");
+    expect(prompts[0]).toContain("帮我看看 PR #7 的评论");
+    expect(rec.said).toEqual(["看过了，有两条评论要改名字。"]);
+    expect(rec.state.get(PENDING_STATE_KEY)).toEqual([]);
+    // The owner's words are in the record once.
+    expect(rec.turns.filter((t) => t.role === "owner")).toHaveLength(1);
+    expect(types(rec)).toContain("herder.pending.resumed");
+  });
+
+  it("an answer it already acted on says nothing the second time", async () => {
+    const { make, rec, faux } = setup();
+    rec.state.set(PENDING_STATE_KEY, [
+      {
+        id: "p1",
+        at: new Date().toISOString(),
+        kind: "answer",
+        question: "用哪个模型？",
+        answer: "flash",
+        ownerText: "开个任务修构建",
+        recorded: true,
+      },
+    ]);
+    const prompts: string[] = [];
+    faux.setResponses([
+      (context) => {
+        prompts.push(JSON.stringify(context.messages.at(-1)?.content));
+        return fauxAssistantMessage(QUIET);
+      },
+    ]);
+    const next = make();
+    next.resume();
+    await next.idle();
+    expect(prompts[0]).toContain("The owner answered your question.");
+    expect(prompts[0]).toContain("before AgentHerd restarted");
+    expect(rec.said).toEqual([]);
+    expect(rec.turns).toEqual([]);
+    expect(types(rec)).toContain("herder.pending.quiet");
+    expect(rec.state.get(PENDING_STATE_KEY)).toEqual([]);
+  });
+
+  it("drops what waited more than a day", async () => {
+    const { make, rec, faux } = setup();
+    const old = new Date(Date.now() - PENDING_MAX_AGE_MS - 60_000).toISOString();
+    rec.state.set(PENDING_STATE_KEY, [
+      { id: "p1", at: old, kind: "owner", text: "昨天的事", images: [] },
+    ]);
+    let calls = 0;
+    faux.setResponses([
+      () => {
+        calls++;
+        return fauxAssistantMessage("x");
+      },
+    ]);
+    const next = make();
+    next.resume();
+    await next.idle();
+    expect(calls).toBe(0);
+    expect(rec.said).toEqual([]);
+    expect(rec.state.get(PENDING_STATE_KEY)).toEqual([]);
+    expect(types(rec)).toContain("herder.pending.dropped");
   });
 });

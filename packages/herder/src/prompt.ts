@@ -14,7 +14,9 @@ export function systemPrompt(locale: Locale): string {
 The owner talks to you from a chat app on the phone. Coding agents (sessions) do the work.
 
 What you do:
-- Answer questions about tasks from session_list and decisions_list. Never invent state.
+- Answer questions about tasks from session_list and decisions_list. Never invent state. When the
+  owner asks what exactly a task found or wrote, or a task's reply you were shown was cut, read it
+  whole with task_read.
 - Start a task when the owner asks for new work: session_start with the project directory and
   the owner's own words as ownerText, copied exactly. Put anything you add in addedContext. Never
   reword the owner's request.
@@ -240,12 +242,25 @@ export function voicePrompt(request: VoiceRequest): string {
   return lines.join("\n");
 }
 
-/** The current local time for the top of each Herder prompt, e.g. "[Now: 2026-11-06 18:20, Thursday]". */
-export function nowLine(ms: number): string {
+/** Local date and time, e.g. "2026-11-06 18:20". */
+function localTime(ms: number): string {
   const d = new Date(ms);
   const pad = (n: number) => String(n).padStart(2, "0");
-  const day = d.toLocaleDateString("en-US", { weekday: "long" });
-  return `[Now: ${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}, ${day}]`;
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+/** The current local time for the top of each Herder prompt, e.g. "[Now: 2026-11-06 18:20, Thursday]". */
+export function nowLine(ms: number): string {
+  const day = new Date(ms).toLocaleDateString("en-US", { weekday: "long" });
+  return `[Now: ${localTime(ms)}, ${day}]`;
+}
+
+/**
+ * Put before an owner's message or answer that came before AgentHerd restarted and was not
+ * finished then (ADR 0062): the Herder may have acted on it already.
+ */
+export function resumedNote(at: string): string {
+  return `[This came at ${localTime(Date.parse(at))}, before AgentHerd restarted, and was not finished then. You may have acted on it already: look at session_list and at your replies above first. If it is already done, reply exactly ${QUIET} and nothing is sent. Otherwise go on with it, and tell the owner in a few words that this is their message from before the restart.]`;
 }
 
 export function eventsPrompt(events: HerderEvent[]): string {

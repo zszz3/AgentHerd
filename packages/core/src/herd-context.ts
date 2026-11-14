@@ -181,6 +181,11 @@ export interface Following {
    * the earlier conversation.
    */
   needsHistory?: boolean;
+  /**
+   * AgentHerd went away (a stop or a crash) while the task was in the middle of its work: its next
+   * prompt asks it to check what is already done before going on (ADR 0062).
+   */
+  cutOff?: boolean;
   /** Set while an ended task is being started again. */
   reopening?: Promise<void>;
   /** The agent's last `herd_report` in the current turn. */

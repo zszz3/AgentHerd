@@ -6,10 +6,12 @@ export type { Clock, Timer } from "./clock.ts";
 export { FakeClock, systemClock } from "./clock.ts";
 export type { Command } from "./commands.ts";
 export { parseCommand } from "./commands.ts";
+export { headTail } from "./cut-text.ts";
 export type { GhRun, GitHubOptions, PrActivity, PrView } from "./github-watch.ts";
 export {
   GITHUB_MAX_WAKES,
   GITHUB_POLL_MINUTES,
+  GITHUB_WAKES_IN_ROW,
   GITHUB_WATCH_DAYS,
   GitHubWatch,
   prLinks,

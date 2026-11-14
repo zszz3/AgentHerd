@@ -4,10 +4,11 @@
 
 import { spawn } from "node:child_process";
 import type { Clock, Timer } from "./clock.ts";
+import { headTail } from "./cut-text.ts";
 import { type HerdContext, say } from "./herd-context.ts";
 import type { NoticeLevel } from "./notices.ts";
 import type { PrWatch } from "./store.ts";
-import { notice } from "./task-report.ts";
+import { notice, setReport } from "./task-report.ts";
 
 /** Runs `gh` with these arguments; resolves its stdout, rejects with its stderr. */
 export type GhRun = (args: string[]) => Promise<string>;
@@ -26,6 +27,11 @@ export const GITHUB_MAX_WAKES = 20;
 const GH_TIMEOUT_MS = 60_000;
 const BODY_MAX = 1_500;
 const SNIPPET_MAX = 80;
+/**
+ * Automatic wake-ups for a task's pull requests in a row, without the owner writing to the task;
+ * after that new work waits for the owner (ADR 0062). Each one costs a turn of the strongest model.
+ */
+export const GITHUB_WAKES_IN_ROW = 3;
 const PROMPT_ITEMS_MAX = 20;
 
 export const PR_URL = /https:\/\/github\.com\/([\w.-]+\/[\w.-]+)\/pull\/(\d+)/g;
@@ -253,6 +259,27 @@ export class GitHubWatch {
   }
 
   /**
+   * The owner (or the Herder for them) wrote to a task: its automatic wake-ups count from zero
+   * again, and news that waited for the owner goes to the task with the message (ADR 0062).
+   * @returns the held news, to add to the owner's message.
+   */
+  ownerWrote(taskId: string): string | undefined {
+    const { store, texts } = this.ctx;
+    const parts: string[] = [];
+    for (const watch of store.prWatches()) {
+      if (watch.taskId !== taskId) continue;
+      if ((watch.wakesInRow ?? 0) === 0 && watch.held === undefined) continue;
+      if (watch.held !== undefined && watch.held.length > 0) {
+        parts.push(texts.prHeld(watch.url, watch.held.join("\n")));
+      }
+      const { held: _held, ...rest } = watch;
+      store.savePrWatch({ ...rest, wakesInRow: 0 });
+    }
+    if (parts.length > 0) store.audit("github.held-sent", { taskId, pullRequests: parts.length });
+    return parts.length === 0 ? undefined : parts.join("\n\n");
+  }
+
+  /**
    * The owner sent this text to a task: pull requests linked in it are followed for that task,
    * whoever opened them and whatever their state (ADR 0051).
    */
@@ -443,6 +470,16 @@ export class GitHubWatch {
         : [];
     if (fresh.length === 0 && failedNow.length === 0) return;
 
+    // The owner may have written to the task while this look waited for gh (ADR 0062).
+    const latest = store.prWatches().find((w) => sameWatch(w, watch));
+    if (latest !== undefined) {
+      const { held: _held, wakesInRow: _inRow, ...rest } = watch;
+      watch = {
+        ...rest,
+        ...(latest.wakesInRow === undefined ? {} : { wakesInRow: latest.wakesInRow }),
+        ...(latest.held === undefined ? {} : { held: latest.held }),
+      };
+    }
     const next: PrWatch = {
       ...watch,
       seen: [...watch.seen, ...fresh.map((a) => a.id)],
@@ -456,11 +493,32 @@ export class GitHubWatch {
       return;
     }
     next.activeAt = this.clock.now().toISOString();
-    const wake =
+    const parts = [
+      ...work
+        .slice(-PROMPT_ITEMS_MAX)
+        .map((a) =>
+          texts.prItem(
+            a.state === undefined || a.state === "COMMENTED" ? a.login : `${a.login} (${a.state})`,
+            a.kind,
+            headTail(a.body, BODY_MAX, "read it whole with gh"),
+            a.where,
+          ),
+        ),
+      ...(failedNow.length > 0 ? [texts.prChecksPart(failedNow.join(", "), watch.url)] : []),
+    ];
+    const wanted =
       (work.length > 0 || failedNow.length > 0) &&
       watch.wakes < GITHUB_MAX_WAKES &&
       f !== undefined;
-    if (wake) next.wakes = watch.wakes + 1;
+    // After a few wake-ups in a row with nobody writing to the task, it waits for the owner.
+    const inRow = watch.wakesInRow ?? 0;
+    const wake = wanted && inRow < GITHUB_WAKES_IN_ROW;
+    const waits = wanted && !wake;
+    if (wake) {
+      next.wakes = watch.wakes + 1;
+      next.wakesInRow = inRow + 1;
+    }
+    if (waits) next.held = [...(watch.held ?? []), ...parts].slice(-PROMPT_ITEMS_MAX);
     store.savePrWatch(next);
     store.audit("github.activity", {
       taskId: watch.taskId,
@@ -469,36 +527,15 @@ export class GitHubWatch {
       approvals: approvals.length,
       failed: failedNow,
       woke: wake,
+      ...(waits ? { waits: true } : {}),
     });
 
-    const activity = (): string => {
-      const who = [...new Set(work.map((a) => a.login))].join(", ");
-      const first = work[work.length - 1];
-      return texts.prActivity(
-        watch.number,
-        who,
-        clip((first?.body ?? "").split("\n")[0] ?? "", SNIPPET_MAX),
-        false,
-      );
-    };
+    const who = [...new Set(work.map((a) => a.login))].join(", ");
+    const snippet = clip((work[work.length - 1]?.body ?? "").split("\n")[0] ?? "", SNIPPET_MAX);
+    const activity = (): string => texts.prActivity(watch.number, who, snippet, false);
     const checksFailed = (): Promise<void> =>
       tell(texts.prChecksFailed(watch.number, failedNow.join(", "), false), "alarm");
     if (wake) {
-      const parts = [
-        ...work
-          .slice(-PROMPT_ITEMS_MAX)
-          .map((a) =>
-            texts.prItem(
-              a.state === undefined || a.state === "COMMENTED"
-                ? a.login
-                : `${a.login} (${a.state})`,
-              a.kind,
-              clip(a.body, BODY_MAX),
-              a.where,
-            ),
-          ),
-        ...(failedNow.length > 0 ? [texts.prChecksPart(failedNow.join(", "), watch.url)] : []),
-      ];
       void this.tasks
         .prompt(
           watch.taskId,
@@ -515,7 +552,18 @@ export class GitHubWatch {
     // failed checks no task fixes are pushed; a bare approval goes on the board (ADR 0061).
     let pushed = false;
     let boarded = false;
-    if (work.length > 0 && !wake) {
+    if (waits && f !== undefined) {
+      // Asked once; more news while it waits only updates the board (ADR 0062).
+      if ((watch.held ?? []).length === 0) {
+        const checks = failedNow.join(", ");
+        await tell(texts.prWaits(watch.number, who, snippet, checks, GITHUB_WAKES_IN_ROW));
+        pushed = true;
+      } else {
+        setReport(ctx, f, texts.prStillWaits(watch.number));
+        boarded = true;
+      }
+    }
+    if (work.length > 0 && !wake && !waits) {
       await tell(activity());
       pushed = true;
     }
@@ -524,7 +572,7 @@ export class GitHubWatch {
       if (level === "push") pushed = true;
       if (level === "board") boarded = true;
     }
-    if (failedNow.length > 0 && !wake) {
+    if (failedNow.length > 0 && !wake && !waits) {
       await checksFailed();
       pushed = true;
     }
