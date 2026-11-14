@@ -1,6 +1,7 @@
 // E2E for following the pull requests tasks open (docs/spec/04-herder.md "Pull requests"): people's comments
-// wake the task and reach the owner, bots do not, failed checks go to the task, a merge is told
-// once and the watch stays for later comments (ADR 0051).
+// wake the task, bots do not, failed checks go to the task, a merge is noted once and the watch
+// stays for later comments (ADR 0051). What the task handled on its own, approvals and merges go
+// on the task board, not to the phone, unless the owner asked otherwise (ADR 0061).
 
 import { mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -12,6 +13,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import { FakeClock } from "../../src/clock.ts";
 import type { GhRun } from "../../src/github-watch.ts";
 import { Herd } from "../../src/herd.ts";
+import { setNoticeLevel } from "../../src/notices.ts";
 import { Store } from "../../src/store.ts";
 
 const BIN = fileURLToPath(new URL("../../../mock-agent/bin/mock-agent.ts", import.meta.url));
@@ -123,6 +125,11 @@ async function until(check: () => boolean): Promise<void> {
 const texts = (channel: FakeChannel) =>
   channel.messages.filter((m) => m.view.kind === "text").map((m) => (m.view as TextView).text);
 const reports = (channel: FakeChannel) => channel.messages.filter((m) => m.view.kind === "report");
+/** What the task's row on the board says (ADR 0061: small news goes there, not to the phone). */
+const boardReport = (herd: Herd, taskId: string) =>
+  herd.tasks().find((t) => t.id === taskId)?.lastReport;
+const noticed = (store: Store, kind: string) =>
+  store.auditRows("notice").filter((r) => r.data.kind === kind);
 
 describe("E2E-GITHUB", () => {
   it("follows the pull request a task opened until it merges", async () => {
@@ -135,58 +142,103 @@ describe("E2E-GITHUB", () => {
     expect(store.prWatches().map((w) => [w.url, w.taskId])).toEqual([
       ["https://github.com/acme/app/pull/7", taskId],
     ]);
+    expect(reports(channel)).toHaveLength(1);
     // What was there before is not news.
     await clock.advance(120_000);
     expect(texts(channel).filter((t) => t.includes("PR #7"))).toEqual([]);
 
-    // A person's comment wakes the task, which tells the owner itself; a bot's does neither.
+    // A person's comment wakes the task; a bot's does not. The task handled it on its own, so
+    // its result goes on the board and the phone stays quiet (ADR 0061).
     github.comment("alice", "Please rename foo to bar.\nIt reads better.");
     github.comment("lint-bot[bot]", "Style nits", "Bot");
     await clock.advance(120_000);
-    await until(() => reports(channel).length === 2);
+    await until(() => boardReport(herd, taskId) === "Renamed it.");
+    expect(boardReport(herd, taskId)).toBe("Renamed it.");
+    expect(reports(channel)).toHaveLength(1);
+    expect(store.auditRows("report.unpushed")).toHaveLength(1);
     expect(texts(channel).filter((t) => t.startsWith("New comment"))).toEqual([]);
     const prompts = store.transcript(taskId).filter((e) => e.role === "prompt");
     expect(prompts[1]?.text).toContain("alice commented: Please rename foo to bar.");
     expect(prompts[1]?.text).not.toContain("Style nits");
 
-    // A bare approval is told, not worked on.
+    // A bare approval is not worked on, and goes on the board.
     github.review("bob", "APPROVED", "");
     await clock.advance(120_000);
-    await until(() => texts(channel).includes("PR #7 was approved by bob."));
-    expect(texts(channel)).toContain("PR #7 was approved by bob.");
-    expect(reports(channel)).toHaveLength(2);
+    await until(() => boardReport(herd, taskId) === "PR #7 was approved by bob.");
+    expect(boardReport(herd, taskId)).toBe("PR #7 was approved by bob.");
+    expect(texts(channel)).not.toContain("PR #7 was approved by bob.");
+    expect(noticed(store, "pr-approved")).toMatchObject([{ data: { level: "board", taskId } }]);
 
-    // Failed checks go to the task once per head commit.
+    // Failed checks go to the task once per head commit; no separate notice says the same.
     github.checks = [{ name: "build", status: "COMPLETED", conclusion: "FAILURE" }];
     await clock.advance(120_000);
-    await until(() => reports(channel).length === 3);
+    await until(() => boardReport(herd, taskId) === "Fixed the build.");
+    expect(boardReport(herd, taskId)).toBe("Fixed the build.");
     const third = store.transcript(taskId).filter((e) => e.role === "prompt");
     expect(third.at(-1)?.text).toContain("Checks failed: build.");
     await clock.advance(120_000);
-    expect(reports(channel)).toHaveLength(3);
-    // The task reports; no separate notice says the same (ADR 0049).
+    expect(store.transcript(taskId).filter((e) => e.role === "prompt")).toHaveLength(3);
     expect(texts(channel).filter((t) => t.startsWith("Checks failed"))).toEqual([]);
 
-    // The merge is told once; the watch stays, so a later comment still reaches the task
+    // The merge is noted once; the watch stays, so a later comment still reaches the task
     // (ADR 0051).
     github.state = "MERGED";
     await clock.advance(120_000);
-    await until(() => texts(channel).includes("PR #7 was merged."));
+    await until(() => boardReport(herd, taskId) === "PR #7 was merged.");
+    expect(boardReport(herd, taskId)).toBe("PR #7 was merged.");
     await clock.advance(120_000);
-    expect(texts(channel).filter((t) => t === "PR #7 was merged.")).toHaveLength(1);
+    expect(noticed(store, "pr-merged")).toHaveLength(1);
+    expect(texts(channel)).not.toContain("PR #7 was merged.");
     expect(store.prWatches()).toMatchObject([{ number: 7, closed: "merged" }]);
     await herd.endTask(taskId, "done");
     github.comment("carol", "Why was foo renamed?");
     await clock.advance(120_000);
-    await until(() => reports(channel).length === 5);
+    // The ended task opens again with a new agent (the mock starts its script over); its
+    // result goes on the board too.
+    await until(() => store.auditRows("report.unpushed").length === 3);
+    expect(store.auditRows("report.unpushed")).toHaveLength(3);
+    expect(boardReport(herd, taskId)).toMatch(/^Opened https:\/\/github\.com\/acme\/app\/pull\/7/);
     const after = store.transcript(taskId).filter((e) => e.role === "prompt");
     expect(after.at(-1)?.text).toContain("carol commented: Why was foo renamed?");
     expect(after.at(-1)?.text).toContain("already merged");
+    // Everything after the first report went to the board: one message on the phone in all.
+    expect(reports(channel)).toHaveLength(1);
+    expect(texts(channel)).toEqual([]);
 
     // Fourteen quiet days after that, the watch ends.
     await clock.advance(15 * 24 * 60 * 60_000);
     await until(() => store.prWatches().length === 0);
     expect(store.auditRows("github.expired")).toHaveLength(1);
+  }, 20_000);
+
+  it("pushes what the owner asked to have pushed (ADR 0061)", async () => {
+    const { herd, channel, clock, store, github } = await setup();
+    setNoticeLevel(store, "pr-follow-up", "push");
+    setNoticeLevel(store, "pr-approved", "push");
+    setNoticeLevel(store, "pr-merged", "off");
+    const { taskId, turn } = await herd.startTask("mock", dir, "Fix the bug and open a PR");
+    await turn;
+    await until(() => store.prWatches().length > 0);
+    await clock.advance(120_000);
+
+    github.comment("alice", "Please rename foo to bar.");
+    await clock.advance(120_000);
+    await until(() => reports(channel).length === 2);
+    expect(reports(channel)).toHaveLength(2);
+    expect(store.auditRows("report.unpushed")).toEqual([]);
+
+    github.review("bob", "APPROVED", "");
+    await clock.advance(120_000);
+    await until(() => texts(channel).includes("PR #7 was approved by bob."));
+    expect(texts(channel)).toContain("PR #7 was approved by bob.");
+
+    // Off: neither the phone nor the board, only the audit log.
+    github.state = "MERGED";
+    await clock.advance(120_000);
+    await until(() => noticed(store, "pr-merged").length === 1);
+    expect(noticed(store, "pr-merged")).toMatchObject([{ data: { level: "off" } }]);
+    expect(texts(channel)).not.toContain("PR #7 was merged.");
+    expect(boardReport(herd, taskId)).not.toBe("PR #7 was merged.");
   }, 20_000);
 
   it("follows a pull request the owner hands to a task, whoever opened it", async () => {

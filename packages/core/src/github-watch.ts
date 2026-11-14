@@ -5,7 +5,9 @@
 import { spawn } from "node:child_process";
 import type { Clock, Timer } from "./clock.ts";
 import { type HerdContext, say } from "./herd-context.ts";
+import type { NoticeLevel } from "./notices.ts";
 import type { PrWatch } from "./store.ts";
+import { notice } from "./task-report.ts";
 
 /** Runs `gh` with these arguments; resolves its stdout, rejects with its stderr. */
 export type GhRun = (args: string[]) => Promise<string>;
@@ -400,13 +402,19 @@ export class GitHubWatch {
     const label = f?.task.title;
     const tell = (text: string, tone?: "alarm"): Promise<void> =>
       say(ctx, text, label, tone, f === undefined ? undefined : watch.taskId);
-    const event = (text: string): void => {
+    const event = (text: string, level: NoticeLevel): void => {
       if (f === undefined) return;
-      ctx.herder()?.event({ kind: "github", taskId: f.task.id, title: f.task.title, text });
+      ctx.herder()?.event({
+        kind: "github",
+        taskId: f.task.id,
+        title: f.task.title,
+        text,
+        ...(level === "push" ? {} : { shown: level === "board" ? "board" : "none" }),
+      });
     };
 
-    // Merged or closed: told once, and the watch stays for 14 quiet days, so later comments
-    // still reach the task (ADR 0051).
+    // Merged or closed: noted once (on the board unless the owner asked otherwise, ADR 0061), and
+    // the watch stays for 14 quiet days, so later comments still reach the task (ADR 0051).
     const closed = closedState(pr);
     if (closed !== undefined && watch.closed === undefined) {
       const text =
@@ -414,14 +422,14 @@ export class GitHubWatch {
       watch = { ...watch, closed, activeAt: this.clock.now().toISOString() };
       store.savePrWatch(watch);
       store.audit("github.closed", { taskId: watch.taskId, url: watch.url, state: pr.state });
-      await tell(text);
-      event(`${text} ${watch.url}`);
+      const level = await notice(ctx, closed === "merged" ? "pr-merged" : "pr-closed", f, text);
+      event(`${text} ${watch.url}`, level);
     } else if (closed === undefined && watch.closed !== undefined) {
       const { closed: _was, ...open } = watch;
       watch = { ...open, activeAt: this.clock.now().toISOString() };
       store.savePrWatch(watch);
       store.audit("github.reopened", { taskId: watch.taskId, url: watch.url });
-      await tell(texts.prReopened(watch.number));
+      await notice(ctx, "pr-reopened", f, texts.prReopened(watch.number));
     }
 
     const fresh = pr.activity.filter((a) => !watch.seen.includes(a.id));
@@ -463,6 +471,18 @@ export class GitHubWatch {
       woke: wake,
     });
 
+    const activity = (): string => {
+      const who = [...new Set(work.map((a) => a.login))].join(", ");
+      const first = work[work.length - 1];
+      return texts.prActivity(
+        watch.number,
+        who,
+        clip((first?.body ?? "").split("\n")[0] ?? "", SNIPPET_MAX),
+        false,
+      );
+    };
+    const checksFailed = (): Promise<void> =>
+      tell(texts.prChecksFailed(watch.number, failedNow.join(", "), false), "alarm");
     if (wake) {
       const parts = [
         ...work
@@ -484,27 +504,29 @@ export class GitHubWatch {
           watch.taskId,
           texts.prPrompt(watch.url, parts.join("\n"), watch.handed === true, watch.closed),
         )
-        .catch((error: Error) => {
+        .catch(async (error: Error) => {
           store.audit("github.wake-error", { taskId: watch.taskId, message: error.message });
+          // The task never read it (it ended first): the owner hears it instead (ADR 0061).
+          if (work.length > 0) await tell(activity());
+          if (failedNow.length > 0) await checksFailed();
         });
     }
-    // A task handed the work tells the owner itself (herd_ack, then its report); a separate
-    // notice would say the same twice (ADR 0049).
+    // Work handed to the task is the task's to tell (ADR 0049); comments no task can take and
+    // failed checks no task fixes are pushed; a bare approval goes on the board (ADR 0061).
+    let pushed = false;
+    let boarded = false;
     if (work.length > 0 && !wake) {
-      const who = [...new Set(work.map((a) => a.login))].join(", ");
-      const first = work[work.length - 1];
-      await tell(
-        texts.prActivity(
-          watch.number,
-          who,
-          clip((first?.body ?? "").split("\n")[0] ?? "", SNIPPET_MAX),
-          wake,
-        ),
-      );
+      await tell(activity());
+      pushed = true;
     }
-    for (const a of approvals) await tell(texts.prApproved(watch.number, a.login));
+    for (const a of approvals) {
+      const level = await notice(ctx, "pr-approved", f, texts.prApproved(watch.number, a.login));
+      if (level === "push") pushed = true;
+      if (level === "board") boarded = true;
+    }
     if (failedNow.length > 0 && !wake) {
-      await tell(texts.prChecksFailed(watch.number, failedNow.join(", "), wake), "alarm");
+      await checksFailed();
+      pushed = true;
     }
     event(
       [
@@ -512,6 +534,7 @@ export class GitHubWatch {
         ...approvals.map((a) => `${a.login} approved`),
         ...(failedNow.length > 0 ? [`checks failed: ${failedNow.join(", ")}`] : []),
       ].join("\n"),
+      pushed ? "push" : boarded ? "board" : "off",
     );
   }
 }

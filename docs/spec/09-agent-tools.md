@@ -66,7 +66,9 @@ belongs to, and answers `"reported"`. The core treats it as the agent report sou
 `herd_ack(text)` ([ADR 0046](../adr/0046-tell-the-owner-at-the-right-time.md), ADR 0049): one line
 (≤ 30 words) sent to the owner at once, labeled with the task, as a reply to the owner's message
 that started the turn when there is one. Once per turn, only while a turn runs, and not in turns
-AgentHerd started itself; otherwise, or when longer, the answer is a tool error.
+AgentHerd started itself; otherwise, or when longer, the answer is a tool error. In a turn the
+owner did not ask for directly (the Herder started it, or its pull request woke it) the line only
+goes on the task board ([ADR 0061](../adr/0061-small-news-on-the-board.md)).
 
 ## 3. Apps through Composio
 

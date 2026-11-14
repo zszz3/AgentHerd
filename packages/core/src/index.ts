@@ -16,7 +16,14 @@ export {
   readPr,
   runGh,
 } from "./github-watch.ts";
-export type { AgentModels, HerdOptions, ModelLaunch, RelayState, RunResult } from "./herd.ts";
+export type {
+  AgentModels,
+  HerdOptions,
+  ModelLaunch,
+  PromptFrom,
+  RelayState,
+  RunResult,
+} from "./herd.ts";
 export { Herd } from "./herd.ts";
 export type {
   FeedItem,
@@ -110,6 +117,17 @@ export {
   SERVICE_ID_PATTERN,
   type SecretStore,
 } from "./models.ts";
+export type { NoticeKind, NoticeLevel } from "./notices.ts";
+export {
+  changedNoticeLevels,
+  DEFAULT_NOTICE_LEVELS,
+  NOTICE_ABOUT,
+  NOTICE_KINDS,
+  NOTICE_LEVELS,
+  noticeLevel,
+  noticeLevels,
+  setNoticeLevel,
+} from "./notices.ts";
 export {
   ACK_WORDS_MAX,
   cutWords,

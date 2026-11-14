@@ -9,6 +9,8 @@ import {
   type Following,
   firstLine,
   type HerdContext,
+  type PromptFrom,
+  type QueuedPrompt,
   type RunResult,
   saveTask,
   say,
@@ -23,7 +25,7 @@ import { onPermission } from "./permission.ts";
 import type { Relay } from "./relay.ts";
 import { REPLY_HINT_CHARS, replyHint } from "./report.ts";
 import type { TranscriptEntry } from "./store.ts";
-import { askSummary, flushReply, sendReport, setReport } from "./task-report.ts";
+import { askSummary, flushReply, notice, sendReport, setReport } from "./task-report.ts";
 import { projectName, taskTitle } from "./tasks.ts";
 import type { CoreTexts } from "./texts.ts";
 import type { TaskWorkspace } from "./workspace.ts";
@@ -80,6 +82,7 @@ export class TaskRunner {
     model?: string,
     images: OwnerImage[] = [],
     allowed: readonly OutboundStep[] = [],
+    from: PromptFrom = "owner",
   ): Promise<{ taskId: string; turn: Promise<RunResult> }> {
     const { ctx } = this;
     const found = ctx.opts.profiles.find((p) => p.id === profileId);
@@ -118,6 +121,7 @@ export class TaskRunner {
       failed: false,
       ended: false,
       turn: { text: "", toolCalls: 0 },
+      turnFrom: from,
       offs: [],
       queue: [],
       busy: false,
@@ -138,7 +142,7 @@ export class TaskRunner {
       delete f.connection;
       if (await this.switchModel(f, message)) {
         this.started(f, model);
-        return { taskId: sessionId, turn: this.ops.promptTask(sessionId, prompt, images) };
+        return { taskId: sessionId, turn: this.ops.promptTask(sessionId, prompt, images, from) };
       }
       setReport(ctx, f, ctx.texts.couldNotStart(message));
       ctx.registry.set(sessionId, "error");
@@ -148,7 +152,7 @@ export class TaskRunner {
     }
     this.listen(f, f.connection, f.agentSessionId);
     this.started(f, model);
-    return { taskId: sessionId, turn: this.ops.promptTask(sessionId, prompt, images) };
+    return { taskId: sessionId, turn: this.ops.promptTask(sessionId, prompt, images, from) };
   }
 
   /** Hosts with a model list never launch an agent with its native defaults. */
@@ -311,19 +315,20 @@ export class TaskRunner {
 
   /**
    * Sends a prompt to an open task. Queued while a turn runs; settles when its turn ends.
-   * @param fromOwner false for AgentHerd's own prompts (pull request activity): they do not take
-   *   the owner's latest message as the one to acknowledge.
+   * @param from who sends it (ADR 0061). A pull request's prompt is AgentHerd's own: it does not
+   *   take the owner's latest message as the one to acknowledge.
    */
   promptTask(
     taskId: string,
     text: string,
     images: OwnerImage[] = [],
-    fromOwner = true,
+    from: PromptFrom = "owner",
   ): Promise<RunResult> {
     const f = this.ctx.following.get(taskId);
     if (f === undefined) return Promise.reject(new Error(`unknown task ${taskId}`));
-    const trigger = fromOwner ? this.takeOwnerMessage() : undefined;
-    if (fromOwner) this.ctx.github()?.handed(taskId, text);
+    const forOwner = from !== "pull-request";
+    const trigger = forOwner ? this.takeOwnerMessage() : undefined;
+    if (forOwner) this.ctx.github()?.handed(taskId, text);
     // An ended task (also one from before a restart) is started again (ADR 0039).
     if (f.ended && f.reopening === undefined) {
       f.reopening = this.reopen(f).finally(() => {
@@ -336,6 +341,7 @@ export class TaskRunner {
         f.queue.push({
           text,
           images,
+          from,
           resolve,
           reject,
           ...(trigger === undefined ? {} : { trigger }),
@@ -507,10 +513,15 @@ export class TaskRunner {
   }
 
   /** Cancels the current turn of a task, then sends the text as the next prompt. */
-  async interruptTask(taskId: string, text: string, images?: OwnerImage[]): Promise<RunResult> {
+  async interruptTask(
+    taskId: string,
+    text: string,
+    images?: OwnerImage[],
+    from: PromptFrom = "owner",
+  ): Promise<RunResult> {
     const f = this.ctx.following.get(taskId);
     if (f === undefined) throw new Error(`unknown task ${taskId}`);
-    const next = this.ops.promptTask(taskId, text, images);
+    const next = this.ops.promptTask(taskId, text, images, from);
     if (f.busy && f.connection !== undefined && f.agentSessionId !== undefined) {
       await f.connection.cancel(f.agentSessionId);
     }
@@ -540,7 +551,8 @@ export class TaskRunner {
     this.stopBackground(f);
     for (const off of f.offs) off();
     f.offs = [];
-    for (const queued of f.queue.splice(0)) queued.reject(new Error(`the task ended: ${why}`));
+    const unread = f.queue.splice(0);
+    for (const queued of unread) queued.reject(new Error(`the task ended: ${why}`));
     await ctx.inbox.expireSession(taskId, why);
     await connection?.close();
     if (f.connection === connection) delete f.connection;
@@ -552,7 +564,42 @@ export class TaskRunner {
     if (this.relay.stored()?.taskId === taskId) {
       await this.relay.end("the task ended");
     }
+    await this.handBack(f, unread, why);
     await ctx.board.flush();
+  }
+
+  /**
+   * Messages a task never read because it ended first go back instead of vanishing (ADR 0061):
+   * the owner's to the Herder, which sees it as the owner's message with what happened; the
+   * Herder's (or the owner's, with no Herder to take it) to the owner, whose reply opens the task
+   * again. A pull request's prompt is told by its watch; a background check needs nothing.
+   */
+  private async handBack(f: Following, unread: QueuedPrompt[], why: string): Promise<void> {
+    const { ctx } = this;
+    const stopping = why === ctx.texts.agentherdStopped;
+    for (const queued of unread) {
+      const from = queued.from ?? "owner";
+      if (queued.wake === true || from === "pull-request") continue;
+      const text = from === "herder" ? promptWords(queued.text) : queued.text.trim();
+      const herder = ctx.herder();
+      const event = {
+        kind: "unread",
+        taskId: f.task.id,
+        title: f.task.title,
+        text,
+        why,
+      } as const;
+      if (from === "owner" && herder !== undefined && !stopping) {
+        ctx.store.audit("task.unread", { taskId: f.task.id, from, to: "herder", why });
+        herder.event({ ...event, shown: "none" });
+        herder.ownerMessage(queued.text, queued.images);
+        continue;
+      }
+      ctx.store.audit("task.unread", { taskId: f.task.id, from, to: "owner", why });
+      const short = text.length > UNREAD_MAX ? `${text.slice(0, UNREAD_MAX - 1)}…` : text;
+      await say(ctx, ctx.texts.unread(short, why), f.task.title, undefined, f.task.id);
+      if (!stopping) herder?.event(event);
+    }
   }
 
   /**
@@ -661,8 +708,16 @@ export class TaskRunner {
     if (next === undefined) return;
     f.busy = true;
     f.idleTimer?.cancel();
-    if (next.wake !== true) f.ownerTurns = (f.ownerTurns ?? 0) + 1;
-    const turn = this.runTurn(f, next.text, next.images, next.wake === true, next.trigger);
+    // AgentHerd's own prompts (background checks, pull request activity) are not the owner's asks.
+    if (next.wake !== true && next.from !== "pull-request") f.ownerTurns = (f.ownerTurns ?? 0) + 1;
+    const turn = this.runTurn(
+      f,
+      next.text,
+      next.images,
+      next.wake === true,
+      next.trigger,
+      next.from ?? "owner",
+    );
     this.turns.add(turn);
     try {
       next.resolve(await turn);
@@ -742,18 +797,19 @@ export class TaskRunner {
       to: f.task.agent,
       why: short,
     });
-    ctx.store.addTranscript(
-      f.task.id,
-      "note",
-      ctx.texts.modelSwitched(fromLabel, f.task.agent, short),
-    );
-    await say(ctx, ctx.texts.modelSwitched(fromLabel, f.task.agent, short), f.task.title, "alarm");
+    const text = ctx.texts.modelSwitched(fromLabel, f.task.agent, short);
+    ctx.store.addTranscript(f.task.id, "note", text);
+    // The owner talking to the task hears it now; otherwise it goes on the board (ADR 0061).
+    if (f.turnFrom === "owner") await say(ctx, text, f.task.title, "alarm");
+    else await notice(ctx, "model-switched", f, text, { tone: "alarm" });
     ctx.board.changed();
     return true;
   }
 
   /**
-   * The agent's `herd_ack`: one line to the owner about what it is starting, once per turn.
+   * The agent's `herd_ack`: one line about what it is starting, once per turn. It answers the
+   * owner's message when the owner is talking to the task; otherwise it goes where the owner chose
+   * for acks, the board by default (ADR 0061).
    * @returns why it was not sent.
    */
   ack(taskId: string, text: string): string | undefined {
@@ -766,8 +822,10 @@ export class TaskRunner {
     if (long !== undefined) return long;
     f.acked = true;
     ctx.store.audit("task.ack", { taskId, text, reply: f.trigger !== undefined });
+    const replyTo = f.trigger === undefined ? {} : { replyTo: f.trigger };
     // A reply to the owner's message, so it reads as the answer to that request (ADR 0049).
-    void say(ctx, text, f.task.title, undefined, taskId, f.trigger);
+    if (f.turnFrom === "owner") void say(ctx, text, f.task.title, undefined, taskId, f.trigger);
+    else void notice(ctx, "task-ack", f, text, replyTo);
     return undefined;
   }
 
@@ -821,6 +879,8 @@ export class TaskRunner {
       text: this.ctx.texts.backgroundCheck(minutes),
       images: [],
       wake: true,
+      // The result belongs to whoever asked for the work that kept running.
+      ...(f.turnFrom === undefined ? {} : { from: f.turnFrom }),
       resolve: () => {},
       reject: () => {},
     });
@@ -838,6 +898,7 @@ export class TaskRunner {
     images: OwnerImage[],
     wake = false,
     trigger?: MessageRef,
+    from: PromptFrom = "owner",
   ): Promise<RunResult> {
     const { ctx } = this;
     const sessionId = f.task.id;
@@ -855,6 +916,7 @@ export class TaskRunner {
     delete f.notified;
     f.acked = false;
     f.waking = wake;
+    f.turnFrom = from;
     if (trigger === undefined) delete f.trigger;
     else f.trigger = trigger;
     f.turn = { text: "", toolCalls: 0 };
@@ -922,7 +984,9 @@ export class TaskRunner {
       flushReply(ctx, f);
       ctx.store.addTranscript(sessionId, "note", message);
       this.stopBackground(f);
-      if (await this.switchModel(f, message)) return this.runTurn(f, text, images);
+      if (await this.switchModel(f, message)) {
+        return this.runTurn(f, text, images, wake, trigger, from);
+      }
       const conflicts = await this.syncOut(f);
       if (ctx.registry.get(sessionId)?.state !== "ended") ctx.registry.set(sessionId, "error");
       await sendReport(ctx, f, ctx.texts.failedBody(message), null);
@@ -956,6 +1020,19 @@ export function withImagePaths(text: string, images: OwnerImage[], texts: CoreTe
   if (images.length === 0) return text;
   const lines = images.map((i) => texts.imageAttached(i.path));
   return [text, ...lines].filter((l) => l !== "").join("\n");
+}
+
+/** Characters of a message a task never read that the owner is shown again (ADR 0061). */
+export const UNREAD_MAX = 300;
+
+/**
+ * The words of a prompt the Herder sent, without the bracketed label line it starts with and the
+ * labeled parts it may add after a blank line.
+ */
+export function promptWords(text: string): string {
+  const body = text.trim().replace(/^\[[^\]\n]*\]\n/, "");
+  const cut = body.indexOf("\n\n[");
+  return (cut === -1 ? body : body.slice(0, cut)).trim();
 }
 
 /** Why a task may hold a lesson (ADR 0054); empty for a task that simply went well. */
