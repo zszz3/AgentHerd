@@ -52,7 +52,7 @@ export function watchViews(herd: Herd, socials: SocialView[]): WatchView[] {
       id: `intake:${w.id}`,
       kind: "intake",
       title: w.about,
-      detail: `${w.repo ?? "所有仓库"}${w.label ? ` · ${w.label}` : ""} 上${what}${w.auto ? "，直接开任务" : ""}，每 ${INTAKE_POLL_MINUTES} 分钟看一次`,
+      detail: `${w.repo ?? "所有仓库"}${w.label ? ` · ${w.label}` : ""} 上${what}${w.auto ? (w.trial === true ? `，直接开任务（试运行中，已试 ${w.trials ?? 0} 条）` : "，直接开任务") : ""}，每 ${INTAKE_POLL_MINUTES} 分钟看一次`,
       paused: w.paused === true,
       removable: true,
       createdAt: w.createdAt,

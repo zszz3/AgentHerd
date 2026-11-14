@@ -206,8 +206,10 @@ export interface HerderPort {
   /**
    * New work the owner tapped 「开任务」 on, or a watch they made automatic found (ADR 0052): a
    * turn that may start a task for it. `text` names the item; its title is not the owner's.
+   * With `trial` the watch is on its trial run: the turn decides as it would, but starts
+   * nothing and tells the owner what it would have started (ADR 0064).
    */
-  intake?(text: string, auto: boolean): void;
+  intake?(text: string, auto: boolean, trial?: boolean): void;
   /** A schedule is due (ADR 0055): its words come back as a turn of their own. */
   scheduled?(schedule: Schedule): void;
   /**

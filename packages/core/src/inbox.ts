@@ -120,7 +120,12 @@ function reasonText(reason: string, texts: CoreTexts): string {
   if (reason.startsWith("guard list: ")) return texts.guardHit(reason.slice(12));
   if (reason.startsWith("mass delete: ")) return texts.massDelete;
   const out = /^leaves the Mac: ([a-z-]+):/.exec(reason);
-  if (out !== null) return texts.leavesMac(out[1] as string);
+  if (out !== null) {
+    const step = out[1] as string;
+    return reason.endsWith(" [pull request turn]")
+      ? texts.leavesMacPr(step)
+      : texts.leavesMac(step);
+  }
   return reason;
 }
 

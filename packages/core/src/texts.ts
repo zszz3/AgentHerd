@@ -103,6 +103,8 @@ export interface CoreTexts {
     kind: "issues" | "reviews",
   ): string;
   intakeAuto(repo: string, n: number, title: string, kind: "issues" | "reviews"): string;
+  /** Under an offer an automatic watch makes on its trial run (ADR 0064). */
+  intakeTrial(n: number): string;
   intakeStart: string;
   intakeIgnore: string;
   intakeNoHerder: string;
@@ -154,6 +156,8 @@ export interface CoreTexts {
   timedOut(minutes: number): string;
   /** Why a step that leaves the Mac asks; `step` is one of OUTBOUND_STEPS. */
   leavesMac(step: string): string;
+  /** An allowed step that asks because a pull request woke the turn (ADR 0064). */
+  leavesMacPr(step: string): string;
   /** A card with several approvals. */
   manyWaiting(n: number): string;
   manyHint: string;
@@ -297,6 +301,8 @@ const zh: CoreTexts = {
     `${kind === "issues" ? "有指派给你的 issue" : "有 PR 请你审查"}：[${repo} #${n} ${title}](${url})。要开任务吗？`,
   intakeAuto: (repo, n, title, kind) =>
     `按你的规则开工：${kind === "issues" ? "issue" : "审查 PR"} ${repo} #${n} ${title}`,
+  intakeTrial: (n) =>
+    `试运行第 ${n} 条：自动开工还没放开，这条不会自己开任务，主管会说它本来会怎么做。觉得它判断得准，就跟主管说「放开」。`,
   intakeStart: "开任务",
   intakeIgnore: "忽略",
   intakeNoHerder: "没有主管，开不了这个任务。请在设置里打开主管，或直接告诉我在哪个项目里做。",
@@ -347,6 +353,8 @@ const zh: CoreTexts = {
   timedOut: (m) => `${m >= 60 && m % 60 === 0 ? `${m / 60} 小时` : `${m} 分钟`}没人回，这一步没做`,
   leavesMac: (step) =>
     `会离开你的电脑：${(STEPS_ZH as Record<string, string>)[step] ?? step}，需要你确认`,
+  leavesMacPr: (step) =>
+    `会离开你的电脑：${(STEPS_ZH as Record<string, string>)[step] ?? step}。这一轮是 PR 上的新动静唤醒的，开任务时你给的许可这时只放行推到这个 PR 的分支，所以要你确认`,
   manyWaiting: (n) => `${n} 个请求等你批`,
   manyHint: "可以一个个点，也可以直接回「都批」或「批 1、3」。",
   allowAll: "全部批准",
@@ -480,6 +488,8 @@ const en: CoreTexts = {
     `${kind === "issues" ? "An issue was assigned to you" : "A pull request waits for your review"}: [${repo} #${n} ${title}](${url}). Start a task?`,
   intakeAuto: (repo, n, title, kind) =>
     `Started by your rule: ${kind === "issues" ? "issue" : "review of"} ${repo} #${n} ${title}`,
+  intakeTrial: (n) =>
+    `Trial run, item ${n}: starting work by itself is not on yet, so this does not start a task; the Herder says what it would have done. When its calls look right, tell the Herder to let it start work.`,
   intakeStart: "Start a task",
   intakeIgnore: "Ignore",
   intakeNoHerder:
@@ -538,6 +548,8 @@ const en: CoreTexts = {
     `No answer in ${m >= 60 && m % 60 === 0 ? `${m / 60} hour${m === 60 ? "" : "s"}` : `${m} minutes`}; the step was not done`,
   leavesMac: (step) =>
     `leaves your Mac: ${(STEPS_EN as Record<string, string>)[step] ?? step}; needs your confirmation`,
+  leavesMacPr: (step) =>
+    `leaves your Mac: ${(STEPS_EN as Record<string, string>)[step] ?? step}. News on the pull request woke this turn, and what you allowed at the start only covers pushing to its branch now, so it needs your confirmation`,
   manyWaiting: (n) => `${n} requests waiting for you`,
   manyHint: 'Tap each one, or reply "allow all" or "allow 1, 3".',
   allowAll: "Allow all",

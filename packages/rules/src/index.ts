@@ -9,6 +9,9 @@ export {
   type OutboundResult,
   type OutboundStep,
   outboundCheck,
+  type PushPlan,
+  pushPlans,
+  stepsSaidIn,
 } from "./outbound.ts";
 export { isInside, type PathContext, resolveWord } from "./paths.ts";
 export { redact } from "./redact.ts";

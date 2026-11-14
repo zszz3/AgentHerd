@@ -703,6 +703,8 @@ export interface PrWatch {
   wakesInRow?: number;
   /** News that waits for the owner; it goes to the task with their next message (ADR 0062). */
   held?: string[];
+  /** The pull request's branch: a turn it wakes may push there, and nowhere else (ADR 0064). */
+  branch?: string;
 }
 
 export function prKey(w: Pick<PrWatch, "repo" | "number">): string {
@@ -736,6 +738,13 @@ export interface IntakeWatch {
   about: string;
   /** New items start a task without asking: the owner said so. */
   auto: boolean;
+  /**
+   * An automatic watch still on its trial run (ADR 0064): new items are offered as usual and the
+   * Herder only says what it would have started, until the owner lets it start work.
+   */
+  trial?: boolean;
+  /** Items the trial run has handled so far. */
+  trials?: number;
   createdAt: string;
   /** Urls of items already seen, newest last. */
   seen: string[];
@@ -750,6 +759,8 @@ export interface IntakeOffer {
   item: { kind: "issues" | "reviews"; repo: string; number: number; title: string; url: string };
   /** The offer's message, to take its buttons away once answered. */
   ref?: MessageRef;
+  /** Its number in the watch's trial run, shown on the card (ADR 0064). */
+  trial?: number;
 }
 
 export interface MailWatch {

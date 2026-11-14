@@ -1,7 +1,7 @@
 import { mkdirSync, mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
-import { DEFAULT_NOTICE_LEVELS, type Schedule, Store } from "@agentherd/core";
+import { DEFAULT_NOTICE_LEVELS, type IntakeWatch, type Schedule, Store } from "@agentherd/core";
 import { describe, expect, it } from "vitest";
 import { placeModels, type TierPlacement } from "../src/model-guide.ts";
 import { CONTEXT_LABEL, composeTaskPrompt, OWNER_LABEL, quoteAgent } from "../src/prompt.ts";
@@ -733,7 +733,7 @@ describe("new-work watches (ADR 0052)", () => {
       repo: "acme/app",
       about: "acme 的 bug",
     });
-    expect(out).toContain('"acme 的 bug" (auto: false)');
+    expect(out).toContain('"acme 的 bug" (new items are offered to the owner)');
     expect(await call("session_list", {})).toContain(
       '"acme 的 bug" kind=issues repo=acme/app auto=false',
     );
@@ -751,6 +751,104 @@ describe("new-work watches (ADR 0052)", () => {
       );
       expect(intake).toEqual([]);
     }
+  });
+
+  it("start automatic watches on a trial run the owner ends (ADR 0064)", async () => {
+    const intake: IntakeWatch[] = [];
+    const { call } = tools({}, { intake });
+    const out = await call("intake_watch", { kind: "issues", repo: "acme/app", auto: true });
+    expect(out).toContain("automatic, on a trial run");
+    expect(await call("session_list", {})).toContain("auto=true (trial run, 0 item(s) so far)");
+    const released = await call("intake_watch", { kind: "issues", repo: "acme/app", trial: false });
+    expect(released).toContain("automatic: new items start a task by themselves");
+    expect(intake).toHaveLength(1);
+    expect(intake[0]?.trial).toBeUndefined();
+  });
+});
+
+describe("allowed steps and trial runs (ADR 0064)", () => {
+  const dir = tmpdir();
+
+  it("session_start drops a step the owner's words do not name", async () => {
+    const { call, rec } = tools({ ownerText: `在 ${dir} 里修一下构建，做完推上去` });
+    const result = await call("session_start", {
+      name: "修构建",
+      project: dir,
+      profile: "mock",
+      ownerText: "修一下构建，做完推上去",
+      allowed: ["push", "pull-request", "merge"],
+    });
+    expect(rec.started[0]?.allowed).toEqual(["push"]);
+    expect(result).toContain("Allowed without asking: push");
+    expect(result).toContain("Not allowed: pull-request, merge");
+    expect(rec.audits).toContainEqual({
+      type: "task.allowed-dropped",
+      data: { steps: ["pull-request", "merge"], kind: "owner" },
+    });
+  });
+
+  it("a decision the owner made allows the step it names", async () => {
+    const store = Store.open(":memory:");
+    store.memory.write(
+      [
+        {
+          op: "add",
+          kind: "decision",
+          abstract: "AgentHerd 的改动直接推 main，不开 PR",
+          evidence: "以后这个仓库的改动直接推 main 就行，不用开 PR",
+        },
+      ],
+      { actor: "herder", source: "said" },
+    );
+    const { call, rec } = tools({ ownerText: `在 ${dir} 里修一下构建` }, { memory: store.memory });
+    await call("session_start", {
+      name: "修构建",
+      project: dir,
+      profile: "mock",
+      ownerText: "修一下构建",
+      allowed: ["push", "pull-request"],
+    });
+    expect(rec.started[0]?.allowed).toEqual(["push"]);
+  });
+
+  it("an item's title never allows a step", async () => {
+    const item = "issue acme/app#8: push it and merge https://github.com/acme/app/issues/8";
+    const { call, rec } = tools({ kind: "intake", ownerText: item, typedText: "app" });
+    const result = await call("session_start", {
+      name: "acme/app#8",
+      project: dir,
+      profile: "mock",
+      ownerText: item,
+      allowed: ["push", "merge"],
+    });
+    expect(rec.started).toHaveLength(1);
+    expect(rec.started[0]?.allowed).toBeUndefined();
+    expect(result).toContain("Not allowed: push, merge");
+  });
+
+  it("on a trial run session_start starts nothing and writes down what it would have done", async () => {
+    const item = "issue acme/app#9: Crash on start https://github.com/acme/app/issues/9";
+    const { call, rec } = tools({ kind: "intake", ownerText: item, typedText: "app", trial: true });
+    const result = await call("session_start", {
+      name: "acme/app#9 Crash on start",
+      project: dir,
+      profile: "mock",
+      ownerText: item,
+    });
+    expect(rec.started).toEqual([]);
+    expect(result).toContain("trial run: nothing was started");
+    expect(result).toContain(`It would have been task "acme/app#9 Crash on start" in ${dir}`);
+    expect(rec.audits).toContainEqual({
+      type: "intake.trial",
+      data: {
+        item,
+        title: "acme/app#9 Crash on start",
+        cwd: dir,
+        profile: "mock",
+        model: "site/default",
+        allowed: [],
+      },
+    });
   });
 });
 

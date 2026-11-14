@@ -4,6 +4,7 @@
 // owner.
 
 import type { ToolCallInfo } from "@agentherd/protocol";
+import { type PathContext, resolveWord } from "./paths.ts";
 import { basename, programWords, splitCommand, UnparsedCommandError } from "./shell.ts";
 
 /** Kinds of steps that leave the Mac. The owner can allow each for one task. */
@@ -203,4 +204,154 @@ export function appOutbound(slug: string): OutboundResult | undefined {
     return hit(/PULL/.test(s) ? "pull-request" : "comment", "writes on GitHub");
   }
   return undefined;
+}
+
+/** What one `git push` updates on the remote (ADR 0064). */
+export interface PushPlan {
+  /** Where it runs, after `cd` and `git -C`; null when that is unknown. */
+  dir: string | null;
+  /** Remote branches named on the command line. */
+  branches: string[];
+  /** It sends the branch checked out where it runs: no refspec, or `HEAD`. */
+  current: boolean;
+  /** Set when it does more than update branches by name: what else it does. */
+  wide?: string;
+}
+
+/** Push options that do more than update the named branches. */
+const PUSH_WIDE: Record<string, string> = {
+  "--all": "pushes every branch",
+  "--branches": "pushes every branch",
+  "--mirror": "mirrors every ref",
+  "--tags": "pushes tags",
+  "--follow-tags": "pushes tags",
+  "--delete": "deletes on the remote",
+  "-d": "deletes on the remote",
+  "--prune": "deletes remote branches",
+  "--repo": "names the remote with --repo",
+};
+/** Push options whose value is the next word. */
+const PUSH_VALUE = new Set(["-o", "--push-option", "--receive-pack", "--exec"]);
+
+function gitPush(args: readonly string[], here: string | null, ctx: PathContext): PushPlan | null {
+  let dir = here;
+  let i = 0;
+  while (i < args.length && (args[i] as string).startsWith("-")) {
+    const w = args[i] as string;
+    if (w === "-C") {
+      dir = dir === null ? null : resolveWord(args[i + 1] ?? "", { ...ctx, cwd: dir });
+      i += 2;
+      continue;
+    }
+    if (w === "-c" || w === "--git-dir" || w === "--work-tree") {
+      if (w !== "-c") dir = null;
+      i += 2;
+      continue;
+    }
+    if (w.startsWith("--git-dir=") || w.startsWith("--work-tree=")) dir = null;
+    i += 1;
+  }
+  if (args[i] !== "push") return null;
+  const plan: PushPlan = { dir, branches: [], current: false };
+  const positional: string[] = [];
+  for (let j = i + 1; j < args.length; j++) {
+    const w = args[j] as string;
+    if (w === "--") {
+      positional.push(...args.slice(j + 1));
+      break;
+    }
+    if (!w.startsWith("-")) {
+      positional.push(w);
+      continue;
+    }
+    const wide =
+      PUSH_WIDE[w.split("=")[0] as string] ??
+      (/^-[a-zA-Z]{2,}$/.test(w) && w.includes("d") ? PUSH_WIDE["-d"] : undefined);
+    if (wide !== undefined) plan.wide ??= wide;
+    if (PUSH_VALUE.has(w)) j += 1;
+  }
+  // The first plain word is the remote; the rest are refspecs.
+  const refspecs = positional.slice(1);
+  if (refspecs.length === 0) plan.current = true;
+  for (const spec of refspecs) {
+    const s = spec.replace(/^\+/, "");
+    if (s === "HEAD" || s === "@") {
+      plan.current = true;
+      continue;
+    }
+    const colon = s.lastIndexOf(":");
+    if (colon === 0) {
+      plan.wide ??= "deletes on the remote";
+      continue;
+    }
+    const name = (colon === -1 ? s : s.slice(colon + 1)).replace(/^refs\/heads\//, "");
+    if (name === "" || name === "HEAD" || name.startsWith("refs/") || name.includes("*")) {
+      plan.wide ??= `pushes ${spec}`;
+      continue;
+    }
+    plan.branches.push(name);
+  }
+  return plan;
+}
+
+/**
+ * The `git push` commands in a command line and where each goes (ADR 0064); undefined when the
+ * line cannot be read.
+ */
+export function pushPlans(command: string, ctx: PathContext): PushPlan[] | undefined {
+  let segments: ReturnType<typeof splitCommand>;
+  try {
+    segments = splitCommand(command);
+  } catch (error) {
+    if (error instanceof UnparsedCommandError) return undefined;
+    throw error;
+  }
+  let here: string | null = ctx.cwd;
+  const plans: PushPlan[] = [];
+  for (const segment of segments) {
+    const words = programWords(segment.words);
+    const program = basename(words[0] ?? "");
+    const args = words.slice(1);
+    if (program === "cd") {
+      here = here === null ? null : resolveWord(args[0] ?? "~", { ...ctx, cwd: here });
+      continue;
+    }
+    if (program !== "git") continue;
+    const plan = gitPush(args, here, ctx);
+    if (plan !== null) plans.push(plan);
+  }
+  return plans;
+}
+
+/** Words that ask for a step (ADR 0064). Coarse: they only show the owner said something like it. */
+const STEP_WORDS: Record<OutboundStep, RegExp> = {
+  push: /推(?!荐|进|理|断|测|广|迟|敲|动|导|论|销|算|翻|开|卸|辞|出|移|演|举|行|崇)|push|上传到\s*(github|gitlab|远程)/gi,
+  "pull-request": /(?<![a-z])prs?(?![a-z])|pull[\s-]?requests?|合并请求|拉取请求/gi,
+  merge: /合并(?!请求)|合入|合进|合到|merge(?![\s-]?requests?)/gi,
+  comment: /评论|回复|留言|回帖|答复|点赞|赞同|关掉|关闭|review|comment|reply/gi,
+  publish: /发布|发版|发包|上架|publish|release/gi,
+  deploy: /部署|上线|deploy/gi,
+  send: /发(给|送|邮件|消息|信息|微信|飞书|私信)|邮件|私信|转发|e-?mail|mail|send|forward/gi,
+  edit: /文档|表格|日程|日历|会议|知识库|notion|wiki|(?<![a-z])docs?(?![a-z])|sheets?|calendar/gi,
+};
+
+/** A word right before a match that says not to (「别合并」, "don't push"). */
+const NEGATED =
+  /(不要|不用|不必|无需|没有|不|别|勿|没|don't|do not|never|not|no)\s*(开个?|提个?|发个?|去|再)?\s*$/i;
+
+/**
+ * The steps leaving the Mac that these words ask for (ADR 0064). A step the Herder allows for a
+ * task must be one of them, in the owner's words or in a decision they kept.
+ */
+export function stepsSaidIn(text: string): OutboundStep[] {
+  const found: OutboundStep[] = [];
+  for (const step of OUTBOUND_STEPS) {
+    for (const m of text.matchAll(STEP_WORDS[step])) {
+      if (!NEGATED.test(text.slice(Math.max(0, m.index - 6), m.index))) {
+        found.push(step);
+        break;
+      }
+    }
+  }
+  return found;
 }

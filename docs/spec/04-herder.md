@@ -324,7 +324,8 @@ follows its tickets' pull requests ([ADR 0047](../adr/0047-follow-the-pull-reque
   task does with them goes on the board when it handled them itself (`pr-follow-up`, ADR 0061);
   when the owner has to decide, the task reports `waiting` and the owner hears it at once. An
   ended task is started again, as with any prompt (ADR 0039). A bare approval only goes on the
-  board: 「PR #n 已被 login 批准」 (`pr-approved`).
+  board: 「PR #n 已被 login 批准」 (`pr-approved`). In a turn the pull request woke, only pushes to
+  its branch run without asking (see §3, ADR 0064).
 - **Bots** (`type: Bot` or a login ending in `[bot]`) are marked seen and never wake or notify.
 - **Checks.** When every check of the head commit finished and some failed, the task gets the
   names and how to read the logs, once per head commit; the owner hears only what the task
@@ -373,18 +374,26 @@ New GitHub work is offered only when the owner asks for it ([ADR 0052](../adr/00
   `intake_watch` with `kind` `issues` (open issues assigned to the owner) or `reviews`
   (open pull requests requesting their review), optionally `repo` and `label`, and `auto`
   only when the owner said such items start by themselves. The same kind/repo/label again only
-  changes `auto`. `intake_unwatch` stops one; `session_list` lists them. Only an owner
+  changes `auto` or `trial`. `intake_unwatch` stops one; `session_list` lists them. Only an owner
   turn can add, change or stop one. The tools exist only when `gh` is set up.
+- **Trial run.** A watch made automatic starts on a trial run
+  ([ADR 0064](../adr/0064-permission-follows-the-work-and-intake-starts-on-trial.md)): each new
+  item is still offered with 「开任务」「忽略」 and a line 「试运行第 n 条：自动开工还没放开…」, and
+  the Herder gets a trial intake turn. There `session_start` runs every check but starts nothing:
+  it audits `intake.trial` (item, title, folder, agent, model, allowed steps) and the Herder tells
+  the owner in one line what it would have started and which words of the item decided it. When
+  the owner says so (「放开」), the Herder calls `intake_watch` with `trial` false; from then on new
+  items start by themselves. Turning `auto` off and on again starts a new trial run.
 - **Looking.** While a watch exists, every 5 minutes (`intakePollMinutes`) each watch runs
   `gh search issues --assignee=@me` or `gh search prs --review-requested=@me` with
   `--state=open`. Creating a watch searches once; what is there already is not new, and a
   failing `gh` refuses the watch. Failures count for source health as `github`.
 - **Offering.** A new item is sent once as a question card: 「有指派给你的 issue：<repo> #n
   <title>（链接）。要开任务吗？」 with 「开任务」「忽略」. Core handles the tap: the card shows the
-  choice; 「开任务」 gives the Herder an intake turn with the item's line. With `auto` the owner
-  gets 「按你的规则开工：…」 and the intake turn runs at once. The Herder's conversation gets every
-  new item as an event marked as new GitHub work. Table `intake_watches` (schema 12) keeps
-  watches, seen items and unanswered offers.
+  choice; 「开任务」 gives the Herder an intake turn with the item's line. With `auto` (after the
+  trial run) the owner gets 「按你的规则开工：…」 and the intake turn runs at once. The Herder's
+  conversation gets every new item as an event marked as new GitHub work. Table `intake_watches`
+  (schema 12) keeps watches, seen items, unanswered offers and the trial run's count.
 - **The intake turn** may start a task. The title is quoted as not from the owner; only the
   repository's name picks a project without asking (ADR 0043), otherwise the Herder asks which
   folder. The task's prompt has the item's link, so its pull request is followed (ADR 0051).
@@ -505,6 +514,21 @@ comment, npm publish, deploy CLIs, mail, app tools that send). Steps the owner's
 for pass for that task (`session_start` `allowed`, kept as `tasks.allowed_steps_json`); an
 owner's deny rule beats the check; allow rules do not. Everything else is approved. The built-in
 guard list below applies to the Herder's own tool calls.
+
+Permission follows the work ([ADR 0064](../adr/0064-permission-follows-the-work-and-intake-starts-on-trial.md)):
+
+- **Checked against the owner's words.** `session_start` keeps a step in `allowed` only when the
+  owner's words this turn (their message, the answer they tapped, a schedule's saved words) or the
+  words behind a kept decision (`[记忆 · 定了的事]`) name it (`stepsSaidIn` in
+  `packages/rules/src/outbound.ts`, which skips negated words such as 「不用开 PR」). An intake
+  turn's item line is someone else's words and allows nothing. A dropped step is audited
+  (`task.allowed-dropped`) and asks the owner like any other.
+- **A turn a pull request woke** may only push to that pull request's branch (`pr_watches.branch`
+  from `gh pr view`'s `headRefName`): `git push` naming only those branches, or a bare push from a
+  folder checked out on one. A push with `--all`, `--tags`, `--mirror`, a deletion, another
+  branch, or an unparsable command, and every other step leaving the Mac (comments, merges, app
+  calls), asks the owner again, with 「这一轮是 PR 上的新动静唤醒的…」 on the card. Turns the owner
+  or the Herder asked for use what the owner allowed as before.
 
 An open approval gets one reminder after `remindMinutes` (30) and closes as not done after
 `timeoutMinutes` (60): the agent gets a deny and goes on. 「先不管」 does the same at once.

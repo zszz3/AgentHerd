@@ -393,3 +393,15 @@ export function decisionsText(memory: MemoryStore | undefined): string {
   if (rows.length === 0) return "";
   return `负责人定了的事（照做，不要再问；和这次的话冲突时以这次为准）：\n${rows.map((r) => `- ${r.abstract}${quoteNote(r)} (${dateNote(r)})`).join("\n")}`;
 }
+
+/**
+ * The owner's own words behind each decision they made: a step leaving the Mac that one of them
+ * names may be allowed for a task (ADR 0064).
+ */
+export function decisionWords(memory: MemoryStore | undefined): string[] {
+  if (memory === undefined) return [];
+  return memory
+    .list({ kinds: ["decision"] })
+    .map((r) => r.evidence?.trim() ?? "")
+    .filter((w) => w !== "");
+}

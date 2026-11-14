@@ -2,7 +2,8 @@
 // ADR 0052): issues assigned to the owner and pull requests waiting for their review. Nothing
 // is watched until the owner asks the Herder; AgentHerd then searches GitHub with `gh` every
 // few minutes, only while at least one watch exists. A new item is offered with
-// 「开任务 / 忽略」; only a watch the owner made automatic starts work without asking.
+// 「开任务 / 忽略」; only a watch the owner made automatic starts work without asking, and only
+// after its trial run, where the Herder just says what it would have started (ADR 0064).
 import { randomUUID } from "node:crypto";
 import type { AskView } from "@agentherd/protocol";
 import type { Clock, Timer } from "./clock.ts";
@@ -36,8 +37,11 @@ export interface IntakeItem {
 export interface IntakeOptions {
   run: GhRun;
   pollMinutes?: number;
-  /** Starts work for an item through the Herder; false when there is no Herder. */
-  start: (item: IntakeItem, auto: boolean) => boolean;
+  /**
+   * Starts work for an item through the Herder; false when there is no Herder. With `trial`
+   * the Herder only says what it would have started (ADR 0064).
+   */
+  start: (item: IntakeItem, auto: boolean, trial?: boolean) => boolean;
 }
 
 export interface IntakeRequest {
@@ -49,6 +53,11 @@ export interface IntakeRequest {
   about?: string;
   /** Start new items without asking (the owner said so). */
   auto?: boolean;
+  /**
+   * An automatic watch starts on a trial run (ADR 0064); false ends it, which only the owner
+   * says. Missing keeps it as it is.
+   */
+  trial?: boolean;
 }
 
 function tidy(text: string, max: number): string {
@@ -158,25 +167,29 @@ export class Intake {
       (w) => w.kind === request.kind && w.repo === repo && w.label === label,
     );
     if (same !== undefined) {
-      // Asking again may only change whether it starts by itself.
-      if (request.auto !== undefined && same.auto !== request.auto) {
-        const changed = { ...same, auto: request.auto };
-        store.saveIntakeWatch(changed);
-        store.audit("intake.changed", { id: same.id, auto: request.auto });
-        return changed;
-      }
-      return same;
+      // Asking again may only change whether it starts by itself, and its trial run.
+      const auto = request.auto ?? same.auto;
+      const trial = auto && (request.trial ?? (same.auto ? same.trial === true : true));
+      if (auto === same.auto && trial === (same.trial === true)) return same;
+      const { trial: _trial, ...rest } = same;
+      const changed: IntakeWatch = { ...rest, auto, ...(trial ? { trial: true } : {}) };
+      store.saveIntakeWatch(changed);
+      store.audit("intake.changed", { id: same.id, auto, trial });
+      return changed;
     }
     if (watches.length >= INTAKE_WATCHES_MAX) {
       throw new Error(`at most ${INTAKE_WATCHES_MAX} watches for new work; remove one first`);
     }
+    const auto = request.auto === true;
+    const trial = auto && request.trial !== false;
     const draft: IntakeWatch = {
       id: randomUUID(),
       kind: request.kind,
       ...(repo === undefined ? {} : { repo }),
       ...(label === undefined ? {} : { label }),
       about: request.about?.trim() || describe(request.kind, repo, label),
-      auto: request.auto === true,
+      auto,
+      ...(trial ? { trial: true } : {}),
       createdAt: this.clock.now().toISOString(),
       seen: [],
       offers: [],
@@ -190,6 +203,7 @@ export class Intake {
       repo: watch.repo,
       label: watch.label,
       auto: watch.auto,
+      trial,
     });
     this.schedule();
     return watch;
@@ -283,34 +297,52 @@ export class Intake {
     const current = store.intakeWatches().find((w) => w.id === watch.id);
     if (current === undefined) return;
     let offers = current.offers;
+    let trials = current.trials ?? 0;
     store.saveIntakeWatch({
       ...current,
       seen: [...current.seen, ...fresh.map((i) => i.url)].slice(-SEEN_MAX),
     });
     for (const item of fresh) {
       if (told.has(item.url)) continue;
-      store.audit("intake.new", { id: watch.id, url: item.url, auto: watch.auto });
+      const onTrial = current.auto && current.trial === true;
+      store.audit("intake.new", {
+        id: watch.id,
+        url: item.url,
+        auto: current.auto,
+        ...(onTrial ? { trial: true } : {}),
+      });
       ctx.herder()?.event({ kind: "intake", title: watch.about, text: itemLine(item) });
-      if (watch.auto) {
+      if (current.auto && !onTrial) {
         await say(ctx, ctx.texts.intakeAuto(item.repo, item.number, item.title, item.kind));
         if (!this.start_(item, true)) await say(ctx, ctx.texts.intakeNoHerder);
         continue;
       }
-      const offer: IntakeOffer = { id: randomUUID().slice(0, 12), item };
+      // Asked, or on the trial run: the owner gets the offer either way (ADR 0064).
+      if (onTrial) trials += 1;
+      const offer: IntakeOffer = {
+        id: randomUUID().slice(0, 12),
+        item,
+        ...(onTrial ? { trial: trials } : {}),
+      };
       const ref = await ctx.outbox.send(this.offerView(offer));
       offers = [...offers, { ...offer, ...(ref === undefined ? {} : { ref }) }].slice(-OFFERS_MAX);
       const latest = store.intakeWatches().find((w) => w.id === watch.id);
-      if (latest !== undefined) store.saveIntakeWatch({ ...latest, offers });
+      if (latest !== undefined) {
+        store.saveIntakeWatch({ ...latest, offers, ...(onTrial ? { trials } : {}) });
+      }
+      // The Herder decides as it would and says what it would have started; nothing starts.
+      if (onTrial) this.start_(item, true, true);
     }
   }
 
   private offerView(offer: IntakeOffer): AskView {
     const { texts } = this.ctx;
     const { item } = offer;
+    const text = texts.intakeOffer(item.repo, item.number, item.title, item.url, item.kind);
     return {
       kind: "ask",
       askId: `${INTAKE_TARGET}${offer.id}`,
-      text: texts.intakeOffer(item.repo, item.number, item.title, item.url, item.kind),
+      text: offer.trial === undefined ? text : `${text}\n${texts.intakeTrial(offer.trial)}`,
       options: [
         { action: "start", label: texts.intakeStart },
         { action: "ignore", label: texts.intakeIgnore },

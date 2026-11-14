@@ -497,6 +497,57 @@ describe("new work from GitHub (ADR 0052)", () => {
     await herder.idle();
     expect(rec.started).toEqual([]);
   });
+
+  it("on a trial run the turn starts nothing and says what it would have started (ADR 0064)", async () => {
+    const userHome = mkdtempSync(join(tmpdir(), "ah-intake-"));
+    const dir = join(userHome, "code", "app");
+    mkdirSync(join(dir, ".git"), { recursive: true });
+    const { herder, rec, faux } = setup({
+      userHome,
+      models: [{ ref: "site/default", agents: ["mock"] }],
+    });
+    const prompts: string[] = [];
+    const results: string[] = [];
+    faux.setResponses([
+      (context) => {
+        prompts.push(JSON.stringify(context.messages.at(-1)?.content));
+        return fauxAssistantMessage([fauxToolCall("project_find", { name: "app" })], {
+          stopReason: "toolUse",
+        });
+      },
+      () =>
+        fauxAssistantMessage(
+          [
+            fauxToolCall("session_start", {
+              name: "修 Safari 登录",
+              project: dir,
+              profile: "mock",
+              ownerText: "https://github.com/acme/app/issues/7",
+            }),
+          ],
+          { stopReason: "toolUse" },
+        ),
+      (context) => {
+        results.push(JSON.stringify(context.messages.at(-1)?.content));
+        return fauxAssistantMessage(
+          "放开的话我会在 app 里开「修 Safari 登录」，因为标题说 Safari 上登录坏了。",
+        );
+      },
+    ]);
+    herder.intake(
+      "issue acme/app#7: Login fails on Safari https://github.com/acme/app/issues/7",
+      true,
+      true,
+    );
+    await herder.idle();
+    expect(prompts[0]).toContain("still on its trial run");
+    expect(results[0]).toContain("trial run: nothing was started");
+    expect(rec.started).toEqual([]);
+    expect(rec.audits.map((a) => a.type)).toContain("intake.trial");
+    expect(rec.said).toEqual([
+      "放开的话我会在 app 里开「修 Safari 登录」，因为标题说 Safari 上登录坏了。",
+    ]);
+  });
 });
 
 describe("Herder voice (ADR 0053)", () => {

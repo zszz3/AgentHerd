@@ -85,13 +85,28 @@ function intakeHost(
   return {
     intakeWatches: () => watches,
     watchIntake: async (request) => {
+      // Like core's Intake.add: an automatic watch starts on a trial run (ADR 0064).
+      const i = watches.findIndex(
+        (w) => w.kind === request.kind && w.repo === request.repo && w.label === request.label,
+      );
+      const same = watches[i];
+      if (same !== undefined) {
+        const auto = request.auto ?? same.auto;
+        const trial = auto && (request.trial ?? (same.auto ? same.trial === true : true));
+        const { trial: _trial, ...rest } = same;
+        const changed: IntakeWatch = { ...rest, auto, ...(trial ? { trial: true } : {}) };
+        watches[i] = changed;
+        return changed;
+      }
+      const auto = request.auto === true;
       const watch: IntakeWatch = {
         id: `intake-${watches.length + 1}-0000`,
         kind: request.kind,
         ...(request.repo === undefined ? {} : { repo: request.repo }),
         ...(request.label === undefined ? {} : { label: request.label }),
         about: request.about ?? request.kind,
-        auto: request.auto === true,
+        auto,
+        ...(auto && request.trial !== false ? { trial: true } : {}),
         createdAt: "2026-11-04T00:00:00.000Z",
         seen: [],
         offers: [],

@@ -2,11 +2,12 @@
 // Comments and reviews by people wake the task and tell the owner; failed checks go to the task
 // to fix; a merge or close is told once and ends the watch. Bots never wake a task.
 
-import { spawn } from "node:child_process";
+import { execFileSync, spawn } from "node:child_process";
 import type { Clock, Timer } from "./clock.ts";
 import { headTail } from "./cut-text.ts";
 import { type HerdContext, say } from "./herd-context.ts";
 import type { NoticeLevel } from "./notices.ts";
+import type { PipelineContext } from "./pipeline.ts";
 import type { PrWatch } from "./store.ts";
 import { notice, setReport } from "./task-report.ts";
 
@@ -93,6 +94,8 @@ export interface PrView {
   author: string;
   createdAt: string;
   headSha: string;
+  /** The pull request's branch; "" when GitHub did not say. */
+  headRef: string;
   /** Checks still running. */
   pending: boolean;
   failed: string[];
@@ -120,6 +123,7 @@ export async function readPr(gh: GhRun, repo: string, number: number): Promise<P
       author?: { login?: string };
       createdAt: string;
       headRefOid: string;
+      headRefName?: string;
       statusCheckRollup?: {
         name?: string;
         context?: string;
@@ -134,7 +138,7 @@ export async function readPr(gh: GhRun, repo: string, number: number): Promise<P
       "--repo",
       repo,
       "--json",
-      "state,author,createdAt,headRefOid,statusCheckRollup",
+      "state,author,createdAt,headRefOid,headRefName,statusCheckRollup",
     ]),
     json<{ id: number; user?: GhUser; body?: string }[]>([
       "api",
@@ -183,6 +187,7 @@ export async function readPr(gh: GhRun, repo: string, number: number): Promise<P
     author: view.author?.login ?? "",
     createdAt: view.createdAt,
     headSha: view.headRefOid,
+    headRef: view.headRefName ?? "",
     pending: checks.some((c) =>
       c.status !== undefined
         ? c.status !== "COMPLETED"
@@ -307,6 +312,7 @@ export class GitHubWatch {
           taskId,
           seen: pr.activity.map((a) => a.id),
           ...(pr.failed.length > 0 && !pr.pending ? { ciFailedSha: pr.headSha } : {}),
+          ...branchOf(pr),
           wakes: 0,
           createdAt: now,
           activeAt: now,
@@ -380,6 +386,7 @@ export class GitHubWatch {
         taskId,
         seen: pr.activity.map((a) => a.id),
         ...(pr.failed.length > 0 && !pr.pending ? { ciFailedSha: pr.headSha } : {}),
+        ...branchOf(pr),
         wakes: 0,
         createdAt: now,
         activeAt: now,
@@ -484,6 +491,7 @@ export class GitHubWatch {
       ...watch,
       seen: [...watch.seen, ...fresh.map((a) => a.id)],
       ...(failedNow.length > 0 ? { ciFailedSha: pr.headSha } : {}),
+      ...branchOf(pr),
     };
     // A bare approval is news for the owner, not work for the task.
     const work = people.filter((a) => a.body.trim() !== "" || a.state === "CHANGES_REQUESTED");
@@ -589,6 +597,44 @@ export class GitHubWatch {
 
 function closedState(pr: PrView): "merged" | "closed" | undefined {
   return pr.state === "MERGED" ? "merged" : pr.state === "CLOSED" ? "closed" : undefined;
+}
+
+/** The pull request's branch for its watch: a turn it wakes may push there only (ADR 0064). */
+function branchOf(pr: PrView): { branch?: string } {
+  return pr.headRef === "" ? {} : { branch: pr.headRef };
+}
+
+/**
+ * What a turn of a task may do without asking (ADR 0056, ADR 0064): the steps the owner allowed
+ * for it, and, when a pull request woke the turn, only pushes to that pull request's branches.
+ */
+export function turnPermits(
+  ctx: Pick<HerdContext, "following" | "store">,
+  taskId: string,
+  currentBranch: (dir: string) => string | undefined = gitBranch,
+): Pick<PipelineContext, "allowedSteps" | "pullRequestTurn"> {
+  const f = ctx.following.get(taskId);
+  const allowedSteps = f?.task.allowedSteps ?? [];
+  if (f?.turnFrom !== "pull-request") return { allowedSteps };
+  const branches = ctx.store
+    .prWatches()
+    .filter((w) => w.taskId === taskId && w.branch !== undefined)
+    .map((w) => w.branch as string);
+  return { allowedSteps, pullRequestTurn: { branches, currentBranch } };
+}
+
+/** The branch checked out in a folder; undefined when detached, missing or not a repository. */
+export function gitBranch(dir: string): string | undefined {
+  try {
+    const out = execFileSync("git", ["-C", dir, "symbolic-ref", "--quiet", "--short", "HEAD"], {
+      encoding: "utf8",
+      timeout: 5_000,
+      stdio: ["ignore", "pipe", "ignore"],
+    }).trim();
+    return out === "" ? undefined : out;
+  } catch {
+    return undefined;
+  }
 }
 
 function sameWatch(

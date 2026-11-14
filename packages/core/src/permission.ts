@@ -3,6 +3,7 @@
 import { randomUUID } from "node:crypto";
 import type { PermissionRequest } from "@agentherd/acp-client";
 import type { AgentProfile, Item } from "@agentherd/protocol";
+import { turnPermits } from "./github-watch.ts";
 import type { HerdContext } from "./herd-context.ts";
 import { decide } from "./pipeline.ts";
 
@@ -32,7 +33,7 @@ export async function onPermission(
     rules: store.listRules(),
     home: opts.userHome,
     ...(opts.extraGuards === undefined ? {} : { extraGuards: opts.extraGuards }),
-    allowedSteps: ctx.following.get(sessionId)?.task.allowedSteps ?? [],
+    ...turnPermits(ctx, sessionId),
   });
   item.risk = result.decision.risk;
   store.insertItem(item);
