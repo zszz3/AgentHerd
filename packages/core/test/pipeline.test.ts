@@ -84,6 +84,75 @@ describe("decide", () => {
     });
   });
 
+  describe("a turn a pull request woke (ADR 0064)", () => {
+    const branches: Record<string, string> = { "/work/proj": "fix-login", "/work/other": "main" };
+    const ctx = {
+      mode: "auto" as const,
+      rules: [allowAll],
+      home: HOME,
+      allowedSteps: ["push", "pull-request", "comment", "merge"] as const,
+      pullRequestTurn: {
+        branches: ["fix-login"],
+        currentBranch: (dir: string) => branches[dir],
+      },
+    };
+
+    it.each([
+      "git push",
+      "git push origin",
+      "git push origin fix-login",
+      "git push -u origin HEAD",
+      "git push --force-with-lease origin fix-login",
+      "git push origin +fix-login",
+      "git push origin HEAD:refs/heads/fix-login",
+      "cd /work/proj && git push",
+    ])("%s pushes to the pull request's branch and runs", (command) => {
+      expect(decide(item({ command }), ctx).apply).toBe(true);
+    });
+
+    it.each([
+      ["git push origin main", "push"],
+      ["git push origin fix-login main", "push"],
+      ["git push --all origin", "push"],
+      ["git push --tags", "push"],
+      ["git push origin :fix-login", "push"],
+      ["cd /work/other && git push", "push"],
+      ["git -C /work/other push", "push"],
+      ["gh pr comment 12 --body done", "comment"],
+      ["gh pr merge 12 --squash", "merge"],
+      ["gh pr create --fill", "pull-request"],
+    ])("%s asks again", (command, step) => {
+      const r = decide(item({ command }), ctx);
+      expect(r).toMatchObject({ apply: false, decision: { action: "escalate", risk: "high" } });
+      expect(r.decision.reason).toMatch(
+        new RegExp(`^${LEAVES_MAC}${step}: .* \\[pull request turn\\]$`),
+      );
+    });
+
+    it("a push from a folder on no branch asks", () => {
+      const r = decide(item({ command: "git push" }, { cwd: "/work/detached" }), ctx);
+      expect(r.apply).toBe(false);
+    });
+
+    it("an app call that sends asks, even when the task allowed sending", () => {
+      const r = decide(
+        item({
+          kind: "app",
+          title: "Gmail: Send email",
+          command: "GMAIL_SEND_EMAIL",
+          appHints: { readOnly: false, create: true, update: false, destructive: false },
+        }),
+        { ...ctx, allowedSteps: ["send"] },
+      );
+      expect(r.apply).toBe(false);
+    });
+
+    it("work that stays on the Mac runs as before", () => {
+      expect(decide(item({ command: "pnpm test" }), ctx).apply).toBe(true);
+      expect(decide(item({ command: "git commit -am fix" }), ctx).apply).toBe(true);
+    });
+  });
+
   it("an app tool that sends for the owner asks", () => {
     const r = decide(
       item({

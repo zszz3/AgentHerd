@@ -1,6 +1,6 @@
 import type { ToolCallInfo } from "@agentherd/protocol";
 import { describe, expect, it } from "vitest";
-import { appOutbound, outboundCheck } from "../src/outbound.ts";
+import { appOutbound, outboundCheck, pushPlans, stepsSaidIn } from "../src/outbound.ts";
 
 const run = (command: string): ToolCallInfo => ({
   kind: "execute",
@@ -95,5 +95,75 @@ describe("outboundCheck (ADR 0056)", () => {
     expect(appOutbound("XIAOHONGSHU_SEARCH_FEEDS")).toBeUndefined();
     expect(appOutbound("XIAOHONGSHU_LIST_NOTIFICATIONS")).toBeUndefined();
     expect(appOutbound("ZHIHU_GET_FOLLOWERS")).toBeUndefined();
+  });
+});
+
+describe("pushPlans (ADR 0064)", () => {
+  const ctx = { cwd: "/p/app", home: "/Users/me" };
+  const one = (command: string) => {
+    const plans = pushPlans(command, ctx);
+    expect(plans).toHaveLength(1);
+    return plans?.[0];
+  };
+
+  it("reads where a push goes", () => {
+    expect(one("git push")).toEqual({ dir: "/p/app", branches: [], current: true });
+    expect(one("git push -u origin HEAD")).toEqual({ dir: "/p/app", branches: [], current: true });
+    expect(one("git push origin fix/login")).toEqual({
+      dir: "/p/app",
+      branches: ["fix/login"],
+      current: false,
+    });
+    expect(one("git push --force-with-lease origin HEAD:refs/heads/fix/login")?.branches).toEqual([
+      "fix/login",
+    ]);
+    expect(one("git push origin +fix/login")?.branches).toEqual(["fix/login"]);
+    expect(one("cd ../other && git push origin a b")).toEqual({
+      dir: "/p/other",
+      branches: ["a", "b"],
+      current: false,
+    });
+    expect(one("git -C /work/x push")?.dir).toBe("/work/x");
+    expect(one("git --git-dir=/x/.git push")?.dir).toBeNull();
+    expect(pushPlans("git add . && git commit -m 'x' && git push origin fix", ctx)).toHaveLength(1);
+    expect(pushPlans("git status", ctx)).toEqual([]);
+    expect(pushPlans("git push $(git remote)", ctx)).toBeUndefined();
+  });
+
+  it("marks pushes that do more than update named branches", () => {
+    for (const command of [
+      "git push --all",
+      "git push --tags",
+      "git push --mirror origin",
+      "git push origin --delete fix",
+      "git push origin :fix",
+      "git push origin v1.0:refs/tags/v1.0",
+      "git push origin 'refs/heads/*:refs/heads/*'",
+      "git push --repo=origin",
+    ]) {
+      expect(one(command)?.wide, command).toBeDefined();
+    }
+  });
+});
+
+describe("stepsSaidIn (ADR 0064)", () => {
+  it("finds the steps the owner's words ask for", () => {
+    expect(stepsSaidIn("修好登录超时，做完推上去开个PR")).toEqual(["push", "pull-request"]);
+    expect(stepsSaidIn("fix it, push and open a pull request")).toEqual(["push", "pull-request"]);
+    expect(stepsSaidIn("改完直接合到 main")).toEqual(["merge"]);
+    expect(stepsSaidIn("在 issue 下面回复一下 reviewer")).toEqual(["comment"]);
+    expect(stepsSaidIn("发版到 npm")).toEqual(["publish"]);
+    expect(stepsSaidIn("部署到测试环境")).toEqual(["deploy"]);
+    expect(stepsSaidIn("写好后发邮件给导师")).toEqual(["send"]);
+    expect(stepsSaidIn("把要点更新到飞书文档里")).toEqual(["edit"]);
+  });
+
+  it("ignores words that only look like a step, and steps the owner refused", () => {
+    expect(stepsSaidIn("推荐几个库，推理一下哪个更快")).toEqual([]);
+    expect(stepsSaidIn("fix the sprint board in docker")).toEqual([]);
+    expect(stepsSaidIn("修好后推上去，不用开 PR，别合并")).toEqual(["push"]);
+    expect(stepsSaidIn("don't push yet")).toEqual([]);
+    expect(stepsSaidIn("没问题就推上去")).toEqual(["push"]);
+    expect(stepsSaidIn("开个合并请求")).toEqual(["pull-request"]);
   });
 });

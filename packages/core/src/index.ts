@@ -14,9 +14,11 @@ export {
   GITHUB_WAKES_IN_ROW,
   GITHUB_WATCH_DAYS,
   GitHubWatch,
+  gitBranch,
   prLinks,
   readPr,
   runGh,
+  turnPermits,
 } from "./github-watch.ts";
 export type {
   AgentModels,
@@ -139,7 +141,7 @@ export {
   tooLong,
 } from "./owner-text.ts";
 export type { PipelineContext, PipelineResult } from "./pipeline.ts";
-export { decide } from "./pipeline.ts";
+export { decide, LEAVES_MAC, PR_TURN } from "./pipeline.ts";
 export type { SessionListener } from "./registry.ts";
 export { Registry } from "./registry.ts";
 export type { ReportBody, ReportBodyOptions, SummaryAnswer } from "./report.ts";

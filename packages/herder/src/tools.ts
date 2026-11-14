@@ -20,10 +20,16 @@ import {
   type TranscriptEntry,
 } from "@agentherd/core";
 import type { AgentTool, AgentToolResult } from "@agentherd/herder-loop";
-import { OUTBOUND_STEPS, type OutboundStep } from "@agentherd/rules";
+import { OUTBOUND_STEPS, type OutboundStep, stepsSaidIn } from "@agentherd/rules";
 import { arr, bool, int, num, obj, oneOf, opt, str } from "@earendil-works/pi-schema";
 import { agentForModel } from "./agent-models.ts";
-import { decisionsText, lessonsText, ownerPrefsText, pastLessons } from "./memory.ts";
+import {
+  decisionsText,
+  decisionWords,
+  lessonsText,
+  ownerPrefsText,
+  pastLessons,
+} from "./memory.ts";
 import { placeModels, TIERS, type TierPlacement, tiersText } from "./model-guide.ts";
 import { findProjects, foundText, nameKey } from "./project-find.ts";
 import { composeTaskPrompt, HERDER_LABEL, quoteAgent } from "./prompt.ts";
@@ -50,6 +56,8 @@ export interface TurnContext {
    * (ADR 0035): a folder from earlier turns or the Herder's own guess is never used.
    */
   pickedDirs: string[];
+  /** New work from a watch on its trial run: session_start starts nothing (ADR 0064). */
+  trial?: boolean;
 }
 
 /** The answer that lets the owner type their own (ADR 0035). */
@@ -212,7 +220,7 @@ function intakeLines(host: HerderHost): string[] {
       ? ["(none)"]
       : watches.map(
           (w) =>
-            `- ${w.id.slice(0, 8)} "${w.about}" kind=${w.kind}${w.repo === undefined ? "" : ` repo=${w.repo}`}${w.label === undefined ? "" : ` label=${w.label}`} auto=${w.auto}`,
+            `- ${w.id.slice(0, 8)} "${w.about}" kind=${w.kind}${w.repo === undefined ? "" : ` repo=${w.repo}`}${w.label === undefined ? "" : ` label=${w.label}`} auto=${w.auto}${w.auto && w.trial === true ? ` (trial run, ${w.trials ?? 0} item(s) so far)` : ""}`,
         )),
   ];
 }
@@ -598,6 +606,12 @@ const intakeWatchSchema = obj({
         "true only when the owner said such items should start without asking (e.g. 「指派给我的 bug 直接做」). Default: ask.",
     }),
   ),
+  trial: opt(
+    bool({
+      description:
+        "An automatic watch starts on a trial run that starts nothing. false ends the trial run, only when the owner says so (「放开」「以后直接开」). Leave out otherwise.",
+    }),
+  ),
 });
 
 const whenFields = {
@@ -814,6 +828,37 @@ export function herderTools(
           );
         }
         if (cwd !== undefined && !isDirectory(cwd)) throw new Error(`${cwd} is not a directory`);
+        const title = args.name.trim() || args.ownerText.trim();
+        const where = cwd === undefined ? "a folder of its own (no project)" : cwd;
+        // A step runs without asking only when the owner's words or a kept decision name it
+        // (ADR 0064); an item's title is not the owner's words.
+        const wanted = [...new Set(args.allowed ?? [])];
+        const said = new Set(
+          [t.kind === "intake" ? "" : t.ownerText, ...decisionWords(host.memory)].flatMap((w) =>
+            stepsSaidIn(w),
+          ),
+        );
+        const allowed = wanted.filter((s) => said.has(s));
+        const dropped = wanted.filter((s) => !said.has(s));
+        if (dropped.length > 0)
+          host.audit("task.allowed-dropped", { steps: dropped, kind: t.kind });
+        const notAllowed =
+          dropped.length === 0
+            ? ""
+            : `\nNot allowed: ${dropped.join(", ")}; neither the owner's words nor a decision they made names it, so it will ask the owner.`;
+        if (t.trial === true) {
+          host.audit("intake.trial", {
+            item: args.ownerText.trim(),
+            title,
+            cwd: cwd ?? null,
+            profile,
+            model,
+            allowed,
+          });
+          return ok(
+            `trial run: nothing was started. It would have been task "${title}" in ${where} with ${profile}, ${model}${allowed.length === 0 ? "" : `, allowed without asking: ${allowed.join(", ")}`}.${notAllowed}\nTell the owner in one short line what you would have started and which words of the item made you decide.`,
+          );
+        }
         const lessons =
           host.memory === undefined
             ? []
@@ -833,8 +878,6 @@ export function herderTools(
           .filter((s) => s !== "")
           .join("\n\n");
         const prompt = composeTaskPrompt(args.ownerText.trim(), added === "" ? undefined : added);
-        const title = args.name.trim() || args.ownerText.trim();
-        const allowed = [...new Set(args.allowed ?? [])];
         const taskId =
           allowed.length > 0
             ? await host.startTask(
@@ -857,13 +900,12 @@ export function herderTools(
           lessons.length === 0
             ? ""
             : `\nGave the agent ${lessons.length} past record(s): ${lessons.map((l) => l.abstract).join("; ")}`;
-        const where = cwd === undefined ? "a folder of its own (no project)" : cwd;
         const free =
           allowed.length === 0
             ? "\nPushes, pull requests, merges, comments, publishing, deploys and messages will ask the owner."
             : `\nAllowed without asking: ${allowed.join(", ")}; other steps leaving the Mac ask the owner.`;
         return ok(
-          `started task ${taskId.slice(0, 8)} in ${where} with ${profile}, ${model}${switched}${gave}${free}`,
+          `started task ${taskId.slice(0, 8)} in ${where} with ${profile}, ${model}${switched}${gave}${free}${notAllowed}`,
         );
       },
     },
@@ -1136,11 +1178,18 @@ function intakeTools(host: HerderHost, turn: () => TurnContext) {
       name: "intake_watch",
       label: "Watch for new work",
       description:
-        "Only when the owner asks to hear about new GitHub work (e.g. 「有指派给我的 issue 告诉我」, 「有人请我 review 就提醒我」): from now on AgentHerd checks GitHub every few minutes and offers each new item with 「开任务 / 忽略」. Set auto only when the owner said such items should start by themselves; calling again with the same kind/repo/label changes auto. Never start one on your own.",
+        "Only when the owner asks to hear about new GitHub work (e.g. 「有指派给我的 issue 告诉我」, 「有人请我 review 就提醒我」): from now on AgentHerd checks GitHub every few minutes and offers each new item with 「开任务 / 忽略」. Set auto only when the owner said such items should start by themselves; an automatic watch starts on a trial run that starts nothing until the owner lets it (trial false). Calling again with the same kind/repo/label changes auto or trial. Never start one on your own.",
       parameters: intakeWatchSchema,
       execute: async (
         _id: string,
-        args: { kind: string; repo?: string; label?: string; about?: string; auto?: boolean },
+        args: {
+          kind: string;
+          repo?: string;
+          label?: string;
+          about?: string;
+          auto?: boolean;
+          trial?: boolean;
+        },
       ) => {
         ownerOnly(turn, "ask for new-work watches");
         if (args.kind !== "issues" && args.kind !== "reviews") {
@@ -1152,10 +1201,16 @@ function intakeTools(host: HerderHost, turn: () => TurnContext) {
           ...(args.label === undefined ? {} : { label: args.label }),
           ...(args.about === undefined ? {} : { about: args.about }),
           ...(args.auto === undefined ? {} : { auto: args.auto }),
+          ...(args.trial === undefined ? {} : { trial: args.trial }),
         });
         if (watch === undefined) throw new Error("GitHub cannot be watched here");
+        const how = !watch.auto
+          ? "new items are offered to the owner"
+          : watch.trial === true
+            ? "automatic, on a trial run: new items are still offered, and each comes to you as a trial turn that starts nothing; it starts work by itself only after the owner lets it (trial false)"
+            : "automatic: new items start a task by themselves";
         return ok(
-          `watching ${watch.id.slice(0, 8)} "${watch.about}" (auto: ${watch.auto}); tell the owner in one short line`,
+          `watching ${watch.id.slice(0, 8)} "${watch.about}" (${how}); tell the owner in one short line`,
         );
       },
     },

@@ -7,8 +7,8 @@ import { mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { FakeChannel } from "@agentherd/channel-fake";
-import type { AgentProfile, TextView } from "@agentherd/protocol";
+import { FakeChannel, type SentMessage } from "@agentherd/channel-fake";
+import type { AgentProfile, ItemView, TextView } from "@agentherd/protocol";
 import { afterEach, describe, expect, it } from "vitest";
 import { FakeClock } from "../../src/clock.ts";
 import type { GhRun } from "../../src/github-watch.ts";
@@ -85,6 +85,7 @@ class FakeGitHub {
         author: { login: mine ? "me" : "someone" },
         createdAt: "2100-01-01T00:00:00Z",
         headRefOid: `sha${this.checks.length}`,
+        headRefName: mine ? "fix-login" : "other",
         statusCheckRollup: this.checks,
       });
     }
@@ -349,5 +350,69 @@ describe("E2E-GITHUB", () => {
     await until(() => store.auditRows("github.error").length > 0);
     expect(store.prWatches()).toEqual([]);
     expect(herd).toBeDefined();
+  });
+});
+
+const permission = (
+  id: string,
+  command: string,
+) => `    - tool_call: { id: ${id}, title: "Run ${command}", kind: execute, command: "${command}", status: pending }
+    - request_permission:
+        toolCall: { id: ${id}, title: "Run ${command}", kind: execute, command: "${command}" }
+        expect: allow`;
+
+// The task opens the pull request; a comment wakes it and it pushes and answers; later the owner
+// asks it to thank the reviewer.
+const PERMITS = `
+turns:
+  - - message: "Opened https://github.com/acme/app/pull/7"
+    - end_turn: end_turn
+  - ${permission("t1", "git push origin fix-login").trimStart()}
+${permission("t2", "gh pr comment 7 --body done")}
+    - message: "Pushed and answered."
+    - end_turn: end_turn
+  - ${permission("t3", "gh pr comment 7 --body thanks").trimStart()}
+    - message: "Thanked them."
+    - end_turn: end_turn
+`;
+
+const isOpenItem = (m: SentMessage) =>
+  m.view.kind === "item" && (m.view as ItemView).final === undefined;
+
+describe("E2E-PR-TURN (ADR 0064)", () => {
+  it("a turn the pull request woke only pushes to its branch; anything else asks again", async () => {
+    const { herd, channel, clock, store, github } = await setup(PERMITS);
+    const { taskId, turn } = await herd.startTask(
+      "mock",
+      dir,
+      "Fix the login bug, push it, open a PR and answer the review comments",
+      undefined,
+      undefined,
+      undefined,
+      ["push", "pull-request", "comment"],
+    );
+    await turn;
+    await until(() => store.prWatches().length > 0);
+    expect(store.prWatches()[0]?.branch).toBe("fix-login");
+
+    // A comment wakes the task. Its push to the pull request's branch runs without a card; the
+    // comment it writes asks, although the owner allowed comments for the task.
+    github.comment("alice", "Please also handle Safari.");
+    await clock.advance(120_000);
+    const card = await channel.waitFor(isOpenItem);
+    const view = card.view as ItemView;
+    expect(view.body).toContain("gh pr comment 7 --body done");
+    expect(view.reason).toBe(
+      "leaves your Mac: comments, likes or changes an issue. News on the pull request woke this turn, and what you allowed at the start only covers pushing to its branch now, so it needs your confirmation",
+    );
+    expect(channel.ofKind("item")).toHaveLength(1);
+    await channel.tap(view.itemId, "allow");
+    await until(() => boardReport(herd, taskId) === "Pushed and answered.");
+    expect(boardReport(herd, taskId)).toBe("Pushed and answered.");
+
+    // A turn the owner asked for may comment again, as they allowed.
+    const thanks = await herd.promptTask(taskId, "Thank alice on the pull request.");
+    expect(thanks.stopReason).toBe("end_turn");
+    expect(channel.ofKind("item")).toHaveLength(1);
   });
 });

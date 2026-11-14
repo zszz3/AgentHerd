@@ -1,6 +1,7 @@
 // E2E for new-work watches (docs/spec/04-herder.md "New work", ADR 0052): nothing is searched
 // until the owner asks; what is already there is not offered; a new item is offered once with
-// 「开任务 / 忽略」, and only 「开任务」 reaches the Herder; an automatic watch starts by itself.
+// 「开任务 / 忽略」, and only 「开任务」 reaches the Herder; an automatic watch first runs on a trial
+// (ADR 0064), then starts by itself.
 
 import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -65,7 +66,7 @@ async function setup() {
   const gh = new FakeGh();
   let host: HerderHost | undefined;
   const events: HerderEvent[] = [];
-  const intakes: { text: string; auto: boolean }[] = [];
+  const intakes: { text: string; auto: boolean; trial?: boolean }[] = [];
   const herd = new Herd({
     home: dir,
     userHome: "/Users/me",
@@ -84,7 +85,8 @@ async function setup() {
       return {
         ownerMessage() {},
         ownerAnswer() {},
-        intake: (text, auto) => intakes.push({ text, auto }),
+        intake: (text, auto, trial) =>
+          intakes.push({ text, auto, ...(trial === true ? { trial } : {}) }),
         event: (e) => events.push(e),
         stop: async () => {},
       };
@@ -153,7 +155,7 @@ describe("E2E-INTAKE", () => {
     expect(intakes).toHaveLength(1);
   });
 
-  it("「忽略」 starts nothing, and an automatic watch starts by itself", async () => {
+  it("「忽略」 starts nothing, and an automatic watch runs on a trial before it starts by itself", async () => {
     const { herd, channel, gh, host, intakes } = await setup();
     await host.watchIntake?.({ kind: "reviews" });
     gh.add("reviews", "acme/api", 3, "Add rate limits");
@@ -171,17 +173,59 @@ describe("E2E-INTAKE", () => {
     expect(searches(gh).at(-1)).toEqual(searchArgs({ kind: "issues", repo: "me/app" }));
     host.unwatchIntake?.(own?.id ?? "");
 
-    // Asking again for the same watch with auto makes it start by itself.
+    // Asking again for the same watch with auto makes it automatic, on a trial run first
+    // (ADR 0064): the owner still gets the offer, and the Herder only says what it would do.
     const changed = await host.watchIntake?.({ kind: "reviews", auto: true });
     expect(changed?.auto).toBe(true);
+    expect(changed?.trial).toBe(true);
     expect(host.intakeWatches?.()).toHaveLength(1);
     gh.add("reviews", "acme/api", 4, "Fix typo");
     await herd.pollIntake();
-    expect(asks(channel)).toHaveLength(1);
-    expect(texts(channel)).toEqual(["Started by your rule: review of acme/api #4 Fix typo"]);
+    expect(asks(channel)).toHaveLength(2);
+    const trial = asks(channel)[1]?.view as AskView;
+    expect(trial.text).toContain("acme/api #4 Fix typo");
+    expect(trial.text).toContain("Trial run, item 1:");
+    expect(trial.options.map((o) => o.label)).toEqual(["Start a task", "Ignore"]);
+    expect(texts(channel)).toEqual([]);
     expect(intakes).toEqual([
       {
         text: "pull request to review acme/api#4: Fix typo https://github.com/acme/api/pull/4",
+        auto: true,
+        trial: true,
+      },
+    ]);
+    expect(host.intakeWatches?.()[0]?.trials).toBe(1);
+
+    // The owner lets it start work: the next item starts by itself.
+    const released = await host.watchIntake?.({ kind: "reviews", trial: false });
+    expect(released?.auto).toBe(true);
+    expect(released?.trial).toBeUndefined();
+    gh.add("reviews", "acme/api", 5, "Bump deps");
+    await herd.pollIntake();
+    expect(asks(channel)).toHaveLength(2);
+    expect(texts(channel)).toEqual(["Started by your rule: review of acme/api #5 Bump deps"]);
+    expect(intakes.at(-1)).toEqual({
+      text: "pull request to review acme/api#5: Bump deps https://github.com/acme/api/pull/5",
+      auto: true,
+    });
+
+    // Turning auto off and on again starts a new trial run.
+    await host.watchIntake?.({ kind: "reviews", auto: false });
+    const again = await host.watchIntake?.({ kind: "reviews", auto: true });
+    expect(again?.trial).toBe(true);
+  });
+
+  it("a new automatic watch the owner said needs no trial starts by itself", async () => {
+    const { herd, channel, gh, host, intakes } = await setup();
+    const watch = await host.watchIntake?.({ kind: "issues", auto: true, trial: false });
+    expect(watch?.trial).toBeUndefined();
+    gh.add("issues", "acme/app", 9, "Crash on start");
+    await herd.pollIntake();
+    expect(asks(channel)).toEqual([]);
+    expect(texts(channel)).toEqual(["Started by your rule: issue acme/app #9 Crash on start"]);
+    expect(intakes).toEqual([
+      {
+        text: "issue acme/app#9: Crash on start https://github.com/acme/app/issues/9",
         auto: true,
       },
     ]);

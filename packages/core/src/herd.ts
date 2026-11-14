@@ -202,7 +202,7 @@ export class Herd {
             ...(opts.intakePollMinutes === undefined
               ? {}
               : { pollMinutes: opts.intakePollMinutes }),
-            start: (item, auto) => this.startIntake(item, auto),
+            start: (item, auto, trial) => this.startIntake(item, auto, trial),
           });
     this.schedules = new Schedules(this.ctx);
     this.herder = opts.herder?.(this.herderHost());
@@ -532,11 +532,15 @@ export class Herd {
     return this.intake?.poll() ?? Promise.resolve();
   }
 
-  /** Work for an item goes through the Herder, which finds the project and starts the task. */
-  private startIntake(item: IntakeItem, auto: boolean): boolean {
+  /**
+   * Work for an item goes through the Herder, which finds the project and starts the task. On a
+   * trial run it only says what it would have started (ADR 0064).
+   */
+  private startIntake(item: IntakeItem, auto: boolean, trial = false): boolean {
     const herder = this.herder;
     if (herder?.intake === undefined) return false;
-    herder.intake(itemLine(item), auto);
+    if (trial) herder.intake(itemLine(item), auto, true);
+    else herder.intake(itemLine(item), auto);
     return true;
   }
 

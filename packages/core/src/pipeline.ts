@@ -9,8 +9,10 @@ import {
   guardCheck,
   massDeleteCheck,
   matchRules,
+  type OutboundResult,
   type OutboundStep,
   outboundCheck,
+  pushPlans,
 } from "@agentherd/rules";
 
 export interface PipelineContext {
@@ -20,10 +22,21 @@ export interface PipelineContext {
   extraGuards?: readonly ExtraGuard[];
   /** Steps leaving the Mac that the owner allowed for this task (ADR 0056). */
   allowedSteps?: readonly OutboundStep[];
+  /**
+   * Set when a pull request woke the turn (ADR 0064): of the allowed steps, only a push to one of
+   * these branches runs without asking.
+   */
+  pullRequestTurn?: {
+    branches: readonly string[];
+    /** The branch checked out in a folder, for a push that names none. */
+    currentBranch: (dir: string) => string | undefined;
+  };
 }
 
 /** Reason prefix of a step that leaves the Mac. */
 export const LEAVES_MAC = "leaves the Mac: ";
+/** Reason suffix of an allowed step that asks because a pull request woke the turn (ADR 0064). */
+export const PR_TURN = " [pull request turn]";
 
 export interface PipelineResult {
   decision: Decision;
@@ -93,6 +106,30 @@ function appDefault(item: Item, mode: Mode): PipelineResult {
   return allowBy(item, APP_WRITE);
 }
 
+/**
+ * A turn a pull request woke may only push to that pull request's branch (ADR 0064): what the
+ * owner allowed when the task started was for the work they asked for, not for whatever someone
+ * writes on the pull request later.
+ */
+function pullRequestMayDo(item: Item, out: OutboundResult, ctx: PipelineContext): boolean {
+  const pr = ctx.pullRequestTurn;
+  if (pr === undefined) return true;
+  const command = item.toolCall?.command;
+  if (out.step !== "push" || item.toolCall?.kind === "app" || command === undefined) return false;
+  const plans = pushPlans(command, { cwd: item.cwd, home: ctx.home });
+  if (plans === undefined || plans.length === 0) return false;
+  return plans.every((plan) => {
+    if (plan.wide !== undefined || plan.dir === null) return false;
+    const targets = [...plan.branches];
+    if (plan.current) {
+      const branch = pr.currentBranch(plan.dir);
+      if (branch === undefined) return false;
+      targets.push(branch);
+    }
+    return targets.length > 0 && targets.every((b) => pr.branches.includes(b));
+  });
+}
+
 function decideUnsafe(item: Item, ctx: PipelineContext): PipelineResult {
   if (item.kind !== "permission") {
     return { decision: escalate(item, "medium", "not a permission request"), apply: false };
@@ -120,6 +157,12 @@ function decideUnsafe(item: Item, ctx: PipelineContext): PipelineResult {
     if (out !== undefined && !(ctx.allowedSteps ?? []).includes(out.step)) {
       return {
         decision: escalate(item, "high", `${LEAVES_MAC}${out.step}: ${out.reason}`),
+        apply: false,
+      };
+    }
+    if (out !== undefined && !pullRequestMayDo(item, out, ctx)) {
+      return {
+        decision: escalate(item, "high", `${LEAVES_MAC}${out.step}: ${out.reason}${PR_TURN}`),
         apply: false,
       };
     }

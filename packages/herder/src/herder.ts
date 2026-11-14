@@ -80,7 +80,7 @@ export interface HerderModel {
 type Job = (
   | { kind: "owner"; text: string; images: OwnerImage[] }
   | { kind: "answer"; question: string; answer: string; ownerText?: string }
-  | { kind: "intake"; text: string; auto: boolean }
+  | { kind: "intake"; text: string; auto: boolean; trial?: boolean }
   | { kind: "scheduled"; schedule: Schedule }
   | { kind: "voice"; request: VoiceRequest; done: (words: string | undefined) => void }
 ) & {
@@ -261,8 +261,9 @@ export class Herder implements HerderPort {
     this.host.setState(PENDING_STATE_KEY, kept);
   }
 
-  intake(text: string, auto: boolean): void {
-    this.enqueue({ kind: "intake", text, auto });
+  /** New work for a turn; on a trial run the turn starts nothing (ADR 0064). */
+  intake(text: string, auto: boolean, trial = false): void {
+    this.enqueue({ kind: "intake", text, auto, ...(trial ? { trial: true } : {}) });
   }
 
   /** A schedule the owner made is due (ADR 0055). */
@@ -433,9 +434,10 @@ export class Herder implements HerderPort {
         asked: false,
         notified: false,
         pickedDirs: [],
+        ...(job.trial === true ? { trial: true } : {}),
       };
       if (!job.recorded) this.host.recordTurn("event", job.text);
-      prompt = intakePrompt(job.text, job.auto);
+      prompt = intakePrompt(job.text, job.auto, job.trial === true);
     } else {
       if (this.lastOwnerText === "" && job.ownerText !== undefined)
         this.lastOwnerText = job.ownerText;
