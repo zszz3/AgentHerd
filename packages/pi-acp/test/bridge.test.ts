@@ -1,7 +1,7 @@
 // The bridge end to end: AgentHerd's ACP client → bin/pi-acp.ts → a fake Pi that runs the
 // real gate and mcp extensions.
 
-import { existsSync, mkdtempSync, readdirSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { createServer } from "node:net";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -24,11 +24,14 @@ interface Call {
 }
 
 interface Plan {
+  before?: string;
   calls?: Call[];
   turns?: { calls?: Call[]; reply?: string; error?: string }[];
   reply?: string;
   error?: string;
   startFail?: boolean;
+  steer?: "read" | "leave" | "hold";
+  log?: string;
 }
 
 const cleanups: (() => Promise<void> | void)[] = [];
@@ -218,6 +221,21 @@ describe("pi-acp bridge", () => {
     expect(text(updates)).toBe("done");
   });
 
+  it("starts a new paragraph for text from a later model call in the same turn", async () => {
+    const { conn, cwd, updates } = await start({
+      before: "Let me look.",
+      calls: [{ toolName: "write", input: { path: "a.txt", content: "goats" } }],
+      reply: "Done.",
+    });
+    conn.on("permission", (p) => p.respond({ kind: "allow" }));
+    const sid = await conn.newSession(cwd);
+    await conn.prompt(sid, "go");
+    expect(text(updates)).toBe("Let me look.\n\nDone.");
+    // A new turn starts without one.
+    await conn.prompt(sid, "again");
+    expect(text(updates)).toBe("Let me look.\n\nDone.Let me look.\n\nDone.");
+  });
+
   it("passes the owner's images on to Pi", async () => {
     const { conn, cwd, updates } = await start({ reply: "saw {images}" });
     expect(conn.acceptsImages).toBe(true);
@@ -383,5 +401,63 @@ describe("pi-acp bridge", () => {
     await second.conn.prompt(sid, "turn 2");
     expect(called).toEqual(["tok-1:herd_report", "tok-2:herd_report"]);
     expect(text(second.updates)).toBe("reported");
+  });
+});
+
+describe("pi-acp steering (ADR 0063)", () => {
+  /** A running Pi turn: it waits for the owner to allow a command, then for a steer. */
+  async function running(plan: Plan) {
+    const logDir = mkdtempSync(join(tmpdir(), "pi-acp-log-"));
+    cleanups.push(() => rmSync(logDir, { recursive: true, force: true }));
+    const log = join(logDir, "commands.log");
+    const started = await start({
+      calls: [{ toolName: "bash", input: { command: "make" } }],
+      log,
+      ...plan,
+    });
+    const sid = await started.conn.newSession(started.cwd);
+    const turn = started.conn.prompt(sid, "go");
+    await expect.poll(() => started.asked.length).toBe(1);
+    const allow = () => started.asked[0]?.respond({ kind: "allow" });
+    const commands = () =>
+      existsSync(log) ? readFileSync(log, "utf8").trim().split("\n") : ([] as string[]);
+    return { ...started, sid, turn, allow, commands };
+  }
+
+  it("gives a message to the running turn and answers once the model read it", async () => {
+    const { conn, sid, turn, allow, updates, commands } = await running({
+      steer: "read",
+      reply: "read: {steers}",
+    });
+    expect(conn.steers).toBe(true);
+    const delivered = conn.steer(sid, "also check the docs");
+    allow();
+    expect(await delivered).toBe(true);
+    expect(await turn).toEqual({ stopReason: "end_turn" });
+    expect(text(updates)).toBe("read: also check the docs");
+    expect(commands()).toContain("set_steering_mode all");
+  });
+
+  it("answers false and clears Pi's queue when the turn ends before reading it", async () => {
+    const { conn, sid, turn, allow, commands } = await running({ steer: "leave" });
+    const delivered = conn.steer(sid, "too late");
+    allow();
+    expect(await delivered).toBe(false);
+    expect(await turn).toEqual({ stopReason: "end_turn" });
+    await expect.poll(commands).toContain("clear_queue");
+    expect(await conn.steer(sid, "no turn now")).toBe(false);
+  });
+
+  it("clears the queue before it aborts a cancelled turn", async () => {
+    const { conn, sid, turn, allow, commands } = await running({ steer: "hold" });
+    const delivered = conn.steer(sid, "wait for me");
+    allow();
+    await expect.poll(commands).toContain("steer");
+    await conn.cancel(sid);
+    expect(await delivered).toBe(false);
+    expect(await turn).toEqual({ stopReason: "cancelled" });
+    const log = commands();
+    expect(log.indexOf("clear_queue")).toBeGreaterThan(log.indexOf("steer"));
+    expect(log.indexOf("abort")).toBeGreaterThan(log.indexOf("clear_queue"));
   });
 });

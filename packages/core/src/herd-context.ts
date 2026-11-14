@@ -224,6 +224,8 @@ export interface Following {
   offs: (() => void)[];
   /** Prompts waiting for the current turn to end. */
   queue: QueuedPrompt[];
+  /** Messages the current turn read while it ran (ADR 0063); they settle when it ends. */
+  steered?: QueuedPrompt[];
   busy: boolean;
   idleTimer?: Timer;
 }
@@ -243,8 +245,30 @@ export interface QueuedPrompt {
   wake?: boolean;
   /** The owner's message this prompt answers. */
   trigger?: MessageRef;
+  /**
+   * It was given to a running turn that ended before reading it (ADR 0063); it goes before the
+   * prompts that came after it.
+   */
+  late?: boolean;
   resolve: (result: RunResult) => void;
   reject: (error: Error) => void;
+}
+
+/**
+ * Whether a prompt goes into the task's running turn instead of waiting for it to end (ADR 0063):
+ * the owner's or the Herder's, while a turn that is not AgentHerd's own check runs on an agent
+ * that takes messages during a turn.
+ */
+export function steerable(f: Following, from: PromptFrom): boolean {
+  return (
+    from !== "pull-request" &&
+    f.busy &&
+    f.waking !== true &&
+    !f.ended &&
+    f.reopening === undefined &&
+    f.connection?.steers === true &&
+    f.agentSessionId !== undefined
+  );
 }
 
 export interface RunResult {

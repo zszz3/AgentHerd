@@ -46,6 +46,8 @@ export interface CoreTexts {
   manyMatches(query: string, list: string): string;
   noRelay: string;
   queued: string;
+  /** The owner's message went into the task's running turn (ADR 0063). */
+  steered: string;
   /** A message the task never read because it ended first (ADR 0061); a reply opens it again. */
   unread(text: string, why: string): string;
   /** Project column of a task started without a project folder. */
@@ -310,6 +312,7 @@ const zh: CoreTexts = {
   },
   sourceUp: (source) => (source === "github" ? "PR 提醒恢复了。" : "邮件提醒恢复了。"),
   queued: "已排队：Agent 这一轮结束后会收到这条消息。",
+  steered: "已插话：Agent 做完手上这一步就会看到。",
   unread: (text, why) =>
     `这条没送到：任务还没读到就结束了（${why}）。\n「${text}」\n要接着做，回复这条消息，任务会重新打开。`,
   unknownAgent: (a, known) => `没有叫"${a}"的 Agent。可用的有：${known}。`,
@@ -498,6 +501,7 @@ const en: CoreTexts = {
   sourceUp: (source) =>
     source === "github" ? "Pull request updates work again." : "Mail updates work again.",
   queued: "Queued: the agent gets this when its turn ends.",
+  steered: "Passed on: the agent sees this after the step it is on.",
   unread: (text, why) =>
     `Not delivered: the task ended before it read this (${why}).\n"${text}"\nTo go on, reply to this message and the task opens again.`,
   unknownAgent: (a, known) => `Unknown agent "${a}". Known: ${known}.`,

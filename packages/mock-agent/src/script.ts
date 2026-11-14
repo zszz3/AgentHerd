@@ -46,6 +46,11 @@ export type Step =
       onReject: "end_turn" | "continue";
     }
   | { type: "sleep"; ms: number }
+  /**
+   * Waits up to `ms` for messages sent during the turn (`steer: true`), then reads every one
+   * that came: each is answered "delivered" and replied with "Read: <text>".
+   */
+  | { type: "read_steers"; ms: number }
   /** Calls a tool on the session's first stdio MCP server; the result becomes a message. */
   | { type: "mcp_call"; tool: string; arguments: Record<string, unknown> }
   | { type: "crash"; code: number }
@@ -56,6 +61,8 @@ export interface Script {
   turns: Step[][];
   /** Offer `session/load`; a loaded session plays the turns from the start. */
   loadSession?: boolean;
+  /** Take messages during a running turn (AgentHerd's steer extension, ADR 0063). */
+  steer?: boolean;
 }
 
 export class ScriptError extends Error {
@@ -184,6 +191,10 @@ function step(v: unknown, where: string): Step {
       if (typeof body !== "number" || body < 0) throw new ScriptError(`${w}: expected ms >= 0`);
       return { type: "sleep", ms: body };
     }
+    case "read_steers": {
+      if (typeof body !== "number" || body < 0) throw new ScriptError(`${w}: expected ms >= 0`);
+      return { type: "read_steers", ms: body };
+    }
     case "crash": {
       const code = body === null || body === undefined ? 1 : body;
       if (typeof code !== "number") throw new ScriptError(`${w}: expected an exit code`);
@@ -214,8 +225,12 @@ export function parseScript(text: string): Script {
   if (doc.load_session !== undefined && typeof doc.load_session !== "boolean") {
     throw new ScriptError("load_session: expected true or false");
   }
+  if (doc.steer !== undefined && typeof doc.steer !== "boolean") {
+    throw new ScriptError("steer: expected true or false");
+  }
   return {
     ...(doc.load_session === true ? { loadSession: true } : {}),
+    ...(doc.steer === true ? { steer: true } : {}),
     name: doc.name === undefined ? "mock-agent" : str(doc.name, "name"),
     turns: doc.turns.map((turn, t) => {
       if (!Array.isArray(turn)) throw new ScriptError(`turns[${t}]: expected a list of steps`);

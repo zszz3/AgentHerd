@@ -15,6 +15,7 @@ import {
   saveTask,
   say,
   send,
+  steerable,
   type TaskOps,
   withModel,
 } from "./herd-context.ts";
@@ -340,20 +341,85 @@ export class TaskRunner {
     }
     const queue = (): Promise<RunResult> => {
       if (f.ended) return Promise.reject(new Error(`task ${taskId} is not open`));
-      const done = new Promise<RunResult>((resolve, reject) => {
-        f.queue.push({
+      return new Promise<RunResult>((resolve, reject) => {
+        const entry: QueuedPrompt = {
           text: prompt,
           images,
           from,
           resolve,
           reject,
           ...(trigger === undefined ? {} : { trigger }),
-        });
+        };
+        // While a turn runs, an agent that takes it reads the message at its next step (ADR 0063).
+        if (steerable(f, from)) this.steer(f, entry);
+        else this.enqueue(f, entry);
       });
-      void this.pump(f);
-      return done;
     };
     return f.reopening === undefined ? queue() : f.reopening.then(queue);
+  }
+
+  private enqueue(f: Following, entry: QueuedPrompt): void {
+    f.queue.push(entry);
+    void this.pump(f);
+  }
+
+  /**
+   * Gives the running turn a message from the owner or the Herder (ADR 0063). Read in that turn,
+   * it is part of it and settles when the turn ends. Not read (the turn ended first), it goes first
+   * in the queue, or back like any unread message when the task ended meanwhile.
+   */
+  private steer(f: Following, entry: QueuedPrompt): void {
+    const { ctx } = this;
+    const { connection, agentSessionId } = f;
+    if (connection === undefined || agentSessionId === undefined) {
+      this.enqueue(f, entry);
+      return;
+    }
+    const taskId = f.task.id;
+    const from = entry.from ?? "owner";
+    // An agent that takes no images gets where they are saved instead, as with a prompt.
+    const text = connection.acceptsImages
+      ? entry.text
+      : withImagePaths(entry.text, entry.images, ctx.texts);
+    const images = entry.images.map((i) => ({ data: i.data, mimeType: i.mimeType }));
+    const handled = connection.steer(agentSessionId, text, images).then(async (delivered) => {
+      if (!delivered) {
+        ctx.store.audit("task.steer-missed", { taskId, from });
+        if (f.ended) {
+          const why = f.endedWhy ?? ctx.texts.agentherdStopped;
+          entry.reject(new Error(`the task ended: ${why}`));
+          await this.handBack(f, [entry], why);
+          return;
+        }
+        // It came before what waits in the queue, after the earlier ones the turn missed too.
+        const at = f.queue.findIndex((q) => q.late !== true);
+        f.queue.splice(at < 0 ? f.queue.length : at, 0, { ...entry, late: true });
+        void this.pump(f);
+        return;
+      }
+      ctx.store.audit("task.steered", { taskId, from });
+      // The transcript shows the message where the agent read it.
+      flushReply(ctx, f);
+      ctx.store.addTranscript(
+        taskId,
+        "prompt",
+        withImagePaths(entry.text, entry.images, ctx.texts),
+      );
+      f.ownerTurns = (f.ownerTurns ?? 0) + 1;
+      if (!f.busy) {
+        // The turn that read it is over; its result answered this message too.
+        entry.resolve({ sessionId: taskId, stopReason: "end_turn" });
+        return;
+      }
+      // The turn now answers the latest asker: the owner above the Herder above a pull request.
+      if (from === "owner" || f.turnFrom === "pull-request") f.turnFrom = from;
+      f.acked = false;
+      if (entry.trigger !== undefined) f.trigger = entry.trigger;
+      f.steered ??= [];
+      f.steered.push(entry);
+    });
+    this.turns.add(handled);
+    void handled.finally(() => this.turns.delete(handled));
   }
 
   /**
@@ -716,6 +782,7 @@ export class TaskRunner {
     f.idleTimer?.cancel();
     // AgentHerd's own prompts (background checks, pull request activity) are not the owner's asks.
     if (next.wake !== true && next.from !== "pull-request") f.ownerTurns = (f.ownerTurns ?? 0) + 1;
+    f.steered = [];
     const turn = this.runTurn(
       f,
       next.text,
@@ -726,9 +793,13 @@ export class TaskRunner {
     );
     this.turns.add(turn);
     try {
-      next.resolve(await turn);
+      const result = await turn;
+      next.resolve(result);
+      // Messages the turn read while it ran are answered by it too (ADR 0063).
+      for (const read of f.steered.splice(0)) read.resolve(result);
     } catch (error) {
       next.reject(error as Error);
+      for (const read of f.steered.splice(0)) read.reject(error as Error);
     } finally {
       this.turns.delete(turn);
       f.busy = false;
@@ -996,6 +1067,9 @@ export class TaskRunner {
       ctx.store.addTranscript(sessionId, "note", message);
       this.stopBackground(f);
       if (await this.switchModel(f, message)) {
+        // The new agent never saw what the broken turn read; it gets those as its next prompts.
+        const read = (f.steered ?? []).splice(0).map((q) => ({ ...q, late: true }));
+        f.queue.unshift(...read);
         return this.runTurn(f, text, images, wake, trigger, from);
       }
       const conflicts = await this.syncOut(f);

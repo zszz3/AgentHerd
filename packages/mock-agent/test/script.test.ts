@@ -138,6 +138,14 @@ turns:
     ]);
   });
 
+  it("parses steer and a read_steers step (ADR 0063)", () => {
+    const script = parseScript("steer: true\nturns:\n  - - read_steers: 500\n");
+    expect(script.steer).toBe(true);
+    expect(script.turns[0]).toEqual([{ type: "read_steers", ms: 500 }]);
+    expect(parseScript("turns: []\n").steer).toBeUndefined();
+    expect(() => parseScript("steer: yes please\nturns: []\n")).toThrow(/steer: expected/);
+  });
+
   it("parses a crash with a default code of 1", () => {
     expect(parseScript("turns:\n  - - crash:\n").turns[0]).toEqual([{ type: "crash", code: 1 }]);
   });

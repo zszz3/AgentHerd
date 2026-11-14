@@ -87,7 +87,10 @@ The Herder may add, never rewrite.
 - During a relay, direct messages go to the session without the Herder. Agent messages come
   back with a task-name prefix. Items and reports from other tasks still arrive, each labeled
   with its task.
-- A message sent while the agent is working is queued and sent as the next prompt.
+- A message sent while the agent is working goes into the running turn when the agent takes it
+  (Pi, through the `_agentherd/steer` extension, [ADR 0063](../adr/0063-messages-reach-a-working-pi-task.md)):
+  the agent reads it after the step it is on, and the owner hears 「已插话」. Otherwise, or when
+  the turn ends before reading it, it is queued and sent as the next prompt (「已排队」).
   `/interrupt` cancels the current turn first.
 - End: `/end`, the button, the task ends, or `relayIdleMinutes` (default 30) with no owner
   message. The owner is told "Back to the Herder".
