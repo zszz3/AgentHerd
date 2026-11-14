@@ -189,6 +189,43 @@ turns:
   });
 });
 
+const said = (updates: SessionUpdateEvent[]) =>
+  updates
+    .filter((u) => u.type === "message")
+    .map((u) => u.text)
+    .join("");
+
+describe("steering a running turn (ADR 0063)", () => {
+  it("passes a message to the turn and answers once the agent read it", async () => {
+    const script = 'steer: true\nturns:\n  - - message: "working. "\n    - read_steers: 5000\n';
+    const { conn, updates, sessionId } = await start(script);
+    expect(conn.steers).toBe(true);
+    const turn = conn.prompt(sessionId, "go");
+    await expect.poll(() => said(updates)).toContain("working");
+    expect(await conn.steer(sessionId, "and the docs")).toBe(true);
+    expect(await turn).toEqual({ stopReason: "end_turn" });
+    expect(said(updates)).toBe("working. Read: and the docs");
+  });
+
+  it("answers false when the turn ends before reading it", async () => {
+    const script = 'steer: true\nturns:\n  - - message: "working"\n    - sleep: 300\n';
+    const { conn, updates, sessionId } = await start(script);
+    const turn = conn.prompt(sessionId, "go");
+    await expect.poll(() => said(updates)).toContain("working");
+    expect(await conn.steer(sessionId, "too late")).toBe(false);
+    expect(await turn).toEqual({ stopReason: "end_turn" });
+    expect(await conn.steer(sessionId, "no turn now")).toBe(false);
+  });
+
+  it("answers false at once for an agent that does not take it", async () => {
+    const { conn, sessionId } = await start("turns:\n  - - sleep: 300\n");
+    expect(conn.steers).toBe(false);
+    const turn = conn.prompt(sessionId, "go");
+    expect(await conn.steer(sessionId, "hi")).toBe(false);
+    await turn;
+  });
+});
+
 function alive(pid: number): boolean {
   try {
     process.kill(pid, 0);

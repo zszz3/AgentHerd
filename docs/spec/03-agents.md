@@ -39,7 +39,7 @@ server ([09-agent-tools.md](09-agent-tools.md)).
 | Agent | Command | Status |
 | --- | --- | --- |
 | DeepSeek Harness | `dsh acp` | Tested 2026-11-04: `initialize` returns `deepseek-harness-acp`, session `close`/`list`/`resume`. Asks over `session/request_permission` only when a command needs more than its sandbox mode allows; see [DSH approvals](#dsh-approvals). Built-in profile `dsh` (found via `AGENTHERD_DSH`, `PATH`, or the app bundle); end-to-end run with Feishu passed 2026-11-04 |
-| Pi | `node packages/pi-acp/bin/pi-acp.ts --pi <pi>` (bridge to `pi --mode rpc`) | Tested 2026-11-04 with Pi 1.5.0 and DeepSeek: allow writes the file, deny blocks it. Built-in profile `pi` (found via `AGENTHERD_PI`, the copy the app downloaded, or `PATH`); see [Pi](#pi) and ADR 0022 |
+| Pi | `node packages/pi-acp/bin/pi-acp.ts --pi <pi>` (bridge to `pi --mode rpc`) | Tested 2026-11-04 with Pi 1.5.0 and DeepSeek: allow writes the file, deny blocks it. Steering tested 2026-11-14 with Pi 1.5.0 and `deepseek-flash`: a message sent during a `sleep 8` command was read after it and answered in the same turn; one sent during the final reply was read too; a cancelled turn answered `false` and Pi did not act on the message. Built-in profile `pi` (found via `AGENTHERD_PI`, the copy the app downloaded, or `PATH`); see [Pi](#pi) and ADR 0022 |
 | Codex | `node …/codex-acp/dist/index.js` (npm `@agentclientprotocol/codex-acp`), env `INITIAL_AGENT_MODE=read-only`, `NO_BROWSER=1`, the model in `CODEX_CONFIG` (ADR 0031) | Installs with npm 2026-11-05 (2.5.0); 验证 reports "Codex process was killed by SIGKILL" on this Mac (endpoint security); prompt run not tried **(verify, Q01)** |
 | Qwen Code, others | Their ACP mode, as a config.json profile | **(verify, Q02)** |
 
@@ -58,6 +58,7 @@ The desktop app ships built-in profiles for these and lets the user add any ACP 
 | `session/cancel` | Interrupt |
 | Follow-up `session/prompt` | A relayed owner message, or a Herder prompt |
 | `session/load` (if supported) | Continue an ended task, also after a restart (ADR 0039); Pi supports it through pi-acp |
+| `_agentherd/steer` (extension; offered with `agentCapabilities._meta.agentherd.steer: true`) | The owner's or the Herder's message for a running turn; `{ delivered: true }` once the agent's model saw it, `false` when the turn ended first (then it is the next prompt). Pi supports it through pi-acp ([ADR 0063](../adr/0063-messages-reach-a-working-pi-task.md)) |
 
 Permission requests may carry a partial tool call: ACP sends a tool call once and later only
 changed fields, and DSH's `request_permission` carries only the `toolCallId`. The ACP client
@@ -112,9 +113,13 @@ Pi has no native ACP or MCP client and never asks before a tool call. AgentHerd'
   by `AGENTHERD_PI_MCP` (deleted on exit), and `extension/mcp.ts` registers them in Pi (`inputSchema`,
   one-line `promptSnippet`, and `tools/call` over `AGENTHERD_MCP_SOCKET` or stdio). Built-in Pi
   tools cannot be shadowed.
-- `text_delta` becomes `agent_message_chunk`; `tool_execution_start/end` become `tool_call`
+- `text_delta` becomes `agent_message_chunk`; text from a later model call in the same turn
+  starts a new paragraph (a blank line), so the reply does not run together. `tool_execution_start/end` become `tool_call`
   and `tool_call_update` (`bash` → `execute`, `edit`/`write` → `edit`, `read`/`ls` → `read`,
   `grep`/`find` → `search`). `agent_settled` ends the turn; `session/cancel` sends `abort`.
+- `_agentherd/steer` becomes Pi's `steer` (with `set_steering_mode all`, ADR 0063). A message
+  counts as read when it leaves Pi's steering queue (`queue_update`); at `agent_settled` the rest
+  are answered `false` and the queue is cleared; `session/cancel` clears the queue before `abort`.
 - A model error (`stopReason: "error"`) fails the turn with Pi's message.
 - Model: Pi's own login and settings, unless the owner chose a model for the `pi` role; then
   the host passes `AGENTHERD_PI_MODEL` (pi-ai model JSON) and `AGENTHERD_PI_KEY`, and
@@ -257,6 +262,10 @@ is a list of steps:
   expect: allow_once        # the test fails if the decision differs
 - end_turn: { message: "Done. All tests pass." }
 ```
+
+A script with `steer: true` offers `_agentherd/steer`; a `read_steers: <ms>` step waits up to
+`ms` for messages sent into the running turn, reads them all and writes `Read: <text>` for each.
+Messages it never read are answered `false` when the turn ends.
 
 Because it speaks real ACP, E2E tests run the same client code as real agents. It is the main
 tool for development, because Claude Code and Codex cannot run on the development machine

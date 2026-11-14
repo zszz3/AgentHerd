@@ -34,6 +34,25 @@ interface SessionState {
   abort: AbortController | null;
   /** The stdio MCP servers the client passed for this session. */
   mcpServers: McpServerInfo[];
+  /** Messages sent during the running turn (`steer: true`), not read yet. */
+  steers: { text: string; done: (delivered: boolean) => void }[];
+  /** Wakes a `read_steers` step that waits for a message. */
+  steerCame?: (() => void) | undefined;
+}
+
+/** AgentHerd's ACP extension for a message during a running turn (ADR 0063). */
+const STEER_METHOD = "_agentherd/steer";
+
+interface SteerParams {
+  sessionId: string;
+  prompt: { type: string; text?: string }[];
+}
+
+function steerParams(raw: unknown): SteerParams {
+  const p = (raw ?? {}) as { sessionId?: unknown; prompt?: unknown };
+  if (typeof p.sessionId !== "string" || !Array.isArray(p.prompt))
+    throw new Error(`${STEER_METHOD} needs sessionId and prompt`);
+  return { sessionId: p.sessionId, prompt: p.prompt as SteerParams["prompt"] };
 }
 
 interface McpServerInfo {
@@ -82,6 +101,29 @@ function sleep(ms: number, signal: AbortSignal): Promise<void> {
       "abort",
       () => {
         clearTimeout(timer);
+        reject(new Cancelled());
+      },
+      { once: true },
+    );
+  });
+}
+
+/** Waits up to `ms` for a message sent during the turn. */
+function nextSteer(state: SessionState, ms: number, signal: AbortSignal): Promise<void> {
+  return new Promise((resolve, reject) => {
+    if (signal.aborted) return reject(new Cancelled());
+    const finish = () => {
+      clearTimeout(timer);
+      state.steerCame = undefined;
+      resolve();
+    };
+    const timer = setTimeout(finish, ms);
+    state.steerCame = finish;
+    signal.addEventListener(
+      "abort",
+      () => {
+        clearTimeout(timer);
+        state.steerCame = undefined;
         reject(new Cancelled());
       },
       { once: true },
@@ -176,6 +218,28 @@ export function createMockAgent(script: Script, options: MockAgentOptions = {}):
         case "sleep":
           await sleep(step.ms, signal);
           break;
+        case "read_steers": {
+          const state = sessions.get(sessionId);
+          if (state === undefined) break;
+          if (state.steers.length === 0) await nextSteer(state, step.ms, signal);
+          const read = state.steers.splice(0);
+          for (const steer of read) {
+            log(`steer read: ${steer.text}`);
+            steer.done(true);
+          }
+          // Like a model at its next step: the answers go out before anything it writes.
+          if (read.length > 0) await new Promise((resolve) => setImmediate(resolve));
+          for (const steer of read) {
+            await client.notify(methods.client.session.update, {
+              sessionId,
+              update: {
+                sessionUpdate: "agent_message_chunk",
+                content: { type: "text", text: `Read: ${steer.text}` },
+              },
+            });
+          }
+          break;
+        }
         case "crash":
           log(`crash with code ${step.code}`);
           exit(step.code);
@@ -190,21 +254,24 @@ export function createMockAgent(script: Script, options: MockAgentOptions = {}):
   return agent({ name: script.name })
     .onRequest(methods.agent.initialize, () => ({
       protocolVersion: PROTOCOL_VERSION,
-      agentCapabilities: { loadSession: script.loadSession === true },
+      agentCapabilities: {
+        loadSession: script.loadSession === true,
+        ...(script.steer === true ? { _meta: { agentherd: { steer: true } } } : {}),
+      },
       agentInfo: { name: script.name, version: "0.0.0" },
       authMethods: [],
     }))
     .onRequest(methods.agent.session.new, ({ params }) => {
       const sessionId = `mock-${nextSession++}`;
       const mcpServers = stdioServers(params.mcpServers, log);
-      sessions.set(sessionId, { turn: 0, abort: null, mcpServers });
+      sessions.set(sessionId, { turn: 0, abort: null, mcpServers, steers: [] });
       return { sessionId };
     })
     .onRequest(methods.agent.session.load, ({ params }) => {
       if (script.loadSession !== true) throw new Error("session/load is not supported");
       log(`load ${params.sessionId}`);
       const mcpServers = stdioServers(params.mcpServers, log);
-      sessions.set(params.sessionId, { turn: 0, abort: null, mcpServers });
+      sessions.set(params.sessionId, { turn: 0, abort: null, mcpServers, steers: [] });
       return {};
     })
     .onRequest(methods.agent.session.prompt, async ({ params, client }) => {
@@ -232,7 +299,24 @@ export function createMockAgent(script: Script, options: MockAgentOptions = {}):
         throw error;
       } finally {
         state.abort = null;
+        // The turn is over: what it did not read goes back to the client as the next prompt.
+        for (const steer of state.steers.splice(0)) {
+          log(`steer not read: ${steer.text}`);
+          steer.done(false);
+        }
       }
+    })
+    .onRequest(STEER_METHOD, steerParams, async ({ params }) => {
+      const state = sessions.get(params.sessionId);
+      if (script.steer !== true || state === undefined || state.abort === null)
+        return { delivered: false };
+      const text = params.prompt.map((b) => (b.type === "text" ? (b.text ?? "") : "")).join("\n");
+      log(`steer came: ${text}`);
+      const delivered = await new Promise<boolean>((done) => {
+        state.steers.push({ text, done });
+        state.steerCame?.();
+      });
+      return { delivered };
     })
     .onNotification(methods.agent.session.cancel, ({ params }) => {
       sessions.get(params.sessionId)?.abort?.abort();

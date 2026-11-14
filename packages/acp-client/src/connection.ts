@@ -68,6 +68,32 @@ export interface PromptImage {
   mimeType: string;
 }
 
+/**
+ * AgentHerd's ACP extension for a message during a running turn (ADR 0063). An agent that takes
+ * it says so with `agentCapabilities._meta.agentherd.steer: true`. The request answers once the
+ * agent showed the message to its model in that turn (`delivered: true`), or once the turn ended
+ * without it (`delivered: false`: send it as the next prompt).
+ */
+export const STEER_METHOD = "_agentherd/steer";
+
+export interface SteerParams {
+  sessionId: string;
+  prompt: ContentBlock[];
+}
+
+export interface SteerResponse {
+  delivered: boolean;
+}
+
+/** The capability an agent advertises in `initialize` when it takes `STEER_METHOD`. */
+export const STEER_CAPABILITY = { agentherd: { steer: true } } as const;
+
+/** Whether `initialize` advertised `STEER_METHOD`. */
+export function takesSteering(capabilities: { _meta?: unknown } | undefined): boolean {
+  const meta = capabilities?._meta as { agentherd?: { steer?: unknown } } | null | undefined;
+  return meta?.agentherd?.steer === true;
+}
+
 interface Events {
   update: SessionUpdateEvent;
   permission: PermissionRequest;
@@ -109,6 +135,15 @@ export interface AgentConnection {
     text: string,
     images?: PromptImage[],
   ): Promise<{ stopReason: StopReason }>;
+  /** Whether the agent takes a message during a running turn (ADR 0063, `STEER_METHOD`). */
+  readonly steers: boolean;
+  /**
+   * Gives the session's running turn one more message; the agent's model sees it at its next
+   * step. Images go only to an agent that accepts them.
+   * @returns true once the agent read it in that turn; false when the turn ended first, no turn
+   *   was running, or the agent does not take it. Send it as the next prompt then.
+   */
+  steer(sessionId: string, text: string, images?: PromptImage[]): Promise<boolean>;
   /** Sends `session/cancel` and answers the session's open permission requests `cancelled`. */
   cancel(sessionId: string): Promise<void>;
   on<K extends keyof Events>(event: K, listener: Listener<Events[K]>): () => void;
@@ -310,6 +345,14 @@ export async function startAgent(
     throw error;
   }
 
+  /** The prompt as ACP blocks; images only for an agent that accepts them. */
+  const blocks = (text: string, images: PromptImage[]): ContentBlock[] => {
+    const accepted = init.agentCapabilities?.promptCapabilities?.image === true ? images : [];
+    const prompt: ContentBlock[] = [{ type: "text", text }];
+    for (const i of accepted) prompt.push({ type: "image", data: i.data, mimeType: i.mimeType });
+    return prompt;
+  };
+
   return {
     profile,
     agentName: init.agentInfo?.name ?? profile.name,
@@ -332,13 +375,23 @@ export async function startAgent(
       return res.sessionId;
     },
     async prompt(sessionId, text, images = []) {
-      const accepted = init.agentCapabilities?.promptCapabilities?.image === true ? images : [];
-      const prompt: ContentBlock[] = [{ type: "text", text }];
-      for (const i of accepted) prompt.push({ type: "image", data: i.data, mimeType: i.mimeType });
+      const prompt = blocks(text, images);
       const res = await whileAlive(
         agent.request(methods.agent.session.prompt, { sessionId, prompt }),
       );
       return { stopReason: res.stopReason };
+    },
+    steers: takesSteering(init.agentCapabilities),
+    async steer(sessionId, text, images = []) {
+      if (!takesSteering(init.agentCapabilities)) return false;
+      const params: SteerParams = { sessionId, prompt: blocks(text, images) };
+      try {
+        const res = await whileAlive(agent.request<SteerResponse>(STEER_METHOD, params));
+        return res?.delivered === true;
+      } catch {
+        // Whatever went wrong, the message did not reach the turn; it goes as the next prompt.
+        return false;
+      }
     },
     async cancel(sessionId) {
       for (const request of [...open.values()]) {

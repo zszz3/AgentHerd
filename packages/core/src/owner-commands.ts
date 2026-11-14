@@ -6,7 +6,7 @@ import { join, resolve } from "node:path";
 import type { AskView, Inbound, InboundFile, InboundImage, MessageRef } from "@agentherd/protocol";
 import type { Timer } from "./clock.ts";
 import { parseCommand } from "./commands.ts";
-import { type HerdContext, openTasks, say, type TaskOps } from "./herd-context.ts";
+import { type HerdContext, openTasks, say, steerable, type TaskOps } from "./herd-context.ts";
 import type { OwnerImage } from "./herder-port.ts";
 import { HERDER_RETRY_TARGET } from "./herder-port.ts";
 import { DEFAULT_TIMEOUT_MINUTES } from "./inbox.ts";
@@ -221,7 +221,9 @@ export class OwnerCommands {
         }
         const f = ctx.following.get(taskId);
         ctx.store.audit(taskId === relay?.taskId ? "relay.message" : "reply.message", { taskId });
-        if (f?.busy === true) await say(ctx, ctx.texts.queued);
+        // An agent that takes it reads the message at its next step; others at the turn's end.
+        if (f?.busy === true)
+          await say(ctx, steerable(f, "owner") ? ctx.texts.steered : ctx.texts.queued);
         void this.tasks.promptTask(taskId, command.text, images).catch(() => {});
         return;
       }
