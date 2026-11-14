@@ -1,6 +1,6 @@
-// 应用连接 › 监听 (ADR 0058): everything AgentHerd watches for the owner — pull requests, mail, new
+// 定时任务 › 在盯的 (ADR 0058): everything AgentHerd watches for the owner — pull requests, mail, new
 // GitHub work and platform notices. The Herder adds them in chat; here the owner can pause one or
-// remove it. Platform watches are switched under 平台, so they cannot be removed here.
+// remove it. Platform watches are switched in 应用连接 › 账号, so they cannot be removed here.
 
 import type { WatchView } from "@agentherd/host/api";
 import { Eye, Loader2, Trash2 } from "lucide-react";
@@ -78,7 +78,7 @@ function WatchRow({ watch }: { watch: WatchView }) {
 export function WatchesSection() {
   const watches = useApp((s) => s.watches);
   return (
-    <Section title="监听" hint="跟主管说一句也能开关">
+    <Section title="在盯的" hint="跟主管说「帮我盯着…」就会加进来，说一句也能暂停">
       <Group>
         {watches === undefined ? (
           <div className="flex items-center gap-2 px-4 py-3 text-ink-muted text-md">
@@ -86,10 +86,7 @@ export function WatchesSection() {
             正在加载…
           </div>
         ) : watches.length === 0 ? (
-          <EmptyState
-            icon={<Eye size={18} />}
-            text="还没有在盯的东西。跟主管说「帮我盯着…」就会出现在这里。"
-          />
+          <EmptyState icon={<Eye size={18} />} text="还没有在盯的东西" />
         ) : (
           watches.map((w) => <WatchRow key={w.id} watch={w} />)
         )}

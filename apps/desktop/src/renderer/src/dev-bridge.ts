@@ -119,12 +119,18 @@ function installFakeBridge(): void {
             { slug: "gmail", name: "Gmail", connected: true, connecting: false },
             { slug: "github", name: "GitHub", connected: false, connecting: false },
             { slug: "slack", name: "Slack", connected: false, connecting: false },
-            { slug: "notion", name: "Notion", connected: false, connecting: false },
+            { slug: "notion", name: "Notion", connected: true, connecting: false },
           ],
         }
       : { hasKey: false, apps: [] };
   const appsChanged = (): void => emit({ topic: "apps", data: structuredClone(apps) });
-  let socials: SocialView[] = sampleSocials();
+  // `?fail=zhihu` shows a platform in error, which opens its row on 应用连接.
+  const failing = new URLSearchParams(window.location.search).get("fail");
+  let socials: SocialView[] = sampleSocials().map((s) =>
+    s.platform === failing
+      ? { ...s, accepted: true, enabled: true, state: "failed", problem: "浏览器没能打开登录页" }
+      : s,
+  );
   let watches: WatchView[] = sampleWatches(sim === "empty" || sim === "no-agent");
   let lark: LarkView = sampleLark(sim === "empty" || sim === "no-agent");
   let feeds: FeedView[] = sampleFeeds();

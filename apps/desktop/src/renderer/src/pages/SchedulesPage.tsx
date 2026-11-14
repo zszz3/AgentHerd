@@ -1,12 +1,14 @@
 // 定时任务: what the Herder does at set times (ADR 0055). Schedules are made by talking to the
-// Herder; here the owner sees them and can pause, resume or remove one.
+// Herder; here the owner sees them and can pause, resume or remove one. Under them, 在盯的 lists
+// what AgentHerd watches for the owner (pull requests, mail, new GitHub work, platform notices).
 
 import type { SchedulesView } from "@agentherd/host/api";
 import { CalendarClock, Trash2 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { Button, EmptyState, Group, Switch } from "../components/ui";
+import { WatchesSection } from "../components/WatchesSection";
 import { nextText, type Schedule, whenText } from "../schedule-text";
-import { call } from "../store";
+import { call, useApp } from "../store";
 
 /** The Herder changes schedules in chat, and a run moves the next time; look again now and then. */
 const REFRESH_MS = 30_000;
@@ -53,7 +55,8 @@ function ScheduleRow({
   );
 }
 
-export function SchedulesPage() {
+/** The Herder's schedules, or why there are none. */
+function Schedules() {
   const [view, setView] = useState<SchedulesView | undefined>();
   const load = useCallback(async () => {
     const v = await call((h) => h.schedules());
@@ -92,5 +95,17 @@ export function SchedulesPage() {
         <ScheduleRow key={s.id} schedule={s} onChange={setView} />
       ))}
     </Group>
+  );
+}
+
+export function SchedulesPage() {
+  useEffect(() => {
+    void call((h) => h.watches()).then((watches) => watches && useApp.setState({ watches }));
+  }, []);
+  return (
+    <div className="flex flex-col gap-7">
+      <Schedules />
+      <WatchesSection />
+    </div>
   );
 }

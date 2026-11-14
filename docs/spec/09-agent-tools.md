@@ -72,7 +72,7 @@ goes on the task board ([ADR 0061](../adr/0061-small-news-on-the-board.md)).
 
 ## 3. Apps through Composio
 
-### Setup (desktop app, 应用连接 → 应用)
+### Setup (desktop app, 应用连接 → 账号 → 更多应用)
 
 1. The owner pastes a Composio API key (from platform.composio.dev). The host checks it with one
    API call and stores it in `secrets.json` under `composio`; the UI can replace or remove it, never
@@ -206,7 +206,7 @@ Algolia search) and arXiv (export API, newest first). Agents get `GITHUB_TRENDIN
 `HACKER_NEWS` and `ARXIV_SEARCH` beside the Composio tools, read-only, never asking. The Herder
 reads them with `feed_read` (04-herder).
 
-**Notes.** Notion is a Composio app (§3). An Obsidian vault folder set in 应用连接 → 笔记
+**Notes.** Notion is a Composio app (§3). An Obsidian vault folder set in 应用连接 → 账号 → Obsidian
 (`obsidianVault` in config.json, checked to exist) is told to every new task like lark-cli.
 
 ## 4. Failure behavior

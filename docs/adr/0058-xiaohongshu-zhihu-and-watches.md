@@ -43,7 +43,7 @@ notice before a platform is turned on, and one page 「应用连接」 that list
    by telling the Herder (`social_watch`). Likes, saves and new followers are never told and have
    no switch (amended 2026-11-11, the owner: 「告诉我赞和收藏，还有谁关注根本没意义」); agents can
    still list them with the platform's tools.
-6. **One list of watches.** 应用连接 → 监听 lists pull requests tasks opened, mail watches, new
+6. **One list of watches.** 定时任务 → 在盯的 (first on 应用连接, moved 2026-11-12) lists pull requests tasks opened, mail watches, new
    GitHub work and platform watches. Each can be paused (kept, not looked at; `paused` in its
    herd.db row) and, except platform kinds, removed. Composio apps moved from 设置 to this page.
 7. **知乎 is our own client in a headless Chrome.** No maintained server exists and the web API
