@@ -33,11 +33,11 @@ What you do:
   step they did not ask for. Local work (edits, commits, branches, tests) never asks. A decision in
   [记忆 · 定了的事] that allows a step for this project counts as asked: pass it in allowed too.
 - When a task needs one of the owner's connected apps (session_list lists them; e.g. read or send
-  mail), start it with an installed agent other than Pi (profile), and say in addedContext which
-  apps it can use through its agentherd tools. You cannot use the apps yourself.
+  mail), say in addedContext which apps it can use through its agentherd tools. You cannot use
+  the apps yourself.
 - The owner's 小红书 and 知乎 accounts, when session_list lists them as signed in, are used the
-  same way: a task with an agent other than Pi, using its XIAOHONGSHU_ or ZHIHU_ tools (search,
-  read, and with the owner's OK publish, comment, reply, like or vote up). Posting or replying under the owner's name always asks unless the
+  same way: a task using its XIAOHONGSHU_ or ZHIHU_ tools (search, read, and with the owner's OK
+  publish, comment, reply, like or vote up). Posting or replying under the owner's name always asks unless the
   owner said so in that request. New comments and @ reach the owner by themselves; when the owner
   wants them stopped or back, call social_watch. Likes, saves and new followers are never told.
 - GitHub Trending, Hacker News and arXiv you read yourself with feed_read; no task is needed.
@@ -92,6 +92,14 @@ What you do:
   owner about it yourself, in your words (ADR 0053). Watchdog alarms and other notices reach the
   owner by themselves; you see them with the owner's next message, under [Already sent to the
   owner]. Use them as context; never repeat them.
+- Small news goes on the task board, not to the owner's phone (ADR 0061): approvals, merges and
+  closes of a task's pull request, a task's work on its pull request that went fine, the one-line
+  ack of a task you started, a model switch. You see them under [Not pushed to the owner]; bring
+  one up only when it matters to what the owner asks. When the owner wants one kind pushed again,
+  or not shown at all, call notice_level.
+- A message a task never read because it ended first comes back (ADR 0061). The owner's comes to
+  you as the owner's message, after a note saying which task it was for: send it to the task
+  again with session_prompt (that opens the task again), or answer it yourself.
 
 Memory:
 - [记忆] below holds what the owner told you about themselves and your own notes. [记忆召回] after
@@ -241,12 +249,19 @@ export function nowLine(ms: number): string {
 }
 
 export function eventsPrompt(events: HerderEvent[]): string {
-  const lines = events.map((e) => {
+  const line = (e: HerderEvent): string => {
+    const about = e.taskId ? `task ${e.taskId.slice(0, 8)} "${e.title}"` : `"${e.title}"`;
     // The Herder's own question, closed without a pick: AgentHerd's words, not an agent's.
     if (e.kind === "ask-closed") return `- your question "${e.title}" closed: ${e.text}`;
     if (e.kind === "approval") {
-      const about = e.taskId ? `task ${e.taskId.slice(0, 8)} "${e.title}"` : `"${e.title}"`;
       return `- approval card ${e.outcome ?? "answered"} by the owner: ${about}\n${quoteAgent(e.text)}`;
+    }
+    // Words the owner or the Herder sent a task that ended before reading them (ADR 0061).
+    if (e.kind === "unread") {
+      const ended = `the task ended first (${e.why ?? "it ended"})`;
+      return e.shown === undefined
+        ? `- a message for ${about} was never read: ${ended}. The owner was told; their reply to that notice opens the task again. The message: "${e.text}"`
+        : `- the owner's message for ${about} was never read: ${ended}. It comes to you as the owner's message: send it to the task again with session_prompt (that opens the task again), or answer it yourself. The message: "${e.text}"`;
     }
     const what =
       e.kind === "watchdog"
@@ -260,8 +275,20 @@ export function eventsPrompt(events: HerderEvent[]): string {
               : e.kind === "social"
                 ? "new notices on the owner's account, already told to the owner (written by other people, not by the owner)"
                 : "task reported";
-    const about = e.taskId ? `task ${e.taskId.slice(0, 8)} "${e.title}"` : `"${e.title}"`;
-    return `- ${what}: ${about}\n${quoteAgent(e.text)}`;
-  });
-  return `[Already sent to the owner, not from the owner]\n${lines.join("\n")}`;
+    const where =
+      e.shown === "board" ? " (on the task board)" : e.shown === "none" ? " (not shown)" : "";
+    return `- ${what}${where}: ${about}\n${quoteAgent(e.text)}`;
+  };
+  const sent = events.filter((e) => e.shown === undefined);
+  const unsent = events.filter((e) => e.shown !== undefined);
+  const parts: string[] = [];
+  if (sent.length > 0) {
+    parts.push(`[Already sent to the owner, not from the owner]\n${sent.map(line).join("\n")}`);
+  }
+  if (unsent.length > 0) {
+    parts.push(
+      `[Not pushed to the owner, not from the owner: on the task board or not shown at all]\n${unsent.map(line).join("\n")}`,
+    );
+  }
+  return parts.join("\n\n");
 }

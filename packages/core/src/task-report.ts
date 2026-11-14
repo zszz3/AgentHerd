@@ -1,10 +1,12 @@
 // Task reports: the completion report, watchdog alarms, and the stage on the board.
 
 import type { AgentConnection } from "@agentherd/acp-client";
+import type { MessageRef, TextTone } from "@agentherd/protocol";
 import type { Timer } from "./clock.ts";
 import { type Following, firstLine, type HerdContext, say } from "./herd-context.ts";
 import type { VoiceRequest } from "./herder-port.ts";
 import type { HerdReport } from "./mcp-gateway.ts";
+import { type NoticeKind, type NoticeLevel, noticeLevel } from "./notices.ts";
 import {
   REPORT_MAX_WORDS,
   type ReportBody,
@@ -21,6 +23,29 @@ export function setReport(ctx: HerdContext, f: Following, text: string): void {
   f.task.lastReport = text;
   f.task.updatedAt = ctx.clock.now().toISOString();
   ctx.board.changed();
+}
+
+/**
+ * An informational notice about a task (ADR 0061): pushed to the owner, written only into the
+ * task's row on the board, or just audited, as the owner chose for its kind. Without a task row
+ * on the board it is pushed.
+ * @returns how it went out.
+ */
+export async function notice(
+  ctx: HerdContext,
+  kind: NoticeKind,
+  f: Following | undefined,
+  text: string,
+  options: { tone?: TextTone; replyTo?: MessageRef } = {},
+): Promise<NoticeLevel> {
+  const chosen = noticeLevel(ctx.store, kind);
+  const level = chosen === "board" && f === undefined ? "push" : chosen;
+  ctx.store.audit("notice", { kind, level, ...(f === undefined ? {} : { taskId: f.task.id }) });
+  if (level === "board" && f !== undefined) setReport(ctx, f, text);
+  if (level === "push") {
+    await say(ctx, text, f?.task.title, options.tone, f?.task.id, options.replyTo);
+  }
+  return level;
 }
 
 /**
@@ -69,6 +94,13 @@ export function applyReport(ctx: HerdContext, f: Following, report: HerdReport):
 
 /** How long a message waits for the Herder's words before it goes out without them. */
 export const VOICE_TIMEOUT_MS = 3 * 60_000;
+
+/** Characters of a task's reply the Herder gets with a result that did not ring the phone. */
+export const EVENT_REPLY_MAX = 1000;
+
+function clip(text: string, max: number): string {
+  return text.length <= max ? text : `${text.slice(0, max - 1)}…`;
+}
 
 /**
  * The Herder's words for a task's result (ADR 0053): "" when it chose to say nothing, undefined
@@ -141,9 +173,29 @@ export async function sendReport(
   toOwner = true,
 ): Promise<void> {
   restage(ctx, f);
-  const speaks = toOwner && ctx.herder()?.voice !== undefined;
   // The agent's own report of a turn that ended normally speaks first (ADR 0049).
   const own = ask !== null && f.report !== undefined && f.report.state !== "progress";
+  // A turn its pull request woke that the task handled on its own goes on the board, not to the
+  // phone, unless the owner asked otherwise; needing the owner, stuck or failed is pushed (ADR 0061).
+  if (toOwner && f.turnFrom === "pull-request" && reportResult(f.task.stage) === "done") {
+    const level = noticeLevel(ctx.store, "pr-follow-up");
+    if (level !== "push") {
+      const summary = own && f.report !== undefined ? f.report.summary : undefined;
+      ctx.store.audit("report.unpushed", { taskId: f.task.id, level });
+      if (level === "board") {
+        setReport(ctx, f, summary ?? (firstLine(reply) || ctx.texts.noReply));
+      }
+      ctx.herder()?.event({
+        kind: "task-reported",
+        taskId: f.task.id,
+        title: f.task.title,
+        text: summary ?? clip(reply.trim(), EVENT_REPLY_MAX),
+        shown: level === "board" ? "board" : "none",
+      });
+      return;
+    }
+  }
+  const speaks = toOwner && ctx.herder()?.voice !== undefined;
   let body: ReportBody;
   if (speaks) {
     const words = await voice(ctx, {

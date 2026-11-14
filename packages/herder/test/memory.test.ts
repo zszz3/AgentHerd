@@ -452,4 +452,40 @@ describe("decisions (ADR 0057)", () => {
     expect(text).toContain('approval card skipped by the owner: task abcdef12 "修登录"');
     expect(text).toContain("git push");
   });
+
+  it("the Herder sees apart what reached the owner and what did not (ADR 0061)", () => {
+    const text = eventsPrompt([
+      { kind: "watchdog", taskId: "abcdef1234", title: "修登录", text: "same call 3 times" },
+      {
+        kind: "github",
+        taskId: "abcdef1234",
+        title: "修登录",
+        text: "bob approved",
+        shown: "board",
+      },
+      {
+        kind: "unread",
+        taskId: "abcdef1234",
+        title: "修登录",
+        text: "顺便把 lint 修了",
+        why: "任务被结束了",
+        shown: "none",
+      },
+    ]);
+    const [sent, unsent] = text.split("\n\n");
+    expect(sent).toMatch(/^\[Already sent to the owner, not from the owner\]\n- watchdog alarm:/);
+    expect(sent).not.toContain("bob approved");
+    expect(unsent).toMatch(/^\[Not pushed to the owner, not from the owner/);
+    expect(unsent).toContain(
+      'activity on the task\'s pull request (on the task board): task abcdef12 "修登录"',
+    );
+    expect(unsent).toContain(
+      `the owner's message for task abcdef12 "修登录" was never read: the task ended first (任务被结束了)`,
+    );
+    expect(unsent).toContain('The message: "顺便把 lint 修了"');
+    // Only what was not sent: no empty group.
+    expect(eventsPrompt([{ kind: "github", title: "x", text: "y", shown: "none" }])).toMatch(
+      /^\[Not pushed to the owner/,
+    );
+  });
 });

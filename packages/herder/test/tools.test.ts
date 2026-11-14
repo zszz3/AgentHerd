@@ -1,7 +1,7 @@
 import { mkdirSync, mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
-import { type Schedule, Store } from "@agentherd/core";
+import { DEFAULT_NOTICE_LEVELS, type Schedule, Store } from "@agentherd/core";
 import { describe, expect, it } from "vitest";
 import { placeModels, type TierPlacement } from "../src/model-guide.ts";
 import { CONTEXT_LABEL, composeTaskPrompt, OWNER_LABEL, quoteAgent } from "../src/prompt.ts";
@@ -256,8 +256,14 @@ describe("tools", () => {
       {},
     );
     expect(some).toContain(
-      "Connected apps (agents other than Pi use them through their agentherd tools): Gmail, GitHub",
+      "Connected apps (agents use them through their agentherd tools): Gmail, GitHub",
     );
+  });
+
+  it("systemPrompt allows any agent (including Pi) to use apps and platforms", async () => {
+    const { systemPrompt } = await import("../src/prompt.ts");
+    expect(systemPrompt("zh-CN")).not.toContain("other than Pi");
+    expect(systemPrompt("en")).not.toContain("other than Pi");
   });
 
   it("session_list shows the models and session_start passes the chosen one", async () => {
@@ -779,6 +785,32 @@ describe("schedules (ADR 0055)", () => {
         call("schedule_add", { about: "x", prompt: "y", kind: "every", hours: 1 }),
       ).rejects.toThrow(/only the owner/);
       expect(schedules).toEqual([]);
+    }
+  });
+});
+
+describe("notice levels (ADR 0061)", () => {
+  it("the owner moves one kind of small news between the phone, the board and nowhere", async () => {
+    expect(tools({}).names).not.toContain("notice_level");
+    const notices = { ...DEFAULT_NOTICE_LEVELS };
+    const { call } = tools({}, { notices });
+    const list = await call("session_list", {});
+    expect(list).toContain("- pr-merged: board (a task's pull request was merged)");
+    expect(await call("notice_level", { kind: "pr-merged", level: "push" })).toContain(
+      "pr-merged now goes to: push",
+    );
+    expect(notices["pr-merged"]).toBe("push");
+    expect(await call("session_list", {})).toContain("- pr-merged: push");
+  });
+
+  it("only for the owner", async () => {
+    for (const kind of ["event", "intake", "scheduled"] as const) {
+      const notices = { ...DEFAULT_NOTICE_LEVELS };
+      const { call } = tools({ kind }, { notices });
+      await expect(call("notice_level", { kind: "task-ack", level: "off" })).rejects.toThrow(
+        /only the owner/,
+      );
+      expect(notices["task-ack"]).toBe("board");
     }
   });
 });

@@ -193,6 +193,11 @@ export interface Following {
   acked?: boolean;
   /** The owner's message that asked for the current turn; the ack replies to it. */
   trigger?: MessageRef;
+  /**
+   * Who asked for the current turn (or the first one, before it runs). It decides whether the
+   * turn's lines reach the owner's phone or only the task board (ADR 0061).
+   */
+  turnFrom?: PromptFrom;
   /** The current turn is AgentHerd's own check on background work. */
   waking?: boolean;
   /** The turn ended with work still running in the background: checks so far, the next one. */
@@ -218,9 +223,17 @@ export interface Following {
   idleTimer?: Timer;
 }
 
+/**
+ * Who a prompt for a task comes from (ADR 0061): the owner writing to the task, the Herder (for
+ * the owner), or AgentHerd waking the task about its pull request.
+ */
+export type PromptFrom = "owner" | "herder" | "pull-request";
+
 export interface QueuedPrompt {
   text: string;
   images: OwnerImage[];
+  /** Who sent it; the owner when not set. */
+  from?: PromptFrom;
   /** AgentHerd's own prompt asking about background work, not the owner's. */
   wake?: boolean;
   /** The owner's message this prompt answers. */
@@ -277,9 +290,20 @@ export interface TaskOps {
     model?: string,
     images?: OwnerImage[],
     allowed?: readonly OutboundStep[],
+    from?: PromptFrom,
   ): Promise<{ taskId: string; turn: Promise<RunResult> }>;
-  promptTask(taskId: string, text: string, images?: OwnerImage[]): Promise<RunResult>;
-  interruptTask(taskId: string, text: string, images?: OwnerImage[]): Promise<RunResult>;
+  promptTask(
+    taskId: string,
+    text: string,
+    images?: OwnerImage[],
+    from?: PromptFrom,
+  ): Promise<RunResult>;
+  interruptTask(
+    taskId: string,
+    text: string,
+    images?: OwnerImage[],
+    from?: PromptFrom,
+  ): Promise<RunResult>;
   endTask(taskId: string, why: string): Promise<void>;
   /** Puts the task's version of the files both it and the owner changed into the project. */
   takeTaskVersion(taskId: string): Promise<void>;

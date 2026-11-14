@@ -3,7 +3,8 @@
 Applied ADRs: [0019](../adr/0019-relay-verbatim-board-and-reports.md),
 [0029](../adr/0029-only-mass-deletes-ask-the-owner.md),
 [0056](../adr/0056-leaving-the-mac-asks-and-questions-close.md),
-[0041](../adr/0041-agent-tools-through-a-local-mcp-gateway.md).
+[0041](../adr/0041-agent-tools-through-a-local-mcp-gateway.md),
+[0060](../adr/0060-pi-tools-through-the-mcp-gateway.md).
 
 AgentHerd gives every task one MCP server, `agentherd`. Through it the agent reports progress
 (`herd_report`) and, when the owner has connected apps, uses them (Gmail, Slack, GitHub …)
@@ -27,8 +28,9 @@ flowchart LR
   `mcpServers: [{ name: "agentherd", command, args, env }]` (stdio). `command`/`args` run
   `packages/host/bin/agentherd-mcp.ts` with the host's Node (`process.execPath`, `ELECTRON_RUN_AS_NODE=1` in the
   app). `env` has `AGENTHERD_MCP_SOCKET` (the gateway socket) and `AGENTHERD_MCP_TOKEN`.
-- A profile with `mcp: false` gets `mcpServers: []` as before. The Pi bridge ignores
-  `mcpServers` (Pi has no MCP); Pi tasks keep the stop-reason fallback and have no apps.
+- A profile with `mcp: false` gets `mcpServers: []` as before. The Pi bridge (`packages/pi-acp`,
+  ADR 0060) queries `tools/list` on stdio `mcpServers` when a session starts or loads and
+  registers their tools in Pi via `extension/mcp.ts`.
 - The relay script does no MCP itself: it reads newline-delimited JSON-RPC from stdin, sends each
   message to the socket with the token, and writes the answers to stdout. When the socket closes
   it exits.
@@ -64,7 +66,9 @@ belongs to, and answers `"reported"`. The core treats it as the agent report sou
 `herd_ack(text)` ([ADR 0046](../adr/0046-tell-the-owner-at-the-right-time.md), ADR 0049): one line
 (≤ 30 words) sent to the owner at once, labeled with the task, as a reply to the owner's message
 that started the turn when there is one. Once per turn, only while a turn runs, and not in turns
-AgentHerd started itself; otherwise, or when longer, the answer is a tool error.
+AgentHerd started itself; otherwise, or when longer, the answer is a tool error. In a turn the
+owner did not ask for directly (the Herder started it, or its pull request woke it) the line only
+goes on the task board ([ADR 0061](../adr/0061-small-news-on-the-board.md)).
 
 ## 3. Apps through Composio
 
@@ -144,11 +148,11 @@ redaction (06-security §2).
 
 ### What the Herder knows
 
-- `session_list` gains a line `Connected apps (agents other than Pi use them through their
-  agentherd tools): Gmail, GitHub` (nothing without a key or without connected apps). The names
-  are the ones last read from Composio; the host reads them at start and after each change.
-- When the owner's request needs an app, the Herder starts the task with an installed agent that is
-  not Pi (`profile`) and says in `addedContext` which apps it can use through its agentherd tools.
+- `session_list` gains a line `Connected apps (agents use them through their agentherd tools): Gmail, GitHub`
+  (nothing without a key or without connected apps). The names are the ones last read from Composio;
+  the host reads them at start and after each change.
+- When the owner's request needs an app, the Herder says in `addedContext` which apps the task can
+  use through its agentherd tools.
 - The Herder has no app tools.
 
 ### Which Composio tools agents see

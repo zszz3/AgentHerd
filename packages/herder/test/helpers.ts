@@ -8,6 +8,8 @@ import type {
   IntakeWatch,
   MailWatch,
   MemoryStore,
+  NoticeKind,
+  NoticeLevel,
   Schedule,
   Task,
 } from "@agentherd/core";
@@ -162,6 +164,8 @@ export function fakeHost(
     toolNotes?: string[];
     /** A news source answer; reads are recorded in rec.state "feeds" (ADR 0059). */
     feed?: FeedItem[];
+    /** Where small news goes, kept in memory (ADR 0061). */
+    notices?: Record<NoticeKind, NoticeLevel>;
   } = {},
 ): {
   host: HerderHost;
@@ -229,6 +233,14 @@ export function fakeHost(
     ...(opts.intake === undefined ? {} : intakeHost(opts.intake)),
     ...(opts.schedules === undefined ? {} : scheduleHost(opts.schedules)),
     ...(opts.toolNotes === undefined ? {} : { toolNotes: () => opts.toolNotes ?? [] }),
+    ...(opts.notices === undefined
+      ? {}
+      : {
+          noticeLevels: () => ({ ...(opts.notices as Record<NoticeKind, NoticeLevel>) }),
+          setNoticeLevel: (kind: NoticeKind, level: NoticeLevel) => {
+            (opts.notices as Record<NoticeKind, NoticeLevel>)[kind] = level;
+          },
+        }),
     ...(opts.feed === undefined
       ? {}
       : {
