@@ -46,7 +46,10 @@ export class PetWindow {
       const w = this.own(e);
       if (w === undefined || this.dragFrom === undefined) return;
       if (typeof dx !== "number" || typeof dy !== "number") return;
-      w.setPosition(Math.round(this.dragFrom.x + dx), Math.round(this.dragFrom.y + dy));
+      const x = windowCoordinate(this.dragFrom.x + dx);
+      const y = windowCoordinate(this.dragFrom.y + dy);
+      if (x === undefined || y === undefined) return;
+      w.setPosition(x, y);
     });
     ipcMain.on("pet:drag-end", (e) => {
       const w = this.own(e);
@@ -204,6 +207,13 @@ export class PetWindow {
       // the pet just starts in the corner next time
     }
   }
+}
+
+function windowCoordinate(value: number): number | undefined {
+  const rounded = Math.round(value);
+  if (!(rounded >= -(2 ** 31) && rounded < 2 ** 31)) return undefined;
+  // Electron's integer conversion rejects the negative zero produced by Math.round.
+  return rounded === 0 ? 0 : rounded;
 }
 
 function clamp(n: number, min: number, max: number): number {

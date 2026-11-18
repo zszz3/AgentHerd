@@ -66,6 +66,10 @@ The flow for one permission request on the ACP path:
 
 The core is the only process that holds state.
 
+The desktop pet can be dragged across the screen origin, including onto displays with negative
+coordinates. Main rounds drag positions to native window coordinates and skips a move if either
+coordinate cannot be represented ([ADR 0070](../adr/0070-a-desktop-pet.md)).
+
 ## 3. Packages
 
 ```text
