@@ -42,7 +42,8 @@
 4. **Tucked at a screen edge.** Dropped with more than a third of the figure past the left or right
    edge of its screen, the pet tucks there: only a 44 px strip of the figure shows. It comes out
    while the cursor is on it or its panel is open, and goes back 0.6 s after the cursor leaves.
-   Dragging it away untucks it. Where and whether it is tucked is kept with its position.
+   On Windows the dragged pet stays inside the work area and tucks when released against an exposed
+   left or right side. The pointer can cross to another display. Dragging it away untucks it. Where and whether it is tucked is kept with its position.
 
 ## Alternatives
 

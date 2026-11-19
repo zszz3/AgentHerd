@@ -38,3 +38,23 @@ export function tuckedX(edge: Edge, stage: Rect, area: Rect): number {
   if (edge === "right") return area.x + area.width - TUCK_SHOW - stage.x;
   return area.x + TUCK_SHOW - stage.x - stage.width;
 }
+
+/** Keep a Windows drag inside the work area that contains the pointer. */
+export function fitDrag(window: Rect, area: Rect) {
+  return {
+    x: Math.max(area.x, Math.min(window.x, area.x + area.width - window.width)),
+    y: Math.max(area.y, Math.min(window.y, area.y + area.height - window.height)),
+  };
+}
+
+/** A shared side leads to another display. Only exposed sides accept a tuck. */
+export function dropSide(window: Rect, area: Rect, otherDisplays: Rect[]): Edge | undefined {
+  const left = window.x === area.x;
+  if (!left && window.x + window.width !== area.x + area.width) return undefined;
+  const x = left ? area.x - 1 : area.x + area.width;
+  const shared = otherDisplays.some(
+    (r) =>
+      x >= r.x && x < r.x + r.width && window.y < r.y + r.height && window.y + window.height > r.y,
+  );
+  return shared ? undefined : left ? "left" : "right";
+}

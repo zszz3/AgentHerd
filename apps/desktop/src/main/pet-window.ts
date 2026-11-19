@@ -15,7 +15,7 @@ import {
   shell,
 } from "electron";
 import { hitPetRegion, type PetRegion } from "../shared/bridge.ts";
-import { type Edge, edgeOf, peekRight, tuckedX } from "../shared/pet-edge.ts";
+import { dropSide, type Edge, edgeOf, fitDrag, peekRight, tuckedX } from "../shared/pet-edge.ts";
 import { fileToOpen, type PictureDisk, pictureToShow } from "./open-file";
 import { petMenuItems } from "./pet-menu";
 
@@ -135,7 +135,7 @@ export class PetWindow {
       if (w === undefined || d === undefined) return false;
       this.stepDragWith(w, d);
       if (d.moved && this.anchor !== undefined) {
-        this.tuckIfPastEdge();
+        this.tuckOnDrop();
         this.saveCorner({
           ...this.anchor,
           ...(this.edge === undefined ? {} : { edge: this.edge }),
@@ -270,7 +270,7 @@ export class PetWindow {
    * Dropped with a third of the figure past the left or right edge of its screen: it tucks there
    * (ADR 0080). Its corner becomes where it stands when it peeks out.
    */
-  private tuckIfPastEdge(): void {
+  private tuckOnDrop(): void {
     const stage = this.regions?.[0];
     const b = this.lastPlaced;
     if (stage === undefined || b === undefined || this.anchor === undefined) return;
@@ -280,7 +280,21 @@ export class PetWindow {
       x: Math.round(figure.x + figure.width / 2),
       y: Math.round(figure.y + figure.height / 2),
     }).workArea;
-    const edge = edgeOf(figure, area);
+    let edge: Edge | undefined;
+    if (process.platform === "win32") {
+      const display = screen.getDisplayNearestPoint(screen.getCursorScreenPoint());
+      edge = dropSide(
+        { ...b, ...this.size },
+        display.workArea,
+        screen
+          .getAllDisplays()
+          .filter((other) => other.id !== display.id)
+          .map((other) => other.bounds),
+      );
+      if (edge !== undefined) this.peeking = false;
+    } else {
+      edge = edgeOf(figure, area);
+    }
     if (edge === undefined) return;
     this.edge = edge;
     this.anchor = { ...this.anchor, right: peekRight(edge, stage, this.size.width, area) };
@@ -385,8 +399,19 @@ export class PetWindow {
     const dy = cursor.y - d.cursorY;
     if (!d.moved && Math.abs(dx) + Math.abs(dy) < 4) return;
     d.moved = true;
-    const x = Math.round(d.x + dx);
-    const y = Math.round(d.y + dy);
+    let x = Math.round(d.x + dx);
+    let y = Math.round(d.y + dy);
+    if (process.platform === "win32") {
+      ({ x, y } = fitDrag(
+        { x, y, width: d.width, height: d.height },
+        screen.getDisplayNearestPoint(cursor).workArea,
+      ));
+      // Consume even the blocked part of the motion so reversing moves inward immediately.
+      d.x = x;
+      d.y = y;
+      d.cursorX = cursor.x;
+      d.cursorY = cursor.y;
+    }
     this.anchor = { right: x + d.width, bottom: y + d.height };
     if (this.lastPlaced?.x === x && this.lastPlaced?.y === y) return;
     this.lastPlaced = { x, y };
