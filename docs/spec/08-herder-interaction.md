@@ -223,3 +223,15 @@ A turn that failed is rolled back out of `herder_log` (ADR 0037), so it shows on
 - The owner's lasting requests (kind 关于你) now go into every new task's prompt too: the agent writes the report the owner reads.
 - An agent that fails to start a task (Codex killed on this Mac) sits out new tasks for 30 minutes, so each task does not post another 「换成 Pi」 card.
 - Herder error cards show the API's own message (status code + message, at most 160 characters), not the JSON body; a key or balance error also says what to fix.
+
+### Desktop pet edge grip
+
+After an outward push and release at either side of a display, Claude slides into
+the edge grip over 300 ms. Both hands meet the same edge. A pointer already on
+the figure must leave and enter again to reveal the full figure. Leaving starts
+a 600 ms return timer. Entering cancels it. Both poses share a window anchor,
+and blank margins pass clicks through in both poses. The grip accepts clicks on
+its opaque pixels and the visible task dots and pending badge. A task dot opens
+Tasks. The badge opens pending cards, or chat when it only counts unread messages.
+Opening the panel shows the full figure. Restoring a saved tuck shows the resting pose immediately.
+Other figures keep the edge strip described in ADR 0080.

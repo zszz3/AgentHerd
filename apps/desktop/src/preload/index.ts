@@ -3,7 +3,7 @@
 import type { HostEvent, HostMethod, RemoteHost } from "@agentherd/host/api";
 import { HOST_METHODS } from "@agentherd/host/api";
 import { contextBridge, ipcRenderer, webUtils } from "electron";
-import type { Bridge, PetRoom } from "../shared/bridge.ts";
+import type { Bridge, PetPose, PetRoom } from "../shared/bridge.ts";
 import type { PetArm, ShortcutState } from "../shared/pet-shortcuts.ts";
 
 const host = Object.fromEntries(
@@ -24,7 +24,8 @@ const bridge: Bridge = {
     dragStart: () => ipcRenderer.send("pet:drag-start"),
     dragMove: () => ipcRenderer.send("pet:drag-move"),
     dragEnd: () => ipcRenderer.invoke("pet:drag-end") as Promise<boolean>,
-    resize: (width, height, regions) => ipcRenderer.send("pet:resize", width, height, regions),
+    resize: (width, height, regions, gripHits) =>
+      ipcRenderer.send("pet:resize", width, height, regions, gripHits),
     interacting: (active) => ipcRenderer.send("pet:interacting", active),
     onMouseLeave(listener) {
       const handler = () => listener();
@@ -51,7 +52,12 @@ const bridge: Bridge = {
       return () => ipcRenderer.removeListener("pet:arm", handler);
     },
     disarm: () => ipcRenderer.send("pet:disarm"),
-    peek: (on) => ipcRenderer.send("pet:peek", on),
+    peek: (state) => ipcRenderer.send("pet:peek", state),
+    onPose(listener) {
+      const handler = (_e: unknown, pose: PetPose) => listener(pose);
+      ipcRenderer.on("pet:pose", handler);
+      return () => ipcRenderer.removeListener("pet:pose", handler);
+    },
     float: (on) => ipcRenderer.send("pet:float", on),
   },
   onConnection(listener) {

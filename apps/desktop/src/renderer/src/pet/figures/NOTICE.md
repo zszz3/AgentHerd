@@ -1,6 +1,6 @@
 # Pet figures
 
-Every image in this folder is cut from a community Codex pet sprite sheet and re-laid out as in
+Each sprite sheet in this folder is cut from a community Codex pet sprite sheet and re-laid out as in
 `../sprite.ts` (rows idle, running, waiting, jumping, failed, one sleeping frame, waving, review,
 running right, running left). **None of them is under AgentHerd's MIT license.** All of them
 forbid commercial use: anyone shipping AgentHerd commercially must remove them or get permission
@@ -14,6 +14,11 @@ from their makers and from the rights holders of the characters (ADR 0070, ADR 0
 |---|---|---|
 | `deepseek.webp` | 大肥鱼 | [pets/deepseek-chibi](https://github.com/savanna0425/llm-pet/tree/main/pets/deepseek-chibi) |
 | `claude.webp` | Claude 娘 | [pets/claude-chibi](https://github.com/savanna0425/llm-pet/tree/main/pets/claude-chibi) |
+
+The separate `poses/claude-edge.webp` is an AI-assisted adaptation of ZipZipPipe's Claude
+design for the edge grip. Its right border is the hand alignment line. The left
+pose mirrors it. The same credit and noncommercial terms apply.
+[Upstream notice](https://github.com/savanna0425/llm-pet/blob/main/NOTICE.md).
 
 - Art: Bilibili artist ZipZipPipe (<https://space.bilibili.com/4168597>,
   <https://www.pixiv.net/artworks/148186519>).

@@ -32,3 +32,5 @@ new type, table, IPC channel or product string.
 | **Owner** | The one person allowed to act on items | admin, user (in code) |
 | **Card** | A channel message for one item | |
 | **Task** | One piece of work the Herder started for the owner, with its session(s) | job, ticket |
+| **Edge tuck** | The pet's resting position at the left or right edge of the desktop after the owner drops it there with an outward push | |
+| **Edge grip** | The pose in which a tucked pet holds the desktop edge with both hands and shows its head on the visible side | |

@@ -1420,3 +1420,54 @@ body {
   font-size: 13px;
   cursor: pointer;
 }
+
+.pet-stage > button.pet-badge {
+  pointer-events: auto;
+  border: 0;
+  cursor: pointer;
+  z-index: 1;
+}
+.pet-stage[data-docked="left"] .pet-badge {
+  left: 0;
+  right: auto;
+}
+.pet-stage[data-grip] > :not(.pet-figure, .pet-dots, .pet-badge) {
+  visibility: hidden;
+}
+.pet-stage[data-grip] .pet-figure {
+  position: absolute;
+  bottom: 0;
+  width: 56px;
+  height: 100px;
+  background-image: none;
+  animation: none;
+  transform: none;
+  filter: none;
+}
+.pet-stage[data-grip="right"] .pet-figure {
+  right: -8px;
+  --slide: -36px;
+}
+.pet-stage[data-grip="left"] .pet-figure {
+  left: -8px;
+  --slide: 36px;
+}
+.pet-stage[data-grip] img {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.pet-stage[data-grip="left"] img {
+  transform: scaleX(-1);
+}
+.pet-stage[data-enter] .pet-figure {
+  animation: pet-edge-enter 300ms ease-out both;
+}
+@keyframes pet-edge-enter {
+  from {
+    translate: var(--slide) 0;
+  }
+  to {
+    translate: 0 0;
+  }
+}
