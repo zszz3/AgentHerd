@@ -126,6 +126,7 @@ await fetchAgents(agents);
 rmSync(out, { recursive: true, force: true });
 mkdirSync(out, { recursive: true });
 const require = createRequire(import.meta.url);
+require("electron");
 const electron = dirname(require.resolve("electron/package.json"));
 run("ditto", [join(electron, "dist", "Electron.app"), appDir]);
 

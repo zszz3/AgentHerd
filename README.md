@@ -72,8 +72,10 @@ English · [简体中文](README.zh-CN.md)
   a sheep in the menu bar shows what runs and waits, and quiet hours or a snooze keep her silent.
   ⇧⌘Space opens her to type from any app, ⇧⌘Y twice allows the oldest approval, and she can
   tuck at a screen edge or float on top only when she has something for you.
-- **Local only.** No AgentHerd server. Keys stay in `~/.agentherd/secrets.json`, readable only by
-  you. Agents can keep running with the lid closed.
+- **Local only.** No AgentHerd server. Keys and sign-ins stay in `~/.agentherd/secrets.json`
+  (`%USERPROFILE%\.agentherd\secrets.json` on Windows), readable only by you. With 防止休眠 on,
+  agents keep running while a task runs: with the lid closed on macOS, and without idle sleep on
+  Windows.
 
 ## How it works
 
@@ -94,25 +96,31 @@ pnpm --filter @agentherd/desktop start
 ```
 
 The first run walks you through it: say what the Herder should call you and pick its figure
-(both can be skipped), scan a QR code to connect Feishu, add a model service and
-its key (or sign in with a ChatGPT, Claude, Copilot or other plan), pick the Herder's model. Pi and Codex come with the app; on the **Agent**
-page, press 验证 to check that one starts. In development, run
-`pnpm --filter @agentherd/desktop fetch-agents` once to put them where the dev app looks.
-`pnpm --filter @agentherd/desktop package:mac` builds `AgentHerd.app` and a `.dmg` (not signed
-yet). Then send the Herder a message in Feishu.
+(both can be skipped), scan a QR code to connect Feishu, add a model service and its key (or
+sign in with a ChatGPT, Claude, Copilot or other plan), pick the Herder's model. Pi and Codex
+come with the app; on the **Agent** page, press 验证 to check that one starts. In development,
+run `pnpm --filter @agentherd/desktop fetch-agents` once to put them where the dev app looks
+(`pnpm --filter @agentherd/desktop dev` runs with live reload). Then send the Herder a message
+in Feishu.
+
+- **Windows:** run the same commands in PowerShell. Closing the window keeps AgentHerd connected
+  in the system tray; right-click the tray icon to quit. There is no Windows installer yet, so
+  run from source.
+- **macOS packaging:** `pnpm --filter @agentherd/desktop package:mac` builds `AgentHerd.app` and
+  an unsigned `.dmg`.
 
 <details>
 <summary>Command line, without the app</summary>
 
 ```bash
 node packages/cli/bin/agentherd.ts setup feishu                          # scan the QR code with Feishu
-node packages/cli/bin/agentherd.ts model add deepseek --models deepseek-flash   # the key is read from stdin
+node packages/cli/bin/agentherd.ts model add deepseek --models deepseek-flash   # key from stdin (Ctrl-D on macOS, Ctrl-Z + Enter on Windows)
 node packages/cli/bin/agentherd.ts model use herder deepseek/deepseek-flash
 node packages/cli/bin/agentherd.ts start
 ```
 
-Run one task directly with `run --profile pi /tmp/demo "Create out.txt containing hello"`, and see
-recent decisions with `status`.
+Run one task directly with `run --profile pi /tmp/demo "Create out.txt containing hello"`
+(`C:\temp\demo` on Windows), and see recent decisions with `status`.
 
 </details>
 
