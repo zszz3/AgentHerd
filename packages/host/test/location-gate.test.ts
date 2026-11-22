@@ -1,9 +1,10 @@
-import { type ChildProcess, spawn } from "node:child_process";
+import { type ChildProcess, execFileSync, spawn } from "node:child_process";
 import {
   chmodSync,
   linkSync,
   mkdirSync,
   mkdtempSync,
+  openSync,
   readFileSync,
   realpathSync,
   rmSync,
@@ -15,8 +16,68 @@ import { homedir, tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { fileURLToPath } from "node:url";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { Worker } from "node:worker_threads";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { acquireLocationLease, type LocationMode } from "../src/location-gate.ts";
+
+vi.mock("node:child_process", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("node:child_process")>();
+  return { ...actual, execFileSync: vi.fn(actual.execFileSync) };
+});
+
+vi.mock("node:fs", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("node:fs")>();
+  return { ...actual, openSync: vi.fn(actual.openSync) };
+});
+
+const actualExecFileSync = (
+  await vi.importActual<typeof import("node:child_process")>("node:child_process")
+).execFileSync;
+const actualOpenSync = (await vi.importActual<typeof import("node:fs")>("node:fs")).openSync;
+const gateModule = new URL("../src/location-gate.ts", import.meta.url).href;
+
+function startWorkerAtCreation(root: string) {
+  const state = new Int32Array(new SharedArrayBuffer(4));
+  const worker = new Worker(
+    `
+      const { parentPort, workerData: { root, gateModule, state } } = require('node:worker_threads');
+      (async () => {
+        const { acquireLocationLease } = await import(gateModule);
+        Atomics.wait(state, 0, 0, 5000);
+        if (Atomics.load(state, 0) !== 1) throw new Error('Gate was not published');
+        const lease = acquireLocationLease(root, 'shared');
+        parentPort.once('message', () => lease.release());
+        Atomics.store(state, 0, 2);
+        Atomics.notify(state, 0);
+      })().catch((error) => {
+        Atomics.store(state, 0, -1);
+        Atomics.notify(state, 0);
+        throw error;
+      });
+    `,
+    { eval: true, workerData: { root, gateModule, state } },
+  );
+  let error: Error | undefined;
+  worker.on("error", (cause) => {
+    error = cause;
+  });
+  const exited = new Promise<number>((resolve) => worker.once("exit", resolve));
+  return {
+    acquire() {
+      Atomics.store(state, 0, 1);
+      Atomics.notify(state, 0);
+      Atomics.wait(state, 0, 1, 5_000);
+    },
+    async release() {
+      worker.postMessage("release");
+      const code = await exited;
+      if (error) throw error;
+      expect(code).toBe(0);
+    },
+    terminate: () => worker.terminate(),
+    isHolding: () => Atomics.load(state, 0) === 2,
+  };
+}
 
 const fixture = fileURLToPath(new URL("./fixtures/location-gate-child.ts", import.meta.url));
 const gateName = ".agentherd-location.lock.sqlite";
@@ -117,6 +178,9 @@ beforeEach(() => {
 });
 
 afterEach(async () => {
+  vi.unstubAllGlobals();
+  vi.mocked(execFileSync).mockReset();
+  vi.mocked(openSync).mockReset();
   for (const [child, closed] of children) {
     if (child.exitCode === null && child.signalCode === null) child.kill("SIGKILL");
     await closed;
@@ -191,6 +255,36 @@ describe("location gate", () => {
         else await child.expectExit();
       }
       expect(await tryInChild("shared")).toBe("held");
+    },
+    ipcTimeout,
+  );
+
+  it.skipIf(process.platform === "win32")(
+    "preserves a worker's lease acquired as the gate is first published",
+    async () => {
+      const worker = startWorkerAtCreation(base);
+      // Pause legacy in-process creation after the exclusive open, before close.
+      vi.mocked(openSync).mockImplementation((...args) => {
+        const fd = actualOpenSync(...args);
+        if (args[0] === gate && args[1] === "wx") worker.acquire();
+        return fd;
+      });
+      // The POSIX creator's close now belongs to another PID. Acquiring before
+      // returning its result still overlaps the parent-side creation boundary.
+      vi.mocked(execFileSync).mockImplementation((file, args, options) => {
+        const result = actualExecFileSync(file, args, options);
+        if (file === process.execPath && args?.at(-1) === gate) worker.acquire();
+        return result;
+      });
+      try {
+        acquireLocationLease(base, "shared").release();
+        expect(worker.isHolding()).toBe(true);
+        expect(await tryInChild("exclusive")).toBe("busy");
+        await worker.release();
+        expect(await tryInChild("exclusive")).toBe("held");
+      } finally {
+        await worker.terminate();
+      }
     },
     ipcTimeout,
   );
@@ -276,6 +370,35 @@ describe("location gate", () => {
     symlinkSync(real, gate, kind);
     expectGateFailure();
     expectGateFailure(gate);
+  });
+
+  it.skipIf(process.platform === "win32").each([
+    ["missing journal", "journal", true, "No such file or directory", true],
+    ["journal still present", "journal", false, "No such file or directory", false],
+    ["permission error on a vanished journal", "journal", true, "Permission denied", false],
+    ["missing gate", "gate", true, "No such file or directory", false],
+  ])("handles the macOS ACL lookup for %s", (_name, target, remove, diagnostic, allowed) => {
+    writeFileSync(gate, "", { mode: 0o600 });
+    const journal = `${gate}-journal`;
+    writeFileSync(journal, "", { mode: 0o600 });
+    const failedPath = target === "journal" ? journal : gate;
+    vi.stubGlobal("process", Object.create(process, { platform: { value: "darwin" } }));
+    let checked = false;
+    vi.mocked(execFileSync).mockImplementation((file, args) => {
+      if (file === "/bin/df") return "header\n/dev/disk1s1 apfs 1 1 1 1% /\n";
+      if (file !== "/bin/ls" || args?.[0] !== "-blde") throw new Error("Unexpected ACL tool");
+      if (args?.[1] !== failedPath) return "no ACL entries\n";
+      checked = true;
+      if (remove) rmSync(failedPath);
+      throw Object.assign(new Error("ls failed"), {
+        status: 1,
+        signal: null,
+        stderr: `ls: ${failedPath}: ${diagnostic}\n`,
+      });
+    });
+    if (allowed) acquireLocationLease(base, "shared").release();
+    else expectGateFailure();
+    expect(checked).toBe(true);
   });
 
   it("rejects a nonregular rollback journal", () => {

@@ -59,8 +59,34 @@ function checkUnixAccess(stats: BigIntStats, directory: boolean): void {
   }
 }
 
-function checkMacAcl(path: string): void {
-  const acl = execFileSync("/bin/ls", ["-blde", path], { encoding: "utf8", timeout: 5_000 });
+function checkMacAcl(path: string, isRollbackJournal = false): boolean {
+  let acl: string;
+  try {
+    acl = execFileSync("/bin/ls", ["-blde", path], {
+      encoding: "utf8",
+      env: { ...process.env, LC_ALL: "C" },
+      stdio: ["ignore", "pipe", "pipe"],
+      timeout: 5_000,
+    });
+  } catch (error) {
+    // Initialization can commit and unlink just the rollback journal between
+    // lstat and ls. A missing executable, timeout or other ACL error is fatal.
+    if (
+      isRollbackJournal &&
+      error instanceof Error &&
+      !("code" in error) &&
+      "status" in error &&
+      error.status === 1 &&
+      "signal" in error &&
+      error.signal === null &&
+      "stderr" in error &&
+      error.stderr === `ls: ${path}: No such file or directory\n` &&
+      lstatSync(path, { throwIfNoEntry: false }) === undefined
+    ) {
+      return false;
+    }
+    throw error;
+  }
   // macOS home folders can carry this default deny-only ACE. No allow ACE is
   // needed for the gate; on macOS an allow ACE can grant access past mode bits.
   if (
@@ -71,6 +97,7 @@ function checkMacAcl(path: string): void {
   ) {
     throw gateFailure("check your profile and gate for unexpected access control entries.");
   }
+  return true;
 }
 
 // Inspect metadata only. Node's mode on Windows does not report NTFS permissions.
@@ -184,7 +211,7 @@ function checkProfile(root: string): void {
   }
 }
 
-function checkGateFile(path: string): BigIntStats | undefined {
+function checkGateFile(path: string, isRollbackJournal = false): BigIntStats | undefined {
   let stats: BigIntStats;
   try {
     stats = lstatSync(path, { bigint: true });
@@ -196,8 +223,41 @@ function checkGateFile(path: string): BigIntStats | undefined {
     throw gateFailure("the gate and its journal must be regular files without links.");
   }
   if (process.platform !== "win32") checkUnixAccess(stats, false);
-  if (process.platform === "darwin") checkMacAcl(path);
+  if (process.platform === "darwin" && !checkMacAcl(path, isRollbackJournal)) return undefined;
   return stats;
+}
+
+const createPosixGate = `
+const { closeSync, openSync } = require("node:fs");
+let fd;
+try {
+  fd = openSync(process.argv[1], "wx", 0o600);
+} catch (error) {
+  if (error.code !== "EEXIST") throw error;
+}
+if (fd !== undefined) closeSync(fd);
+`;
+
+function createGateFile(path: string): void {
+  if (process.platform === "win32") {
+    let fd: number;
+    try {
+      fd = openSync(path, "wx", 0o600);
+    } catch (error) {
+      if (isFsError(error, "EEXIST")) return;
+      throw error;
+    }
+    closeSync(fd);
+    return;
+  }
+  // A worker in this PID can acquire SQLite's POSIX locks as soon as the
+  // inode exists. Its locks must not be dropped by the creator's close().
+  execFileSync(process.execPath, ["-e", createPosixGate, "--", path], {
+    env: process.versions.electron ? { ELECTRON_RUN_AS_NODE: "1" } : {},
+    stdio: "ignore",
+    timeout: 5_000,
+    killSignal: "SIGKILL",
+  });
 }
 
 function prepareGatePath(root: string): { path: string; identity: BigIntStats } {
@@ -209,19 +269,11 @@ function prepareGatePath(root: string): { path: string; identity: BigIntStats } 
     throw gateFailure("the gate must use a DELETE rollback journal, not WAL.");
   }
   const existing = checkGateFile(path);
-  const journalExists = checkGateFile(journal);
+  const journalExists = checkGateFile(journal, true);
   if (process.platform === "win32") {
     checkWindowsProfile(root, [...(existing ? [path] : []), ...(journalExists ? [journal] : [])]);
   }
-  if (!existing) {
-    // Do not open/close a second descriptor for an existing SQLite file. On Unix,
-    // close() could release POSIX locks already held by this process on that inode.
-    try {
-      closeSync(openSync(path, "wx", 0o600));
-    } catch (error) {
-      if (!isFsError(error, "EEXIST")) throw error;
-    }
-  }
+  if (!existing) createGateFile(path);
   const identity = existing ?? checkGateFile(path);
   if (!identity || identity.dev !== lstatSync(root, { bigint: true }).dev) {
     throw gateFailure("the gate must be on the same volume as the user profile.");
