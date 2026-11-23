@@ -31,3 +31,4 @@ States: `TODO`, `IN PROGRESS`, `DONE`, `BLOCKED: <reason>`, `REJECTED: <reason>`
 | [016](016-model-guide.md) | A model guide for the Herder, editable on the 主管 page (ADR 0026) | M2 | S | 015 | DONE (manual run pending) |
 | [017](017-import-pi-desktop.md) | Import model services from PI-Desktop (ADR 0027) | M2 | S | 010 | DONE (manual run pending) |
 | [018](018-model-tiers.md) | Model tiers arranged by dragging (ADR 0028) | M2 | S | 016 | DONE (manual run pending) |
+| [019](019-switch-the-data-directory-safely.md) | The owner can choose a data directory and safely copy existing data on Windows and macOS | M2 | L | [Data directory design](../docs/specs/2026-11-22-data-directory-design.md) | IN PROGRESS |
