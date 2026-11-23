@@ -27,6 +27,8 @@
 3. The created folder is owner-only even under a broadly writable parent, and the app never touches permissions of anything it did not create (Task 3).
 4. Any failure before the record is committed leaves the old location selected and intact; a request is applied once or dropped, never silently retried (Task 4).
 5. A corrupt record never turns the default directory into an implicit recovery location (Tasks 2 and 5).
+6. A copied nested log filename must not take on new runtime meaning on a destination volume with different lookup rules (Task 4A).
+7. An unreadable retained directory must not cause approvals for a known regular file or fixed display text, while real unresolved targets still ask (Task 4B).
 
 ---
 
@@ -146,6 +148,8 @@ export function verifyPrivateFolder(path: string): Promise<void>;
 
 ### Task 4: Apply a requested change at startup, copy safely, guard every root
 
+The candidate through `9699a2b` implements the steps below but has not passed review. Keep the existing implementation as the baseline; Tasks 4A and 4B supersede its remaining path inventory and guard work. Recheck the combined Task 4 range before starting Task 5.
+
 **Files:** Create `packages/host/src/location-apply.ts`, `packages/host/test/location-apply.test.ts`. Modify `packages/rules/src/guard.ts`, `packages/rules/test/guard.test.ts`, `packages/core/src/pipeline.ts`, `packages/herder/src/herder.ts` (path check), `packages/host/src/host.ts`, `packages/host/src/run.ts`, `packages/cli/src/main.ts` only to pass `protectedPaths` through. Export `./location-apply` from `packages/host/package.json`.
 
 **Interfaces:**
@@ -167,6 +171,58 @@ export function canCopy(home: string): boolean; // false when worktrees/ is non-
 - [ ] Run `pnpm exec vitest run packages/host/test/location-apply.test.ts packages/rules packages/core packages/herder`. Expected RED.
 - [ ] Implement `applyLocationRequest`: try the exclusive lease; if busy, delete the request and return `busy`. Otherwise take the request, resolve the current snapshot (`env` source → `env-override`), refuse if `isHostRunning(socketPath(home))`, `checkTargetParent`. Extend `checkTargetParent` to reject a directory chain whose entries can be replaced by other ordinary accounts. Check ownership and effective replacement or permission-changing rights, including delete-child on Windows and write/search plus sticky-bit and ACL semantics on macOS. Fail closed on unsupported permission representations; do not reject read/traverse or sibling creation alone. Add allowed and denied fixture cases, with OS-specific evidence noted separately. For copy, refuse if `!canCopy`. Both modes call `createPrivateFolder(target)` with an exclusive native create that fails if the final path already exists (including an empty folder). On Windows use `CreateDirectoryW` with the protected security descriptor at creation; on macOS use nonrecursive `mkdir` followed by private-folder verification. Add a regression that checks the Windows creator itself rejects an existing folder, without relying on the caller's existence check. For copy, walk the source with `lstat`, skip only listed transient names, reject links and special files, `copyFileSync(src, dst, COPYFILE_EXCL)` and create subdirectories with `0o700`; copy `herd.db` with `VACUUM INTO` (skip its `-wal`/`-shm`), then in the copy update scratch `cwd` columns and `workspace_json.cwd` whose path is strictly under `<old>/tasks` to `<target>/tasks/…` in one transaction, run `PRAGMA quick_check`, close; `verifyPrivateFolder(target)`. Then `writeLocationRecord` with `active: target`, `previous: old`, `retained` = unique old previous/retained/old active minus the new active. On failure or interruption leave the old location selected, never automatically remove the destination, and report that the owner can choose another parent or inspect and remove the unused folder before retrying. Pass `protectedPaths` from the snapshot through Host → Herd → pipeline and Herder, and the CLI one-off Herd.
 - [ ] Run the four test groups and `pnpm check`. Expected GREEN. Commit `feat(host): apply data location changes at startup`, why: copying while nothing runs avoids proving a live host has drained.
+
+### Task 4A: Share fixed paths between runtime and copy
+
+**Files:** Add `packages/core/src/data-home-paths.ts` and `packages/host/src/data-home-paths.ts`, with package subpath exports in their `package.json` files. Update path consumers in `packages/core/src/{herd,workspace}.ts`, `packages/host/src/{config,host,claude-home,plugins,runtimes,server,mcp-socket,feeds,danjuan,zhihu,xiaohongshu,location-apply}.ts`, `packages/cli/src/main.ts` and `apps/desktop/src/main/host-process.ts` where they own or consume inventoried paths. Test in `packages/host/test/location-apply.test.ts`.
+
+**Interfaces:** The core module exports `coreDataPaths` for the database and workspace roots. The host module exports `hostDataPaths` for host/CLI/desktop paths, and `fixedDataPaths` for migration. An entry is `Readonly<{ relative: string; kind: "persistent" | "transient" | "sqlite" }>`; all paths use `/` separators until joined with a home. Use constant keys rather than taking runtime registrations. SQLite companions are derived from the shared database path; SQLite still controls when they are created or read.
+
+- [ ] Write RED regressions extending the existing destination-lookup cases. Use fake files only: a mixed-sensitivity source containing `logs/HOST.LOG` as ordinary data and a destination where it resolves as `logs/host.log` must return `{ kind: "failed", code: "copy-failed" }`, with record and source bytes unchanged. Use native lookup where the fixture volumes permit it; otherwise reuse the existing source-lookup fixture and identify the simulated side in the report. Also test the genuine nested log and unrelated data in a successful copy:
+
+```ts
+expect(readFileSync(join(target, "logs", "host.log"), "utf8")).toBe("fake host log");
+expect(readFileSync(join(target, "logs", "notes.txt"), "utf8")).toBe("fake owner note");
+```
+
+- [ ] Run `pnpm exec vitest run packages/host/test/location-apply.test.ts`. Expected: nested alias regression fails because the copy succeeds; existing cases stay green.
+- [ ] Move the existing inventory into the modules above; review each fixed runtime writer/reader against it, including both log path uses in desktop main. Build the migration inventory from the declared entries, not from copied strings. For example:
+
+```ts
+export const coreDataPaths = {
+  database: { relative: "herd.db", kind: "sqlite" },
+  tasks: { relative: "tasks", kind: "persistent" },
+  worktrees: { relative: "worktrees", kind: "persistent" },
+} as const;
+// In the host module's hostDataPaths object:
+// logs: { relative: "logs", kind: "persistent" },
+// hostLog: { relative: "logs/host.log", kind: "persistent" },
+// In desktop main (both the writer and timeout diagnostic):
+// const logFile = join(home, hostDataPaths.hostLog.relative);
+```
+
+  The desktop uses the host package's dependency-free path export; the host never imports desktop. Keep destination checks before SQLite publication and before the record write. Preserve the filesystem identity comparison, exclusive create, and source-byte guarantees from Task 4. Do not add arbitrary filenames or change existing path spellings.
+- [ ] Run `pnpm exec vitest run packages/host packages/core packages/cli`, `pnpm --filter @agentherd/desktop build` and `pnpm check`. Expected: all commands exit 0 on Windows; native macOS evidence remains a CI requirement. Commit `fix(location): share fixed runtime paths with migration` and independently review the commit before continuing.
+
+### Task 4B: Keep guarded decisions specific to plausible targets
+
+**Files:** Modify `packages/rules/src/{paths,guard,shell}.ts` as needed; extend `packages/rules/test/guard.test.ts` and parser coverage, plus existing configured-guard tests in `packages/core` or `packages/herder` only if an integration gap remains.
+
+**Interfaces:** Keep `protectedPathMatch(target: string, root: string, locationFile?: boolean): "match" | "unrelated" | "uncertain"` and `guardCheck` unchanged. If quote provenance is needed, collect it in the existing tokenizer and expose it only to the guard path analysis, with existing `splitCommand` results unchanged for other callers.
+
+- [ ] Add RED cases to the existing inaccessible-root fixture: a known regular file at the candidate root depth is unrelated when an unreadable declaration denotes a retained directory, while a candidate directory with unresolved identity remains uncertain. In configured scope, add the following matrix with `ctx.protectedPaths` populated, a temporary safe cwd, and no extra user rules:
+
+```ts
+// Fixed display text alone is not an unresolved path operand.
+expect(guardCheck(cmd("echo '$PRICE'"), where, [], "configured").hit).toBe(false);
+// Actual unresolved paths still require a decision.
+expect(guardCheck(cmd('cat "$FILE"'), where, [], "configured").hit).toBe(true);
+```
+
+  Use the existing `cmd` fixture helper for the call fields. Cover redirect operands and mixed quoted/unquoted words so a display-only exception does not hide them. Keep an explicit protected path with an unparseable command in the same suite as a positive control.
+- [ ] Run `pnpm exec vitest run packages/rules/test/guard.test.ts`. Expected: unrelated-file and fixed-display cases fail; protection cases pass.
+- [ ] Rule out a verified regular file only for a directory declaration, not location files; preserve exact-path matches, missing-metadata behavior and access-error semantics. Separate fixed display text from path operands using quote/operand evidence from the parser. Keep the exemption narrow: if the role or expansion cannot be established, retain the configured guard decision. Do not skip an entire command segment, a redirection operand, or explicit `call.paths`. Do not add unrelated built-in checks to the pipeline.
+- [ ] Run `pnpm exec vitest run packages/rules packages/core packages/herder` and `pnpm check`. Expected: all commands exit 0, and independently review the committed range `fix(rules): narrow ambiguous data path approvals`. Do not start Task 5 before both Task 4A and Task 4B pass review.
 
 ### Task 5: Desktop picker, relaunch, recovery, docs and PR
 
