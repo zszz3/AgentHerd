@@ -30,7 +30,7 @@ function gateFailure(reason: string): Error {
   return new Error(`Cannot use the AgentHerd location gate: ${reason}`);
 }
 
-function isFsError(error: unknown, code: string): boolean {
+export function isFsError(error: unknown, code: string): boolean {
   return error instanceof Error && "code" in error && error.code === code;
 }
 
@@ -140,14 +140,31 @@ foreach ($path in $paths) {
 }
 `;
 
-function checkWindowsProfile(root: string, paths: string[]): void {
+/** The system Windows PowerShell, never one found on PATH; undefined without a sane SystemRoot. */
+export function systemPowerShell(): string | undefined {
   const systemRoot = process.env.SystemRoot;
-  if (!systemRoot || !win32.isAbsolute(systemRoot)) {
+  if (!systemRoot || !win32.isAbsolute(systemRoot)) return undefined;
+  return win32.join(systemRoot, "System32", "WindowsPowerShell", "v1.0", "powershell.exe");
+}
+
+/** Whether `path` is on a local APFS or HFS+ disk, not just a writable mount. */
+export function isMacLocalDisk(path: string): boolean {
+  const fs = execFileSync("/bin/df", ["-P", "-Y", path], {
+    encoding: "utf8",
+    timeout: 5_000,
+    env: { ...process.env, LC_ALL: "C" },
+  });
+  return /^\/dev\/disk\d+(?:s\d+)*\s+(?:apfs|hfs)\s/.test(fs.split("\n")[1] ?? "");
+}
+
+function checkWindowsProfile(root: string, paths: string[]): void {
+  const powershell = systemPowerShell();
+  if (!powershell) {
     throw gateFailure("Windows system tools are unavailable; check your Windows installation.");
   }
   try {
     execFileSync(
-      win32.join(systemRoot, "System32", "WindowsPowerShell", "v1.0", "powershell.exe"),
+      powershell,
       [
         "-NoLogo",
         "-NoProfile",
@@ -192,13 +209,7 @@ function checkProfile(root: string): void {
     case "darwin": {
       checkUnixAccess(stats, true);
       checkMacAcl(root);
-      // Require a local disk of a supported type, not just a writable mount.
-      const fs = execFileSync("/bin/df", ["-P", "-Y", root], {
-        encoding: "utf8",
-        timeout: 5_000,
-        env: { ...process.env, LC_ALL: "C" },
-      });
-      if (!/^\/dev\/disk\d+(?:s\d+)*\s+(?:apfs|hfs)\s/.test(fs.split("\n")[1] ?? "")) {
+      if (!isMacLocalDisk(root)) {
         throw gateFailure("use a local APFS or HFS+ user profile.");
       }
       break;
