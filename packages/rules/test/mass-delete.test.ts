@@ -1,6 +1,6 @@
 import type { ToolCallInfo } from "@agentherd/protocol";
 import { describe, expect, it } from "vitest";
-import { massDeleteCheck } from "../src/mass-delete.ts";
+import { massDeleteCheck, TEMP_DIRS } from "../src/mass-delete.ts";
 
 const ctx = { cwd: "/p/app", home: "/Users/me" };
 const run = (command: string): ToolCallInfo => ({
@@ -22,7 +22,9 @@ describe("massDeleteCheck", () => {
     "rm -rf /",
     "rm -rf /p/app",
     "rm -rf $DIR",
-    "cd /tmp && rm -rf x",
+    "rm -rf /tmp",
+    "rm -rf /private/tmp",
+    "rm -rf /tmp/../Users/me",
     "echo $(rm -rf .)",
     "find . -delete",
     "find . -type f -exec rm {} +",
@@ -44,6 +46,36 @@ describe("massDeleteCheck", () => {
     "cd src && rm -rf build",
   ])("approves %s", (command) => {
     expect(massDeleteCheck(run(command), ctx).hit).toBe(false);
+  });
+
+  it.each([
+    "rm -f /tmp/t3-desktop.log",
+    "cd /Users/me/t3code && rm -f /tmp/t3-desktop.log && (pnpm run dev:desktop > /tmp/t3-desktop.log 2>&1 &)",
+    "rm -rf /tmp/build-cache",
+    "rm -rf /tmp/*",
+    "rm -rf /private/tmp/x",
+    "cd /tmp && rm -rf x",
+    "find /tmp/out -name '*.png' -delete",
+  ])("never asks about the temporary folders: %s (owner, 2026-11-23)", (command) => {
+    expect(massDeleteCheck(run(command), ctx).hit).toBe(false);
+  });
+
+  it("still asks when the project itself lives in a temporary folder", () => {
+    const inTmp = { cwd: "/tmp/demo", home: "/Users/me" };
+    for (const command of ["rm -rf ./*", "rm -rf .", "rm -rf /tmp/demo", "cd .. && rm -rf demo"]) {
+      expect(massDeleteCheck(run(command), inTmp).hit).toBe(true);
+    }
+    expect(massDeleteCheck(run("rm -rf /tmp/other"), inTmp).hit).toBe(false);
+  });
+
+  it("knows the system's own temporary folder", () => {
+    expect(TEMP_DIRS).toContain("/tmp");
+    expect(TEMP_DIRS).toContain("/private/tmp");
+    const del = (p: string): ToolCallInfo => ({ kind: "delete", title: "Delete", paths: [p] });
+    for (const dir of TEMP_DIRS) {
+      expect(massDeleteCheck(del(`${dir}/a/b`), ctx).hit).toBe(false);
+      expect(massDeleteCheck(del(dir), ctx).hit).toBe(true);
+    }
   });
 
   it("asks when a delete tool targets the project folder, not a file in it", () => {

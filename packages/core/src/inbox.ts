@@ -29,6 +29,8 @@ export const DEFAULT_TIMEOUT_MINUTES = 60;
 export const LINE_BODY_MAX_LINES = 6;
 
 export type OwnerAnswer = "allow" | "deny";
+/** Assigned at the inbound boundary, not taken from the message. */
+export type OwnerInputSource = "channel" | "local";
 /** What the owner can do with an item: answer it, or leave it ("先不管": not done). */
 type OwnerAction = OwnerAnswer | "skip";
 
@@ -47,6 +49,7 @@ interface Entry {
   target: Answerable;
   reason: string;
   taskLabel?: string;
+  channelApproval: boolean;
   card?: Card;
   timers: Timer[];
   closing: boolean;
@@ -100,11 +103,16 @@ export function itemBody(
   secrets?: Record<string, string>,
   texts: CoreTexts = CORE_TEXTS.en,
   max = BODY_MAX_LINES,
+  includeAppSummary = false,
 ): string {
   const lines: string[] = [];
   if (item.toolCall?.command !== undefined) lines.push(...item.toolCall.command.split("\n"));
   for (const path of item.toolCall?.paths ?? []) lines.push(path);
-  if (lines.length === 0) lines.push(...item.body.split("\n"));
+  if (includeAppSummary && item.toolCall?.kind === "app") {
+    lines.push(JSON.stringify(item.toolCall.rawInput ?? {}));
+  } else if (lines.length === 0) {
+    lines.push(...item.body.split("\n"));
+  }
   const justification = justificationOf(item.toolCall?.rawInput);
   if (justification !== undefined) lines.push(texts.reason(justification));
   const shown =
@@ -199,16 +207,22 @@ export class Inbox {
   }
 
   /** Adds an item. `taskLabel` names the task on the card. */
-  async add(item: Item, target: Answerable, reason: string, taskLabel?: string): Promise<void> {
+  async add(
+    item: Item,
+    target: Answerable,
+    reason: string,
+    taskLabel?: string,
+    channelApproval = false,
+  ): Promise<void> {
     const queue = this.queues.get(item.sessionId) ?? [];
     this.queues.set(item.sessionId, queue);
-    const entry: Entry = { item, target, reason, timers: [], closing: false };
+    const entry: Entry = { item, target, reason, channelApproval, timers: [], closing: false };
     if (taskLabel !== undefined) entry.taskLabel = taskLabel;
     queue.push(entry);
     if (queue.length === 1) await this.show(entry);
   }
 
-  async handle(inbound: Inbound): Promise<void> {
+  async handle(inbound: Inbound, source: OwnerInputSource = "local"): Promise<void> {
     const { store, binding } = this.opts;
     if (inbound.from !== binding.ownerId) {
       store.audit("inbound.dropped", {
@@ -219,7 +233,7 @@ export class Inbox {
       return;
     }
     if (inbound.kind !== "action") {
-      if (!(await this.handleText(inbound.text))) {
+      if (!(await this.handleText(inbound.text, source))) {
         store.audit("inbound.ignored", { reason: "not-an-answer", text: inbound.text });
       }
       return;
@@ -234,7 +248,7 @@ export class Inbox {
       await this.decideMany(
         card.entries.filter((e) => !e.closing),
         action,
-        binding.ownerId,
+        source,
       );
       return;
     }
@@ -248,21 +262,21 @@ export class Inbox {
       store.audit("inbound.dropped", { reason: "unknown-action", action });
       return;
     }
-    await this.decideMany([entry], action, binding.ownerId);
+    await this.decideMany([entry], action, source);
   }
 
   /**
    * The owner's chat message, when it answers the open card: "都批", "批 1、3", "拒 2". Returns
    * false when it is not such an answer (the message then goes to the Herder).
    */
-  async handleText(text: string): Promise<boolean> {
+  async handleText(text: string, source: OwnerInputSource = "local"): Promise<boolean> {
     const card = this.card;
     if (card === undefined || !card.entries.some((e) => !e.closing)) return false;
     const parsed = parseBatchAnswer(text);
     if (parsed === undefined) return false;
     const open = card.entries.filter((e) => !e.closing);
     if (parsed.action === "allow-all") {
-      await this.decideMany(open, "allow", this.opts.binding.ownerId);
+      await this.decideMany(open, "allow", source);
       return true;
     }
     // A bare "批" with one open item, or numbers on the card.
@@ -270,7 +284,7 @@ export class Inbox {
       .map((n) => card.entries[n - 1])
       .filter((e): e is Entry => e !== undefined && !e.closing);
     if (picked.length === 0) return false;
-    await this.decideMany(picked, parsed.action, this.opts.binding.ownerId);
+    await this.decideMany(picked, parsed.action, source);
     return true;
   }
 
@@ -361,7 +375,12 @@ export class Inbox {
     );
   }
 
-  private async decideMany(entries: Entry[], action: OwnerAction, ownerId: string): Promise<void> {
+  private async decideMany(
+    entries: Entry[],
+    action: OwnerAction,
+    source: OwnerInputSource,
+  ): Promise<void> {
+    const { binding, store } = this.opts;
     const final =
       action === "allow"
         ? this.texts.allowedByYou
@@ -370,9 +389,16 @@ export class Inbox {
           : this.texts.skippedByYou;
     for (const entry of entries) {
       if (entry.closing) continue;
+      if (action === "allow" && entry.channelApproval && source !== "channel") {
+        store.audit("inbound.dropped", {
+          reason: "channel-approval-required",
+          itemId: entry.item.id,
+        });
+        continue;
+      }
       await this.close(entry, action === "allow" ? "allow" : "deny", final, {
         source: "human",
-        ownerId,
+        ownerId: binding.ownerId,
         ...(action === "skip" ? { skipped: true } : {}),
       });
     }
@@ -452,6 +478,8 @@ export class Inbox {
     const [first] = card.entries as [Entry];
     if (card.entries.length === 1) {
       const view = itemView(first.item, first.reason, secrets, texts);
+      if (first.channelApproval)
+        view.body = itemBody(first.item, secrets, texts, BODY_MAX_LINES, true);
       if (first.taskLabel !== undefined) view.taskLabel = first.taskLabel;
       if (first.final !== undefined) return { ...view, options: [], final: first.final };
       return view;
@@ -461,7 +489,7 @@ export class Inbox {
         itemId: e.item.id,
         n: i + 1,
         title: redact(e.item.title, secrets),
-        body: itemBody(e.item, secrets, texts, LINE_BODY_MAX_LINES),
+        body: itemBody(e.item, secrets, texts, LINE_BODY_MAX_LINES, e.channelApproval),
         risk: e.item.risk,
         reason: redact(reasonText(e.reason, texts), secrets),
         options: e.final === undefined ? options(texts).slice(0, 2) : [],

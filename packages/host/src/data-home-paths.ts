@@ -29,7 +29,16 @@ export function xhsDownload(plat: NodeJS.Platform, cpu: string) {
   };
 }
 
+const wecomCli = { relative: "wecom-cli", kind: "persistent" } as const;
+
+export const wecomConfigFiles = {
+  credentials: ["credentials.enc", "bot.enc", "token.enc", ".encryption_key"],
+  config: "config.json",
+  disconnectPending: "disconnect-pending",
+} as const;
+
 export const hostDataPaths = {
+  wecomCli,
   config: { relative: "config.json", kind: "persistent" },
   secrets: { relative: "secrets.json", kind: "persistent" },
   run: { relative: "run", kind: "persistent" },
@@ -70,5 +79,10 @@ export const sqliteCompanions = {
 export const fixedDataPaths: readonly DataHomePath[] = [
   ...Object.values(coreDataPaths),
   ...Object.values(hostDataPaths),
+  ...[
+    ...wecomConfigFiles.credentials,
+    wecomConfigFiles.config,
+    wecomConfigFiles.disconnectPending,
+  ].map((name): DataHomePath => ({ relative: `${wecomCli.relative}/${name}`, kind: "persistent" })),
   ...Object.values(sqliteCompanions),
 ];

@@ -12,9 +12,11 @@ import { fileURLToPath } from "node:url";
 import { FakeChannel } from "@agentherd/channel-fake";
 import { afterEach, describe, expect, it } from "vitest";
 import { Agents } from "../src/agents.ts";
+import { writeAntigravitySettings } from "../src/antigravity-home.ts";
 import {
   AGENTS,
   type AgentDef,
+  ANTIGRAVITY_DIR_NAME,
   agentProfile,
   CLAUDE_ACP_VERSION,
   CODEX_ACP_VERSION,
@@ -205,6 +207,8 @@ describe("catalog", () => {
       ["pi", PI_VERSION],
       ["codex", CODEX_ACP_VERSION],
       ["claude", CLAUDE_ACP_VERSION],
+      // The owner's own Antigravity CLI: no version of AgentHerd's (ADR 0104).
+      ["antigravity", undefined],
     ]);
     // Claude Code is never in the app (ADR 0069).
     expect(AGENTS.filter((a) => a.onRequest === true).map((a) => a.id)).toEqual(["claude"]);
@@ -235,6 +239,7 @@ describe("catalog", () => {
       PI_VERSION,
       CODEX_ACP_VERSION,
       CLAUDE_ACP_VERSION,
+      undefined,
     ]);
     expect(asked).toEqual([
       `https://api.github.com/repos/earendil-works/pi/releases/tags/v${PI_VERSION}`,
@@ -388,6 +393,7 @@ describe("Agents (ADR 0067)", () => {
       ["pi", "bundled", PI_VERSION, PI_VERSION, false],
       ["codex", "managed", "2.4.0", CODEX_ACP_VERSION, true],
       ["claude", undefined, undefined, CLAUDE_ACP_VERSION, false],
+      ["antigravity", undefined, undefined, undefined, false],
     ]);
     agents.remove("codex");
     expect(agents.find("codex")).toMatchObject({ source: "system" });
@@ -395,7 +401,12 @@ describe("Agents (ADR 0067)", () => {
     expect(agents.find("pi")).toMatchObject({ source: "bundled" });
     expect(() => agents.remove("pi")).toThrow(/not downloaded/);
     const none = new Agents({ env: { PATH: "" }, exists: () => false, onChange() {} });
-    expect(none.views([], {}).map((v) => v.state)).toEqual(["missing", "missing", "missing"]);
+    expect(none.views([], {}).map((v) => v.state)).toEqual([
+      "missing",
+      "missing",
+      "missing",
+      "missing",
+    ]);
     // An explicit CLI wins over the copy in the app.
     const named = new Agents({
       bundled: storeWith("/app/agents", { pi: PI_VERSION }),
@@ -455,6 +466,7 @@ describe("Host agents", () => {
         ["pi", "ready", "bundled", PI_VERSION],
         ["codex", "missing", undefined, undefined],
         ["claude", "missing", undefined, undefined],
+        ["antigravity", "missing", undefined, undefined],
       ]);
       expect(host.status().profiles).toEqual(["pi"]);
       expect(() => host.removeAgent("pi")).toThrow(/not downloaded/);
@@ -463,6 +475,7 @@ describe("Host agents", () => {
         ["pi", false],
         ["codex", false],
         ["claude", true],
+        ["antigravity", false],
       ]);
       expect(() => host.installAgent("codex")).toThrow(/comes with the app/);
     } finally {
@@ -510,5 +523,30 @@ describe("verifyProfile", () => {
       { timeoutMs: 300 },
     );
     expect(check).toMatchObject({ ok: false, error: expect.stringMatching(/no answer within/) });
+  });
+});
+
+describe("Antigravity (ADR 0104)", () => {
+  it("runs the owner's own agy, also from ~/.local/bin, with settings that ask first", () => {
+    const home = mkdtempSync(join(tmpdir(), "ah-agy-"));
+    const bin = join(home, ".local", "bin", "agy");
+    const agents = new Agents({
+      env: { PATH: "" },
+      exists: (p) => p === bin,
+      userHome: home,
+      onChange() {},
+    });
+    expect(agents.find("antigravity")).toEqual({ path: bin, source: "system" });
+    const def = AGENTS.find((d) => d.id === "antigravity");
+    if (def === undefined) throw new Error("no antigravity");
+    const p = agentProfile(def, bin);
+    expect(p.command).toEqual([bin, "acp", "--cli_dir_name", ANTIGRAVITY_DIR_NAME]);
+    expect(p.ownModels).toBe(true);
+    const file = writeAntigravitySettings(home);
+    expect(file).toBe(join(home, ".gemini", "antigravity-cli", "agentherd", "settings.json"));
+    expect(JSON.parse(readFileSync(file, "utf8"))).toEqual({
+      toolPermission: "request-review",
+      agentMode: "",
+    });
   });
 });

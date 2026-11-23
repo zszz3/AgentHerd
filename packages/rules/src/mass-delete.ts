@@ -2,8 +2,10 @@
 // else is approved by AgentHerd. "Mass" means the target is the project folder itself, a folder
 // above it, the home folder, `/`, anything outside the project, everything in a folder (`*`), or
 // targets nobody can know before the command runs (a variable, `xargs`, `find -delete`).
-// It is coarse on purpose: a false hit costs one tap, a miss can cost a project.
+// It is coarse on purpose: a false hit costs one tap, a miss can cost a project. The one place it
+// never asks about is a temporary folder (/tmp and the system's own): nothing there is the owner's.
 
+import { tmpdir } from "node:os";
 import type { ToolCallInfo } from "@agentherd/protocol";
 import type { GuardResult } from "./guard.ts";
 import { isInside, type PathContext, pathModFor, resolveWord, sameResolvedPath } from "./paths.ts";
@@ -18,14 +20,44 @@ const DELETE_PROGRAMS = new Set(["rm", "rmdir", "rd", "del", "erase", "remove-it
 const CMD_STYLE_DELETERS = new Set(["rmdir", "rd", "del", "erase"]);
 const CD_PROGRAMS = new Set(["cd", "chdir", "set-location"]);
 
+/**
+ * The temporary folders: whatever is in them may go without asking ("删tmp里的东西都无所谓",
+ * the owner, 2026-11-23). `/tmp` is `/private/tmp` on macOS, and `os.tmpdir()` is the per-user
+ * folder under `/var/folders`; both spellings are listed because paths are not followed.
+ */
+export const TEMP_DIRS: readonly string[] = [
+  ...new Set(
+    ["/tmp", "/private/tmp", "/var/tmp", "/private/var/tmp", tmpdir()].flatMap((d) =>
+      d.startsWith("/var/") ? [d, `/private${d}`] : [d],
+    ),
+  ),
+];
+
+/** True when `target` is inside a temporary folder (or is one, when only its contents go). */
+function inTemp(target: string, wholeFolder: boolean): boolean {
+  return TEMP_DIRS.some(
+    (dir) => isInside(target, dir) && (!sameResolvedPath(target, dir) || !wholeFolder),
+  );
+}
+
 /** True when deleting `word` would remove more than files the agent can name one by one. */
 function isWide(word: string, ctx: PathContext, here: string = ctx.cwd): boolean {
   // `src/*.log` is narrow; `*`, `*.*`, `./*`, `dir/*`, `dir\*.*` or `.*` empties a folder.
   const base = pathModFor(word, here, ctx.cwd).basename(word);
-  if (base === "*" || base === ".*" || base === "*.*") return true;
-  const stripped = word.replace(/[\\/]\*(?:\.\*)?$/, "");
+  const emptiesFolder = base === "*" || base === ".*" || base === "*.*";
+  const stripped = word.replace(/[\\/](?:\*|\.\*|\*\.\*)$/, "");
   const target = stripped === "" ? "/" : /^[A-Za-z]:$/.test(stripped) ? `${stripped}\\` : stripped;
   const resolved = resolveWord(target, { ...ctx, cwd: here });
+  // Anything inside a temporary folder, even all of it, is fine; the folder itself is not, and
+  // neither is the project or a folder holding it when the project itself lives in one.
+  if (
+    resolved !== null &&
+    !isInside(ctx.cwd, resolved) &&
+    inTemp(resolved, !emptiesFolder || stripped === word)
+  ) {
+    return false;
+  }
+  if (emptiesFolder) return true;
   if (resolved === null) return true;
   if (!isInside(resolved, ctx.cwd)) return true;
   if (sameResolvedPath(resolved, ctx.cwd)) return true;

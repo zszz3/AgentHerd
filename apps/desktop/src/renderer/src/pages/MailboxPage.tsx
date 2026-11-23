@@ -27,6 +27,7 @@ import {
   type LucideIcon,
   Mail,
   MessageCircle,
+  Pencil,
   Plus,
   RefreshCw,
   Rss,
@@ -51,7 +52,9 @@ import { PrWatches } from "../components/WatchesSection";
 import {
   ACT_CHOICES,
   actText,
+  draftOf,
   draftProblem,
+  editPatch,
   everyText,
   fateCounts,
   fateOf,
@@ -64,6 +67,7 @@ import {
   PLATFORM_LABELS,
   sourceLine,
   sourceState,
+  startsOver,
   suggestedName,
   whatText,
   whenText,
@@ -92,11 +96,13 @@ function SourceRow({
   selected,
   onSelect,
   onView,
+  onEdit,
 }: {
   source: MailboxSourceView;
   selected: boolean;
   onSelect: () => void;
   onView: (v: MailboxView) => void;
+  onEdit: () => void;
 }) {
   const [busy, setBusy] = useState(false);
   const Icon = ICONS[source.kind];
@@ -157,6 +163,16 @@ function SourceRow({
           disabled={busy}
           onChange={(on) => void run(() => call((h) => h.mailboxSet(source.id, { paused: !on })))}
         />
+        <Button
+          variant="ghost"
+          size="sm"
+          aria-label="改"
+          title="改这个来源"
+          disabled={busy}
+          onClick={onEdit}
+        >
+          <Pencil size={13} />
+        </Button>
         <Button variant="ghost" size="sm" aria-label="删除" disabled={busy} onClick={remove}>
           <Trash2 size={13} />
         </Button>
@@ -316,17 +332,23 @@ function tomorrow(): string {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 }
 
-function AddDialog({
+function SourceDialog({
   view,
+  source,
   onClose,
   onView,
 }: {
   view: MailboxView;
+  /** The source to change; none to add a new one. */
+  source?: MailboxSourceView;
   onClose: () => void;
   onView: (v: MailboxView) => void;
 }) {
-  const [draft, setDraft] = useState<MailboxDraft>(EMPTY_DRAFT);
-  const [named, setNamed] = useState(false);
+  const editing = source !== undefined;
+  const [draft, setDraft] = useState<MailboxDraft>(() =>
+    source === undefined ? EMPTY_DRAFT : draftOf(source),
+  );
+  const [named, setNamed] = useState(editing);
   const [busy, setBusy] = useState<"try" | "add" | undefined>();
   const [tried, setTried] = useState<Letter[] | undefined>();
   const set = (patch: Partial<MailboxDraft>) => {
@@ -344,9 +366,15 @@ function AddDialog({
     setBusy(undefined);
     if (letters !== undefined) setTried(letters);
   };
+  const patch = source === undefined ? undefined : editPatch(source, draft);
+  const unchanged = patch !== undefined && Object.keys(patch).length === 0;
+  const over = patch !== undefined && source !== undefined && startsOver(patch, source.kind);
   const add = async () => {
     setBusy("add");
-    const v = await call((h) => h.mailboxAdd(draft));
+    const v =
+      source === undefined || patch === undefined
+        ? await call((h) => h.mailboxAdd(draft))
+        : await call((h) => h.mailboxSet(source.id, patch));
     setBusy(undefined);
     if (v !== undefined) {
       onView(v);
@@ -359,13 +387,23 @@ function AddDialog({
   const timer = draft.kind === "timer";
   return (
     <Modal
-      title="加一个来源"
-      description={timer ? "到点把你写的话交给主管去做" : "代码按时去看，只有新东西才交给主管"}
+      title={editing ? `改来源「${source.name}」` : "加一个来源"}
+      description={
+        editing
+          ? over
+            ? "看的地方变了：保存后会重新记一遍现在有的，之后来的才交给主管"
+            : "改名字、给主管的话或多久看一次，不会重看"
+          : timer
+            ? "到点把你写的话交给主管去做"
+            : "代码按时去看，只有新东西才交给主管"
+      }
       onClose={onClose}
       wide
       footer={
         <div className="flex w-full items-center gap-2">
-          <span className="min-w-0 flex-1 truncate text-ink-muted text-sm">{problem ?? ""}</span>
+          <span className="min-w-0 flex-1 truncate text-ink-muted text-sm">
+            {problem ?? (unchanged ? "还没改什么" : "")}
+          </span>
           <Button
             disabled={problem !== undefined || busy !== undefined}
             onClick={() => void tryIt()}
@@ -375,16 +413,16 @@ function AddDialog({
           </Button>
           <Button
             variant="primary"
-            disabled={problem !== undefined || busy !== undefined}
+            disabled={problem !== undefined || busy !== undefined || unchanged}
             onClick={() => void add()}
           >
-            {busy === "add" ? "在加…" : "添加"}
+            {busy === "add" ? (editing ? "在存…" : "在加…") : editing ? "保存" : "添加"}
           </Button>
         </div>
       }
     >
       <div className="flex flex-col gap-4">
-        <div className="grid grid-cols-4 gap-1.5">
+        <div className={`grid grid-cols-4 gap-1.5 ${editing ? "hidden" : ""}`}>
           {KIND_ORDER.map((k) => {
             const Icon = ICONS[k];
             return (
@@ -405,7 +443,9 @@ function AddDialog({
             );
           })}
         </div>
-        <p className="-mt-2 text-ink-muted text-sm">{KIND_HINTS[draft.kind]}</p>
+        <p className={`${editing ? "" : "-mt-2 "}text-ink-muted text-sm`}>
+          {KIND_HINTS[draft.kind]}
+        </p>
         {draft.kind === "github" && (
           <>
             <Field label="仓库" hint="owner/name，或者仓库的网址">
@@ -633,7 +673,10 @@ function AddDialog({
             ) : (
               <>
                 <div className="mb-1 text-ink-2">
-                  能看到，现在有 {tried.length} 条。加上以后第一次只记下这些，之后来的才会交给主管：
+                  能看到，现在有 {tried.length} 条。
+                  {editing && !over
+                    ? "保存不会重看，以后新来的才交给主管："
+                    : "保存以后第一次只记下这些，之后来的才会交给主管："}
                 </div>
                 <ul className="flex flex-col gap-0.5 text-ink-muted">
                   {tried.slice(0, 6).map((l) => (
@@ -656,6 +699,7 @@ export function MailboxPage() {
   const [adding, setAdding] = useState(false);
   const [filter, setFilter] = useState<LetterFilter>("all");
   const [sourceId, setSourceId] = useState<string | undefined>();
+  const [editingId, setEditingId] = useState<string | undefined>();
   const setView = useCallback((v: MailboxView) => useApp.setState({ mailbox: v }), []);
   useEffect(() => {
     const load = () => void call((h) => h.mailbox()).then((v) => v !== undefined && setView(v));
@@ -683,6 +727,7 @@ export function MailboxPage() {
     );
   }
   const selected = view.sources.find((s) => s.id === sourceId);
+  const editing = view.sources.find((s) => s.id === editingId);
   return (
     <div className="flex flex-col gap-7">
       <Section
@@ -709,6 +754,7 @@ export function MailboxPage() {
                 selected={s.id === sourceId}
                 onSelect={() => setSourceId(s.id === sourceId ? undefined : s.id)}
                 onView={setView}
+                onEdit={() => setEditingId(s.id)}
               />
             ))
           )}
@@ -750,7 +796,16 @@ export function MailboxPage() {
         </Group>
       </Section>
       <PrWatches />
-      {adding && <AddDialog view={view} onClose={() => setAdding(false)} onView={setView} />}
+      {adding && <SourceDialog view={view} onClose={() => setAdding(false)} onView={setView} />}
+      {editing !== undefined && (
+        <SourceDialog
+          key={editing.id}
+          view={view}
+          source={editing}
+          onClose={() => setEditingId(undefined)}
+          onView={setView}
+        />
+      )}
     </div>
   );
 }

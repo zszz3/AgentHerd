@@ -98,6 +98,13 @@ describe("toToolCallInfo", () => {
   });
 
   it("ignores a non-string command", () => {
+    // Antigravity's run_command names it CommandLine (ADR 0104).
+    expect(
+      toToolCallInfo({
+        toolCallId: "abc",
+        rawInput: { CommandLine: "rm -rf ./*", toolSummary: "x" },
+      }),
+    ).toMatchObject({ command: "rm -rf ./*" });
     expect(toToolCallInfo({ toolCallId: "abc", rawInput: { command: 42 } })).not.toHaveProperty(
       "command",
     );

@@ -44,7 +44,17 @@ export interface AgentDef {
    * fetches as an optional dependency and skips without an error when its download fails.
    */
   requires?: (target: string) => readonly string[];
+  /** Where the owner's own CLI is often installed, relative to their home, when not on PATH. */
+  homeBins?: readonly string[];
+  /** Signs in and picks models itself (AgentProfile.ownModels, ADR 0104). */
+  ownModels?: boolean;
 }
+
+/**
+ * Antigravity keeps the settings it runs with for AgentHerd in its own folder (`--cli_dir_name`),
+ * apart from the owner's: there edits, commands, web and MCP tools ask first (ADR 0104).
+ */
+export const ANTIGRAVITY_DIR_NAME = "agentherd";
 
 const GITHUB = "https://api.github.com/repos";
 const NPM = "https://registry.npmjs.org";
@@ -248,6 +258,18 @@ export const AGENTS: AgentDef[] = [
     onRequest: true,
     npm: true,
   },
+  {
+    id: "antigravity",
+    name: "Antigravity",
+    envVar: "AGENTHERD_ANTIGRAVITY",
+    // The owner's own Antigravity CLI (ADR 0104): it speaks ACP itself (`agy acp`), signs in with
+    // the owner's Google account and runs the models of that account. Not shipped or downloaded.
+    systemNames: ["agy"],
+    acpArgs: ["acp", "--cli_dir_name", ANTIGRAVITY_DIR_NAME],
+    env: {},
+    homeBins: [".local/bin/agy"],
+    ownModels: true,
+  },
 ];
 
 export function agentDef(id: string): AgentDef | undefined {
@@ -275,6 +297,7 @@ export function agentProfile(
     command: script ? [process.execPath, bin, ...def.acpArgs] : [bin, ...def.acpArgs],
     env: { ...(script ? nodeEnv() : {}), ...def.env, ...extraEnv },
     exporter: null,
+    ...(def.ownModels === true ? { ownModels: true } : {}),
   };
 }
 

@@ -1172,6 +1172,11 @@ export interface HostApi {
   installPlugin(source: string, keys: Record<string, string>): Promise<PluginView[]>;
   setPlugin(id: string, patch: PluginPatch): Promise<PluginView[]>;
   removePlugin(id: string): Promise<PluginView[]>;
+  /** The single WeCom office account, not a control channel. */
+  wecom(): Promise<WecomView>;
+  startWecomLogin(): Promise<WecomView>;
+  cancelWecomLogin(): Promise<WecomView>;
+  disconnectWecom(): Promise<WecomView>;
   /** 信箱 (ADR 0099): the sources and the newest letters with what the Herder made of them. */
   mailbox(): MailboxView;
   mailboxAdd(draft: MailboxDraft): Promise<MailboxView>;
@@ -1184,6 +1189,13 @@ export interface HostApi {
 }
 
 export type HostMethod = keyof HostApi;
+
+export interface WecomView {
+  state: "disconnected" | "connecting" | "connected" | "failed";
+  qr?: string;
+  error?: string;
+  capabilities: { id: string; name: string; toolCount: number }[];
+}
 
 export const HOST_METHODS: readonly HostMethod[] = [
   "status",
@@ -1263,6 +1275,10 @@ export const HOST_METHODS: readonly HostMethod[] = [
   "installPlugin",
   "setPlugin",
   "removePlugin",
+  "wecom",
+  "startWecomLogin",
+  "cancelWecomLogin",
+  "disconnectWecom",
   "mailbox",
   "mailboxAdd",
   "mailboxSet",

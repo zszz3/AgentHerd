@@ -400,7 +400,7 @@ const sessionStartSchema = obj({
   profile: opt(
     str({
       description:
-        "Only when the owner names an agent (pi, codex, claude for Claude Code). Omit otherwise: AgentHerd picks the agent from the model and `hard`.",
+        "Only when the owner names an agent (pi, codex, claude for Claude Code, antigravity for Antigravity, also when they ask for Gemini or agy). Omit otherwise: AgentHerd picks the agent from the model and `hard`.",
     }),
   ),
   name: str({
@@ -418,7 +418,7 @@ const sessionStartSchema = obj({
   model: opt(
     str({
       description:
-        "Model name from session_list (e.g. deepseek-v4-pro); AgentHerd uses the first service offering it that answers. service/model picks one service. Omit to select from AgentHerd's configured models in tier order.",
+        "Model name from session_list (e.g. deepseek-v4-pro); AgentHerd uses the first service offering it that answers. service/model picks one service. Omit to select from AgentHerd's configured models in tier order. With an agent that has its own models (antigravity): only when the owner names one, its own name (e.g. gemini-3.8-flash, claude-opus-5-5); omit for the agent's default.",
     }),
   ),
   allowed: opt(
@@ -530,7 +530,10 @@ export function herderTools(
           ...(ended.length === 0 ? ["(none)"] : ended.map(taskLine)),
           `Agents: AgentHerd picks one (GPT models run in Codex; hard coding tasks, session_start hard, in Claude Code with an Anthropic-style model; the rest in Pi). Installed: ${host
             .profiles()
-            .map((p) => `${p.id} (${p.name})`)
+            .map(
+              (p) =>
+                `${p.id} (${p.name}${p.ownModels === true ? ", own sign-in and models; only when the owner names it" : ""})`,
+            )
             .join(", ")}`,
           "Models (name: services offering it, in order of preference):",
           ...modelLines(host, modelTiers),
@@ -602,34 +605,50 @@ export function herderTools(
         if (named !== undefined && !ids.includes(named)) {
           throw new Error(`unknown profile "${named}"`);
         }
-        const models = host
-          .models()
-          .filter((m) =>
-            named === undefined
-              ? m.agents.includes(agentForModel(m.ref, ids, hard, m.agents))
-              : true,
-          );
-        const tiers = modelTiers?.() ?? placeModels(modelsByName(models).map((m) => m.name));
-        const runs = (entry: { model: string }, agent?: string) =>
-          models.some(
-            (m) =>
-              m.ref.slice(m.ref.indexOf("/") + 1) === entry.model &&
-              (agent === undefined ? m.agents.length > 0 : m.agents.includes(agent)),
-          );
-        const order = TIERS.flatMap((tier) => tiers[tier]);
-        // A hard task prefers a model Claude Code runs (ADR 0066); without one, the usual order.
-        const preferred =
-          (named === undefined && hard && ids.includes("claude")
-            ? order.find((entry) => runs(entry, "claude"))
-            : undefined) ?? order.find((entry) => runs(entry, named));
-        const asked = args.model?.trim() || preferred?.model;
-        if (asked === undefined) {
-          throw new Error("no configured model can run this task; configure models in AgentHerd");
+        // An agent with its own sign-in and models (Antigravity, ADR 0104): AgentHerd's model
+        // list is not used; the model the owner named goes to the agent by its own name.
+        const own =
+          named !== undefined && host.profiles().find((p) => p.id === named)?.ownModels === true;
+        const chosen = own
+          ? { profile: named as string, model: args.model?.trim() || undefined }
+          : await chooseModel();
+        const { profile, model } = chosen;
+        const picked = "picked" in chosen ? chosen.picked : undefined;
+        const modelText = model ?? "its own default model";
+        async function chooseModel() {
+          const models = host
+            .models()
+            .filter((m) =>
+              named === undefined
+                ? m.agents.includes(agentForModel(m.ref, ids, hard, m.agents))
+                : true,
+            );
+          const tiers = modelTiers?.() ?? placeModels(modelsByName(models).map((m) => m.name));
+          const runs = (entry: { model: string }, agent?: string) =>
+            models.some(
+              (m) =>
+                m.ref.slice(m.ref.indexOf("/") + 1) === entry.model &&
+                (agent === undefined ? m.agents.length > 0 : m.agents.includes(agent)),
+            );
+          const order = TIERS.flatMap((tier) => tiers[tier]);
+          // A hard task prefers a model Claude Code runs (ADR 0066); without one, the usual order.
+          const preferred =
+            (named === undefined && hard && ids.includes("claude")
+              ? order.find((entry) => runs(entry, "claude"))
+              : undefined) ?? order.find((entry) => runs(entry, named));
+          const asked = args.model?.trim() || preferred?.model;
+          if (asked === undefined) {
+            throw new Error("no configured model can run this task; configure models in AgentHerd");
+          }
+          const picked = await pickService(host, asked, named, tiers, models);
+          const ref = picked.ref;
+          return {
+            profile:
+              named ?? agentForModel(ref, ids, hard, models.find((m) => m.ref === ref)?.agents),
+            model: ref as string | undefined,
+            picked,
+          };
         }
-        const picked = await pickService(host, asked, named, tiers, models);
-        const model = picked.ref;
-        const profile =
-          named ?? agentForModel(model, ids, hard, models.find((m) => m.ref === model)?.agents);
         const given = args.project?.trim() || undefined;
         const cwd = given === undefined ? undefined : resolveProject(host, given);
         if (cwd !== undefined && !t.pickedDirs.some((d) => samePath(d, cwd))) {
@@ -666,7 +685,7 @@ export function herderTools(
             allowed,
           });
           return ok(
-            `trial run: nothing was started. It would have been task "${title}" in ${where} with ${profile}, ${model}${allowed.length === 0 ? "" : `, allowed without asking: ${allowed.join(", ")}`}.${notAllowed}\nTell the owner in one short line what you would have started and which words of the item made you decide.`,
+            `trial run: nothing was started. It would have been task "${title}" in ${where} with ${profile}, ${modelText}${allowed.length === 0 ? "" : `, allowed without asking: ${allowed.join(", ")}`}.${notAllowed}\nTell the owner in one short line what you would have started and which words of the item made you decide.`,
           );
         }
         const lessons =
@@ -715,7 +734,7 @@ export function herderTools(
             ? "\nPushes, pull requests, merges, comments, publishing, deploys and messages will ask the owner."
             : `\nAllowed without asking: ${allowed.join(", ")}; other steps leaving the Mac ask the owner.`;
         return ok(
-          `started task ${taskId.slice(0, 8)} in ${where} with ${profile}, ${model}${switched}${gave}${free}${notAllowed}`,
+          `started task ${taskId.slice(0, 8)} in ${where} with ${profile}, ${modelText}${switched}${gave}${free}${notAllowed}`,
         );
       },
     },

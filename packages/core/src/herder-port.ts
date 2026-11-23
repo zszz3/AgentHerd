@@ -127,7 +127,8 @@ export interface HerderHost {
   readonly userHome: string;
   readonly protectedPaths?: readonly string[] | undefined;
   readonly protectedLocationFiles?: readonly string[] | undefined;
-  profiles(): { id: string; name: string }[];
+  /** ownModels: the agent brings its own sign-in and models (ADR 0104). */
+  profiles(): { id: string; name: string; ownModels?: boolean }[];
   tasks(): Task[];
   openTasks(): Task[];
   /** A task's conversation with its agent, oldest first: for reading its replies whole (ADR 0062). */

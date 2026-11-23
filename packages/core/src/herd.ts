@@ -33,7 +33,7 @@ import {
   type HerderPort,
   type OwnerImage,
 } from "./herder-port.ts";
-import { Inbox, type OwnerAnswer } from "./inbox.ts";
+import { Inbox, type OwnerAnswer, type OwnerInputSource } from "./inbox.ts";
 import { type LetterFate, Mailbox, type MailboxPatch, type MailboxSourceInput } from "./mailbox.ts";
 import { type JsonRpcMessage, McpGateway } from "./mcp-gateway.ts";
 import { noticeLevels, setNoticeLevel } from "./notices.ts";
@@ -258,7 +258,12 @@ export class Herd {
       userHome: this.opts.userHome,
       protectedPaths: this.opts.protectedPaths,
       protectedLocationFiles: this.opts.protectedLocationFiles,
-      profiles: () => this.opts.profiles.map((p) => ({ id: p.id, name: p.name })),
+      profiles: () =>
+        this.opts.profiles.map((p) => ({
+          id: p.id,
+          name: p.name,
+          ...(p.ownModels === true ? { ownModels: true } : {}),
+        })),
       tasks: () => this.tasks(),
       openTasks: () => this.openTasks(),
       transcript: (taskId) => this.store.transcript(taskId),
@@ -399,7 +404,11 @@ export class Herd {
     // Agents are not running after a restart, so an old relay points at nothing.
     const relay = this.relays.stored();
     this.relays.reset();
-    await this.opts.channel.start(this.opts.binding, (inbound) => this.handle(inbound));
+    // The pet wrapper marks its local injections; the channel adapters only pass the inbound.
+    await this.opts.channel.start(
+      this.opts.binding,
+      (inbound, source: OwnerInputSource = "channel") => this.owner.handle(inbound, source),
+    );
     this.store.audit("herd.started", { mode: this.mode, channel: this.opts.channel.id });
     // What the last run could not send goes out now.
     this.ctx.outbox.start();
@@ -456,9 +465,9 @@ export class Herd {
     this.store.audit("tasks.resume-asked", { taskIds: tasks.map((task) => task.id) });
   }
 
-  /** Inbound from the channel. Errors are recorded, never thrown back into the channel. */
+  /** Direct injection does not establish channel provenance. */
   handle(inbound: Inbound): Promise<void> {
-    return this.owner.handle(inbound);
+    return this.owner.handle(inbound, "local");
   }
 
   addRule(rule: Rule): void {

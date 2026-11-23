@@ -292,3 +292,11 @@ describe("startAgent with an agent that ignores SIGTERM", () => {
     );
   });
 });
+
+describe("setModel (ADR 0104)", () => {
+  it("picks the session's model by the agent's own name", async () => {
+    const { conn, sessionId } = await start("turns: []\n");
+    await conn.setModel(sessionId, "gemini-3.8-flash");
+    expect(conn.stderr().join("\n")).toContain("config model=gemini-3.8-flash");
+  });
+});

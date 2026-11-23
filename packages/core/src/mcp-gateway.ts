@@ -137,11 +137,23 @@ export interface AppToolInfo {
   hints?: AppHints;
 }
 
-/** The owner's connected apps (Composio), as the gateway uses them. */
+export interface AppToolPreflight {
+  /** Safe to persist and show to the owner; not necessarily the execution arguments. */
+  approvalArguments: unknown;
+  /** Runs with the exact arguments validated during preflight. */
+  execute: () => Promise<unknown>;
+}
+
+/** The owner's connected apps, as the gateway uses them. */
 export interface AppTools {
   list(): Promise<McpTool[]>;
   /** Titles and hints of app tools by slug; unknown slugs are missing from the map. */
   describe(slugs: readonly string[]): Promise<Map<string, AppToolInfo>>;
+  /** Validates a call before approval. Returns undefined for tools without preflight. */
+  preflight?(
+    name: string,
+    args: unknown,
+  ): AppToolPreflight | undefined | Promise<AppToolPreflight | undefined>;
   /** Runs one tool; the answer is an MCP tools/call result. */
   call(name: string, args: unknown): Promise<unknown>;
 }
@@ -303,10 +315,29 @@ export class McpGateway {
       return toolText(`unknown tool ${String(name)}`, true);
     }
     try {
+      let prepared: AppToolPreflight | undefined;
       if (!DIRECT_META.has(name)) {
         const slugs = slugsOf(name, args);
         if (typeof slugs === "string") return toolText(slugs, true);
+        // Built-in WeCom slugs have one separator, unlike plugin namespaces (`WECOM__`).
+        const hasWeComSlug = slugs.some((slug) => /^WECOM_[A-Z0-9]/.test(slug));
+        if (name === MULTI_EXECUTE && hasWeComSlug) {
+          return toolText("WeCom tools must be called directly.", true);
+        }
+        if (name !== MULTI_EXECUTE) prepared = await apps.preflight?.(name, args);
+        if (prepared === undefined && hasWeComSlug) {
+          return toolText("WeCom CLI tool is unavailable.", true);
+        }
         const known = await apps.describe(slugs);
+        if (
+          prepared === undefined &&
+          slugs.some((slug) => known.get(slug)?.toolkit === "builtin:wecom")
+        ) {
+          return toolText("WeCom CLI tool is unavailable.", true);
+        }
+        if (hasWeComSlug && known.get(name)?.toolkit !== "builtin:wecom") {
+          return toolText("WeCom CLI tool is unavailable.", true);
+        }
         const calls: AppCall[] = slugs.map((slug, i) => {
           const info = known.get(slug);
           return {
@@ -314,7 +345,8 @@ export class McpGateway {
             title: info?.title ?? slug,
             toolkit: info?.toolkit ?? slug.split("_")[0]?.toLowerCase() ?? slug,
             ...(info?.hints === undefined ? {} : { hints: info.hints }),
-            arguments: argumentsOf(name, args, i),
+            arguments:
+              prepared === undefined ? argumentsOf(name, args, i) : prepared.approvalArguments,
           };
         });
         const approve = this.opts.approve ?? (async () => false);
@@ -323,7 +355,7 @@ export class McpGateway {
           return toolText(this.opts.denied?.(title) ?? `The owner did not allow ${title}.`, true);
         }
       }
-      return await apps.call(name, args);
+      return prepared === undefined ? await apps.call(name, args) : await prepared.execute();
     } catch (error) {
       return toolText(`app call failed: ${(error as Error).message}`, true);
     }

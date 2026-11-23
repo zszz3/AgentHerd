@@ -8,9 +8,9 @@ import { fileURLToPath } from "node:url";
 import type { StdioMcpServer } from "@agentherd/acp-client";
 import { FakeChannel, type SentMessage } from "@agentherd/channel-fake";
 import type { AgentProfile, ItemView, Mode } from "@agentherd/protocol";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { Herd } from "../../src/herd.ts";
-import { type AppTools, UnknownTokenError } from "../../src/mcp-gateway.ts";
+import { type AppToolInfo, type AppTools, UnknownTokenError } from "../../src/mcp-gateway.ts";
 import { Store } from "../../src/store.ts";
 
 const BIN = fileURLToPath(new URL("../../../mock-agent/bin/mock-agent.ts", import.meta.url));
@@ -154,6 +154,61 @@ function fakeApps(ran: string[]): AppTools {
   };
 }
 
+function fakePluginTools(ran: string[]): AppTools {
+  const known = new Map<string, AppToolInfo>([
+    [
+      "WECom_doc_get_doc",
+      { title: "WeCom: Get doc", toolkit: "builtin:wecom", hints: hints({ readOnly: true }) },
+    ],
+    [
+      "WECOM__create_doc",
+      { title: "WeCom: Create doc", toolkit: "builtin:wecom", hints: hints({ create: true }) },
+    ],
+    [
+      "WECOM__send_message",
+      { title: "WeCom: Send message", toolkit: "builtin:wecom", hints: hints({ create: true }) },
+    ],
+    ["WECOM__unclear", { title: "WeCom: Unclear", toolkit: "builtin:wecom" }],
+    [
+      "WECOM__conflict",
+      {
+        title: "WeCom: Conflict",
+        toolkit: "builtin:wecom",
+        hints: hints({ readOnly: true, update: true }),
+      },
+    ],
+    [
+      "WECOM__create_page",
+      {
+        title: "Third-party WeCom plugin: Create page",
+        toolkit: "plugin:wecom",
+        hints: hints({ create: true }),
+      },
+    ],
+  ]);
+  const execute = async (name: string) => {
+    ran.push(name);
+    return { content: [{ type: "text", text: "ok" }] };
+  };
+  return {
+    list: async () => [...known.keys()].map((name) => ({ name, inputSchema: {} })),
+    describe: async (names) => new Map([...known].filter(([name]) => names.includes(name))),
+    preflight: (name, args) => {
+      if (known.get(name)?.toolkit !== "builtin:wecom") return undefined;
+      if (JSON.stringify(args) !== "{}") throw new Error("Invalid WeCom CLI tool arguments.");
+      return { approvalArguments: { fields: [], listSizes: {} }, execute: () => execute(name) };
+    },
+    call: execute,
+  };
+}
+
+const callPlugin = (name: string) => ({
+  jsonrpc: "2.0" as const,
+  id: 8,
+  method: "tools/call",
+  params: { name, arguments: {} },
+});
+
 const run = (...slugs: string[]) => ({
   jsonrpc: "2.0" as const,
   id: 7,
@@ -254,5 +309,244 @@ describe("E2E-MCP-APPS", () => {
     await pending;
     expect(ran).toEqual(["WEIRD_TOOL"]);
     await turn;
+  });
+});
+
+const MODES: Mode[] = ["observe", "assist", "auto"];
+const SEND_PERMITS = MODES.flatMap((mode) =>
+  [false, true].map((allowSend) => ({ mode, allowSend })),
+);
+
+function addAppRule(herd: Herd, action: "allow" | "deny", command: string): string {
+  const id = `wecom-${action}-${command}`;
+  herd.addRule({
+    id,
+    action,
+    match: { toolKind: "app", command },
+    createdAt: "2026-11-04T00:00:00Z",
+    createdBy: "owner",
+  });
+  return id;
+}
+
+async function startPluginTask(herd: Herd, tokens: string[], allowSend = false): Promise<string> {
+  const { turn } = await herd.startTask(
+    "mock",
+    dir,
+    "Use an app plugin",
+    undefined,
+    undefined,
+    undefined,
+    allowSend ? ["send"] : [],
+  );
+  // The token remains valid while the task is idle. Let the mock turn finish before testing calls.
+  await turn;
+  return tokens[0] as string;
+}
+
+async function pendingAppItem(channel: FakeChannel, pending: ReturnType<Herd["mcp"]>) {
+  // Fail immediately if a regression lets the call finish without going through the inbox.
+  const card = await Promise.race([
+    channel.waitFor(isOpenItem),
+    pending.then(() => {
+      throw new Error("App call finished before owner confirmation");
+    }),
+  ]);
+  return card.view as ItemView;
+}
+
+describe("E2E-MCP-WECOM", () => {
+  it("rejects invalid input without creating an approval or writing an app call audit row", async () => {
+    const ran: string[] = [];
+    const { herd, tokens, channel } = await setup(profile(SLOW), fakePluginTools(ran));
+    const token = await startPluginTask(herd, tokens);
+    const request = callPlugin("WECOM__send_message");
+    const insertItem = vi.spyOn(herd.store, "insertItem");
+    try {
+      const response = await Promise.race([
+        herd.mcp(token, {
+          ...request,
+          params: { ...request.params, arguments: { access_token: "unused" } },
+        }),
+        channel.waitFor(isOpenItem).then(() => {
+          throw new Error("Invalid WeCom input opened an inbox item");
+        }),
+      ]);
+      expect(response?.result).toMatchObject({
+        isError: true,
+        content: [{ type: "text", text: "app call failed: Invalid WeCom CLI tool arguments." }],
+      });
+      expect(insertItem).not.toHaveBeenCalled();
+      expect(herd.store.auditRows("app.call")).toEqual([]);
+      expect(ran).toEqual([]);
+    } finally {
+      insertItem.mockRestore();
+    }
+  });
+
+  it.each(MODES)("requires a fresh owner confirmation for each write in %s", async (mode) => {
+    const ran: string[] = [];
+    const { herd, tokens, channel } = await setup(profile(SLOW), fakePluginTools(ran), mode);
+    const token = await startPluginTask(herd, tokens);
+    const request = callPlugin("WECOM__create_doc");
+
+    const first = herd.mcp(token, request);
+    const firstItem = await pendingAppItem(channel, first);
+    expect(ran).toEqual([]);
+    await channel.tap(firstItem.itemId, "allow", "not-owner");
+    expect(
+      channel.ofKind("item").find(({ view }) => view.itemId === firstItem.itemId)?.view.final,
+    ).toBeUndefined();
+    expect(ran).toEqual([]);
+    await channel.tap(firstItem.itemId, "allow");
+    expect((await first)?.result).toEqual({ content: [{ type: "text", text: "ok" }] });
+    expect(ran).toEqual(["WECOM__create_doc"]);
+
+    const second = herd.mcp(token, { ...request, id: 9 });
+    const secondItem = await pendingAppItem(channel, second);
+    expect(secondItem.itemId).not.toBe(firstItem.itemId);
+    expect(ran).toEqual(["WECOM__create_doc"]);
+    await channel.tap(secondItem.itemId, "deny");
+    expect((await second)?.result).toMatchObject({ isError: true });
+    expect(ran).toEqual(["WECOM__create_doc"]);
+  });
+
+  it.each(["WECOM__create_doc", "WECOM__unclear", "WECOM__conflict"])(
+    "still asks for %s with a matching allow rule",
+    async (slug) => {
+      const ran: string[] = [];
+      const { herd, tokens, channel } = await setup(profile(SLOW), fakePluginTools(ran), "auto");
+      addAppRule(herd, "allow", slug);
+      const token = await startPluginTask(herd, tokens);
+
+      const pending = herd.mcp(token, callPlugin(slug));
+      const item = await pendingAppItem(channel, pending);
+      expect(ran).toEqual([]);
+      await channel.tap(item.itemId, "deny");
+      expect((await pending)?.result).toMatchObject({ isError: true });
+      expect(ran).toEqual([]);
+    },
+  );
+
+  it("still asks for a send the owner allowed for the task", async () => {
+    const ran: string[] = [];
+    const { herd, tokens, channel } = await setup(profile(SLOW), fakePluginTools(ran));
+    const token = await startPluginTask(herd, tokens, true);
+
+    const pending = herd.mcp(token, callPlugin("WECOM__send_message"));
+    const item = await pendingAppItem(channel, pending);
+    expect(ran).toEqual([]);
+    await channel.tap(item.itemId, "allow");
+    expect((await pending)?.result).toEqual({ content: [{ type: "text", text: "ok" }] });
+    expect(ran).toEqual(["WECOM__send_message"]);
+  });
+
+  it.each(SEND_PERMITS)(
+    "applies a WeCom deny before outbound checks in $mode (task allows send: $allowSend)",
+    async ({ mode, allowSend }) => {
+      const ran: string[] = [];
+      const { herd, tokens, channel } = await setup(profile(SLOW), fakePluginTools(ran), mode);
+      const slugs = ["WECOM__send_message", "WECom_doc_get_doc"];
+      for (const slug of slugs) {
+        addAppRule(herd, "allow", slug);
+        addAppRule(herd, "deny", slug);
+      }
+      const token = await startPluginTask(herd, tokens, allowSend);
+
+      for (const slug of slugs) {
+        const response = await Promise.race([
+          herd.mcp(token, callPlugin(slug)),
+          channel.waitFor(isOpenItem).then(() => {
+            throw new Error("Explicit deny opened an inbox item");
+          }),
+        ]);
+        expect(response?.result).toMatchObject({ isError: true });
+        expect(channel.messages.some(isOpenItem)).toBe(false);
+        expect(ran).toEqual([]);
+      }
+    },
+  );
+
+  it.each(SEND_PERMITS)(
+    "applies a new WeCom deny after owner confirmation in $mode (task allows send: $allowSend)",
+    async ({ mode, allowSend }) => {
+      const ran: string[] = [];
+      const { herd, tokens, channel } = await setup(profile(SLOW), fakePluginTools(ran), mode);
+      const slug = "WECOM__send_message";
+      addAppRule(herd, "allow", slug);
+      const token = await startPluginTask(herd, tokens, allowSend);
+      const pending = herd.mcp(token, callPlugin(slug));
+      const item = await pendingAppItem(channel, pending);
+      expect(ran).toEqual([]);
+
+      const ruleId = addAppRule(herd, "deny", slug);
+      await channel.tap(item.itemId, "allow");
+
+      expect((await pending)?.result).toMatchObject({
+        isError: true,
+        content: [{ type: "text", text: expect.stringContaining(`rule ${ruleId}`) }],
+      });
+      expect(ran).toEqual([]);
+      expect(herd.store.decisionsFor(item.itemId)).toMatchObject([
+        { source: "human", action: "allow" },
+      ]);
+      expect(herd.store.auditRows("app.call.recheck")).toMatchObject([
+        { data: { itemId: item.itemId, action: "deny", ruleId } },
+      ]);
+    },
+  );
+
+  it("blocks a confirmed WeCom call if current rules cannot be read", async () => {
+    const ran: string[] = [];
+    const { herd, tokens, channel } = await setup(profile(SLOW), fakePluginTools(ran));
+    const token = await startPluginTask(herd, tokens);
+    const pending = herd.mcp(token, callPlugin("WECOM__create_doc"));
+    const item = await pendingAppItem(channel, pending);
+    const listRules = vi.spyOn(herd.store, "listRules").mockImplementation(() => {
+      throw new Error("Rule store unavailable");
+    });
+
+    try {
+      await channel.tap(item.itemId, "allow");
+      expect((await pending)?.result).toMatchObject({
+        isError: true,
+        content: [
+          { type: "text", text: expect.stringContaining("could not verify current rules") },
+        ],
+      });
+      expect(ran).toEqual([]);
+      expect(herd.store.auditRows("app.call.recheck")).toMatchObject([
+        { data: { itemId: item.itemId, action: "error" } },
+      ]);
+    } finally {
+      listRules.mockRestore();
+    }
+  });
+
+  it.each(MODES)("passes a provably read-only WeCom call without prompting in %s", async (mode) => {
+    const ran: string[] = [];
+    const { herd, tokens, channel } = await setup(profile(SLOW), fakePluginTools(ran), mode);
+    const token = await startPluginTask(herd, tokens);
+
+    const response = await herd.mcp(token, callPlugin("WECom_doc_get_doc"));
+    expect(response?.result).toEqual({ content: [{ type: "text", text: "ok" }] });
+    expect(channel.messages.some(isOpenItem)).toBe(false);
+    expect(ran).toEqual(["WECom_doc_get_doc"]);
+  });
+
+  it("keeps existing write behavior for a third-party plugin with the id wecom", async () => {
+    const ran: string[] = [];
+    const { herd, tokens, channel } = await setup(profile(SLOW), fakePluginTools(ran));
+    const token = await startPluginTask(herd, tokens);
+
+    const response = await Promise.race([
+      herd.mcp(token, callPlugin("WECOM__create_page")),
+      channel.waitFor(isOpenItem).then(() => {
+        throw new Error("Third-party plugin unexpectedly required WeCom approval");
+      }),
+    ]);
+    expect(response?.result).toEqual({ content: [{ type: "text", text: "ok" }] });
+    expect(channel.messages.some(isOpenItem)).toBe(false);
+    expect(ran).toEqual(["WECOM__create_page"]);
   });
 });

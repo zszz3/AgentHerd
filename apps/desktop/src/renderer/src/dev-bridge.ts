@@ -45,6 +45,7 @@ import type {
   SocialView,
   Tier,
   WatchView,
+  WecomView,
   WestockTest,
   WestockView,
 } from "@agentherd/host/api";
@@ -444,6 +445,14 @@ function installFakeBridge(): void {
   );
   let watches: WatchView[] = sampleWatches(sim === "empty" || sim === "no-agent");
   let lark: LarkView = sampleLark(sim === "empty" || sim === "no-agent");
+  const wecomDisconnected: WecomView = { state: "disconnected", capabilities: [] };
+  let wecom = wecomDisconnected;
+  let wecomTimer: ReturnType<typeof setTimeout> | undefined;
+  const clearWecom = () => {
+    clearTimeout(wecomTimer);
+    wecom = wecomDisconnected;
+    return delay(wecom);
+  };
   let feeds: FeedView[] = sampleFeeds();
   let westock: WestockView = {
     enabled: true,
@@ -662,14 +671,32 @@ function installFakeBridge(): void {
     canInstall: true,
     ...(sim === "no-agent" ? {} : { ownCli: "/Users/me/.local/bin/claude" }),
   });
+  const antigravity: AgentView =
+    sim === "no-agent"
+      ? missing("antigravity", "Antigravity")
+      : {
+          id: "antigravity",
+          name: "Antigravity",
+          state: "ready",
+          source: "system",
+          path: "/Users/me/.local/bin/agy",
+          canInstall: false,
+          canRemove: false,
+        };
   let agents: AgentView[] =
     sim === "no-agent"
       ? [
           missing("pi", "Pi", { adapted: "1.5.0" }),
           missing("codex", "Codex", { adapted: "2.5.0" }),
           claudeMissing,
+          antigravity,
         ]
-      : [bundled("pi", "Pi", "1.5.0"), bundled("codex", "Codex", "2.5.0"), claudeMissing];
+      : [
+          bundled("pi", "Pi", "1.5.0"),
+          bundled("codex", "Codex", "2.5.0"),
+          claudeMissing,
+          antigravity,
+        ];
   const setAgents = (next: AgentView[]): AgentView[] => {
     agents = next;
     const ids = agents.filter((a) => a.state === "ready").map((a) => a.id);
@@ -756,6 +783,26 @@ function installFakeBridge(): void {
       lark = { state: "signed-out", version: "1.4.0" };
       return delay(lark);
     },
+    wecom: () => delay(wecom),
+    startWecomLogin: () => {
+      if (wecom.state === "connecting" || wecom.state === "connected") return delay(wecom);
+      wecom = { state: "connecting", qr: PLACEHOLDER_QR, capabilities: [] };
+      wecomTimer = setTimeout(() => {
+        wecom =
+          failing === "wecom"
+            ? { state: "failed", capabilities: [] }
+            : {
+                state: "connected",
+                capabilities: [
+                  { id: "doc", name: "文档", toolCount: 3 },
+                  { id: "calendar", name: "日程", toolCount: 3 },
+                ],
+              };
+      }, 4000);
+      return delay(wecom);
+    },
+    cancelWecomLogin: () => (wecom.state === "connecting" ? clearWecom() : delay(wecom)),
+    disconnectWecom: clearWecom,
     pet: () => delay(pet),
     petSay: (text, paths = []) => {
       if (!pet.connected)
@@ -929,6 +976,14 @@ function installFakeBridge(): void {
                 ...(patch.act === undefined
                   ? {}
                   : { act: patch.act === "auto" ? ("trial" as const) : patch.act }),
+                ...(patch.fields === undefined
+                  ? {}
+                  : {
+                      config: Object.fromEntries(
+                        Object.entries(patch.fields).filter(([, v]) => v !== undefined),
+                      ),
+                      ...(s.kind === "timer" ? {} : { started: false, fails: 0 }),
+                    }),
               }
             : s,
         ),

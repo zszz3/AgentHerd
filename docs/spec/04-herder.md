@@ -434,7 +434,10 @@ the same 信箱 ([ADR 0099](../adr/0099-a-mailbox-for-the-herder.md),
   就问我」: `mailbox_add` (kind, name, note, config, `act`, `trial`), `mailbox_try`,
   `mailbox_list`, `mailbox_change`, `mailbox_remove`; adding, changing and removing only in an
   owner turn; the Herder restates a timer in one line so the owner can correct it. The app's
-  「信箱」 page does the same, shows each letter's fate and reason, a timer's next run, and below
+  「信箱」 page does the same (each source has a ✎ button that opens the same form filled in;
+  only what changed is sent, and only a new place to look — repository, feed, words, query —
+  makes a source start over with a first look; a new name, note, interval or time does not),
+  shows each letter's fate and reason, a timer's next run, and below
   the pull requests tasks opened (「任务开的 PR」, ADR 0051), which are not sources.
 - **Keeping.** Tables `mailbox_sources`, `mailbox_letters` (schema 18; `act`, `trials`, offers in
   schema 19), last 2,000 letters. Schema 19 moved the old `schedules`, `intake_watches`,
@@ -544,7 +547,8 @@ Items from different sessions are processed in parallel. The Herder is not on th
 
 From an agent, three things reach the owner
 ([ADR 0056](../adr/0056-leaving-the-mac-asks-and-questions-close.md), which replaced ADR 0029's
-"only a mass delete"): a mass delete (`packages/rules/src/mass-delete.ts`), the owner's
+"only a mass delete"): a mass delete (`packages/rules/src/mass-delete.ts`; never anything inside `/tmp` or the
+system's temporary folder, ADR 0029), the owner's
 `extraGuards` entries, and a step that leaves the Mac (`packages/rules/src/outbound.ts`: push,
 pull-request, merge, comment, publish, deploy, send — git push, gh pr create/merge, gh issue
 comment, npm publish, deploy CLIs, mail, app tools that send). Steps the owner's request asked

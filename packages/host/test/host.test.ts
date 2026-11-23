@@ -152,6 +152,94 @@ describe("Host", () => {
     });
   });
 
+  it("connects multiple WeCom office services through one scan without changing the channel", async () => {
+    const home = mkdtempSync(join(tmpdir(), "ah-"));
+    writeConfig(home, { channel: { channelId: "fake", ownerId: "owner", data: {} } });
+    const secrets = memorySecrets();
+    let signedIn = false;
+    let scans = 0;
+    let finish = () => {};
+    const scanned = new Promise<void>((resolve) => {
+      finish = resolve;
+    });
+    const host = new Host({
+      home,
+      secrets,
+      env: {},
+      profiles: () => [],
+      createChannel: () => new FakeChannel(),
+      mcpSocket: socketPath(home),
+      wecomCli: {
+        status: async () => signedIn,
+        login: async (qr) => {
+          scans++;
+          qr("data:image/png;base64,ZmFrZQ==");
+          await scanned;
+          signedIn = true;
+        },
+        logout: async () => {
+          signedIn = false;
+        },
+        run: async (args) => {
+          if (args[1] === "list") {
+            return Object.entries({
+              calendar: "calendar.schedules.list",
+              meeting: "meeting.list",
+              todo: "todo.list",
+            }).map(([name, method]) => ({
+              name,
+              methods: [{ name: method, description: "List items" }],
+            }));
+          }
+          return {
+            method: args[2],
+            request: { type: "object", properties: {} },
+            schemas: {},
+            response: {},
+          };
+        },
+      },
+    });
+    cleanups.push(() => host.stop());
+    const server = await serveApi(host, socketPath(home));
+    cleanups.push(() => server.close());
+    const client = await connectHost(socketPath(home));
+    cleanups.push(async () => client.close());
+    await host.start();
+    let port: HerderHost | undefined;
+    const herd = (host as unknown as { herd: Herd }).herd;
+    await herd.setHerder((h) => {
+      port = h;
+      return {
+        ownerMessage: () => {},
+        ownerAnswer: () => {},
+        event: () => {},
+        stop: async () => {},
+      };
+    });
+    expect(port?.apps?.()).not.toContain("企业微信");
+    expect(await client.host.wecom()).toEqual({ state: "disconnected", capabilities: [] });
+    await client.host.startWecomLogin();
+    expect(await client.host.wecom()).toMatchObject({
+      state: "connecting",
+      qr: "data:image/png;base64,ZmFrZQ==",
+    });
+    finish();
+    await expect.poll(async () => (await client.host.wecom()).state).toBe("connected");
+    const view = await client.host.wecom();
+    expect(view.capabilities.map(({ id }) => id).sort()).toEqual(["calendar", "meeting", "todo"]);
+    expect(scans).toBe(1);
+    expect(port?.apps?.()).toContain("企业微信");
+    expect(view.qr).toBeUndefined();
+    expect(readFileSync(join(home, "config.json"), "utf8")).not.toContain("data:image");
+    expect(readConfig(home).channel?.channelId).toBe("fake");
+    expect(await client.host.disconnectWecom()).toEqual({
+      state: "disconnected",
+      capabilities: [],
+    });
+    expect(port?.apps?.()).not.toContain("企业微信");
+  });
+
   it("reconnects the channel on request", async () => {
     const t = makeHost(true);
     await t.host.start();

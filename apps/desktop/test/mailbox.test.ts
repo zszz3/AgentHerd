@@ -5,13 +5,16 @@ import { sampleMailbox } from "../src/renderer/src/dev-fixtures.ts";
 import {
   actChoice,
   actText,
+  draftOf,
   draftProblem,
+  editPatch,
   everyText,
   fateCounts,
   fateOf,
   filterLetters,
   sourceLine,
   sourceState,
+  startsOver,
   suggestedName,
   whatText,
   whenProblem,
@@ -154,5 +157,53 @@ describe("the 信箱 page (ADR 0099)", () => {
     expect(whenText(new Date(2026, 10, 21, 23, 0).toISOString(), now)).toBe("昨天 23:00");
     expect(whenText(new Date(2026, 10, 19, 21, 31).toISOString(), now)).toBe("11-19 21:31");
     expect(whenText(undefined, now)).toBe("");
+  });
+});
+
+describe("changing a source (信箱)", () => {
+  const view = sampleMailbox(false);
+  const byId = (id: string) => {
+    const s = view.sources.find((x) => x.id === id);
+    if (s === undefined) throw new Error(`no ${id}`);
+    return s;
+  };
+
+  it("fills the form with what the source has", () => {
+    expect(draftOf(byId("m-codex"))).toEqual({
+      kind: "github",
+      name: "codex",
+      note: "macOS 上崩溃、卡住的马上告诉我，新版本早上汇总",
+      everyMinutes: 10,
+      act: "sort",
+      repo: "openai/codex",
+      what: ["issues", "releases"],
+    });
+    const timer = draftOf(byId("m-morning"));
+    expect(timer.when).toEqual({ kind: "daily", at: "09:00", days: [1, 2, 3, 4, 5] });
+    expect(timer.everyMinutes).toBeUndefined();
+    expect(draftOf(byId("m-xhs")).platform).toBe("xiaohongshu");
+  });
+
+  it("sends only what changed, and a new place to look starts over", () => {
+    const codex = byId("m-codex");
+    const form = draftOf(codex);
+    expect(editPatch(codex, form)).toEqual({});
+    const noted = editPatch(codex, { ...form, note: "只要崩溃的", everyMinutes: 30 });
+    expect(noted).toEqual({ note: "只要崩溃的", everyMinutes: 30 });
+    expect(startsOver(noted, "github")).toBe(false);
+    const moved = editPatch(codex, { ...form, repo: "openai/codex-cli", words: "crash" });
+    expect(moved.fields).toEqual({
+      repo: "openai/codex-cli",
+      what: ["issues", "releases"],
+      words: "crash",
+    });
+    expect(startsOver(moved, "github")).toBe(true);
+    const timer = byId("m-morning");
+    const later = editPatch(timer, {
+      ...draftOf(timer),
+      when: { kind: "daily", at: "09:30", days: [1, 2, 3, 4, 5] },
+    });
+    expect(later.fields?.when).toEqual({ kind: "daily", at: "09:30", days: [1, 2, 3, 4, 5] });
+    expect(startsOver(later, "timer")).toBe(false);
   });
 });

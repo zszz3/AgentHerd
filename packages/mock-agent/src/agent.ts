@@ -274,6 +274,11 @@ export function createMockAgent(script: Script, options: MockAgentOptions = {}):
       sessions.set(params.sessionId, { turn: 0, abort: null, mcpServers, steers: [] });
       return {};
     })
+    .onRequest(methods.agent.session.setConfigOption, ({ params }) => {
+      // Like Antigravity (ADR 0104): the session's model is picked by the agent's own name.
+      log(`config ${params.configId}=${String((params as { value?: unknown }).value)}`);
+      return { configOptions: [] };
+    })
     .onRequest(methods.agent.session.prompt, async ({ params, client }) => {
       const state = sessions.get(params.sessionId);
       if (state === undefined) throw new Error(`unknown session ${params.sessionId}`);

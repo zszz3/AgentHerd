@@ -231,3 +231,34 @@ await import(${JSON.stringify(pathToFileURL(BIN).href)});
     await expect(turn).rejects.toThrow();
   });
 });
+
+describe("an agent with its own models (ADR 0104)", () => {
+  it("starts without AgentHerd's model list and keeps the model the owner named", async () => {
+    const out = join(dir, "own.txt");
+    const own = { ...profile(out), ownModels: true };
+    const channel = new FakeChannel("owner");
+    const herd = new Herd({
+      home: dir,
+      userHome: "/Users/me",
+      channel,
+      binding: { channelId: "fake", ownerId: "owner", data: {} },
+      mode: "assist",
+      profiles: [own],
+      store: Store.open(":memory:"),
+      boardDebounceMs: 10,
+      agentModels: { ...models, list: () => [] },
+    });
+    herds.push(herd);
+    await herd.start();
+    const plain = await herd.startTask("mock", dir, "look");
+    await plain.turn;
+    // The agent's own default: AgentHerd adds no model env.
+    expect(readFileSync(out, "utf8")).toBe("agent default");
+    expect(herd.tasks().find((t) => t.id === plain.taskId)?.agent).toBe("Mock");
+    const named = await herd.startTask("mock", dir, "look", "look", "gemini-3.8-flash");
+    await named.turn;
+    const task = herd.tasks().find((t) => t.id === named.taskId);
+    expect(task?.model).toBe("gemini-3.8-flash");
+    expect(task?.agent).toBe("Mock · gemini-3.8-flash");
+  });
+});

@@ -211,6 +211,7 @@ export function combineApps(parts: (AppTools | undefined)[]): AppTools | undefin
       }
       return out;
     },
+    preflight: async (name, args) => (await ownerOf(name)).preflight?.(name, args),
     call: async (name, args) => (await ownerOf(name)).call(name, args),
   };
 }

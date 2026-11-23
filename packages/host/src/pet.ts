@@ -576,14 +576,17 @@ class PetChannel implements Channel {
     return this.inner.setup(ui);
   }
 
-  async start(binding: ChannelBinding, sink: InboundSink): Promise<void> {
+  async start(
+    binding: ChannelBinding,
+    sink: (inbound: Parameters<InboundSink>[0], source?: "local") => ReturnType<InboundSink>,
+  ): Promise<void> {
     // The owner moved on in the chat: what they typed in the pet goes first, alone, so it is
     // never quoted on an answer to something else.
     await this.inner.start(binding, async (inbound) => {
       await this.feed.flush(this.inner);
       await sink(inbound);
     });
-    this.feed.attach(binding, sink);
+    this.feed.attach(binding, (inbound) => sink(inbound, "local"));
   }
 
   async stop(): Promise<void> {

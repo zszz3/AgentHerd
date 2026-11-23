@@ -281,6 +281,59 @@ describe.runIf(supported)("applyLocationRequest", () => {
     20_000,
   );
 
+  const wecomFiles = [
+    "credentials.enc",
+    "bot.enc",
+    "token.enc",
+    ".encryption_key",
+    "config.json",
+    "disconnect-pending",
+  ];
+
+  it.each(["wecom-cli", ...wecomFiles.map((name) => `wecom-cli/${name}`)])(
+    "does not give ordinary data the fixed WeCom meaning %s",
+    async (key) => {
+      const parts = key.split("/");
+      const alias = [...parts.slice(0, -1), parts.at(-1)?.toUpperCase() ?? ""];
+      // For the root case, put an ordinary file inside the uppercase directory.
+      const suffix = parts.length === 1 ? ["note.txt"] : [];
+      const ordinary = join(old, ...alias, ...suffix);
+      const selection = JSON.stringify({ version: 1, active: old, retained: [] });
+      mkdirSync(join(old, ...[...alias, ...suffix].slice(0, -1)), { recursive: true });
+      writeFileSync(ordinary, "ordinary text fixture");
+      writeFileSync(record(), selection, { mode: 0o600 });
+      // Simulate only the two name-lookup results on mixed-sensitivity volumes.
+      sourceMissing.add(join(old, key));
+      destinationAliases.set(join(target, key), join(target, ...alias));
+      writeLocationRequest(ctx, { version: 1, parent, mode: "copy" });
+
+      expect(await apply()).toEqual({ kind: "failed", code: "copy-failed" });
+      expect(readFileSync(ordinary, "utf8")).toBe("ordinary text fixture");
+      expect(readFileSync(record(), "utf8")).toBe(selection);
+      expect(resolveLocation(ctx)).toMatchObject({ source: "saved", home: old });
+    },
+    20_000,
+  );
+
+  it("keeps WeCom app files and the pending disconnect, leaving external data in place", async () => {
+    const external = join(ctx.base, ".config", "wecom");
+    mkdirSync(external, { recursive: true });
+    writeFileSync(join(external, "external.txt"), "external text fixture");
+    mkdirSync(join(old, "wecom-cli"));
+    for (const name of wecomFiles) {
+      writeFileSync(join(old, "wecom-cli", name), `inert fixture: ${name}`);
+    }
+    writeLocationRequest(ctx, { version: 1, parent, mode: "copy" });
+
+    expect(await apply()).toMatchObject({ kind: "applied" });
+    for (const name of wecomFiles) {
+      expect(readFileSync(join(target, "wecom-cli", name), "utf8")).toBe(`inert fixture: ${name}`);
+      expect(readFileSync(join(old, "wecom-cli", name), "utf8")).toBe(`inert fixture: ${name}`);
+    }
+    expect(readFileSync(join(external, "external.txt"), "utf8")).toBe("external text fixture");
+    expect(readdirSync(target)).toEqual(["wecom-cli"]);
+  }, 20_000);
+
   it.runIf(xhsAsset() !== undefined).each(["", ".part"])(
     "refuses an ordinary file that aliases the fixed Xiaohongshu path (suffix %j)",
     async (suffix) => {

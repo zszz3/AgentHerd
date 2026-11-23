@@ -31,7 +31,8 @@ English · [简体中文](README.zh-CN.md)
   cache hits and cost of every request, read from `herd.db` even while the Herder is off.
 - **The right agent and model for each task.** Pi and Codex (for GPT models) come inside the app;
   Claude Code takes hard coding work, using your own `claude` or a download on the **Agent** page,
-  with your own Anthropic-style model service. They run through the
+  with your own Anthropic-style model service. Antigravity runs when you ask for it, with your own
+  `agy` and its Google sign-in and models. They run through the
   [Agent Client Protocol](https://agentclientprotocol.com), on your own model services. The
   Herder picks the model, the agent follows from it, and a broken first turn switches to the
   next model.

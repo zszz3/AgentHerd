@@ -4,6 +4,7 @@
 
 import { randomUUID } from "node:crypto";
 import type { AppHints, Item } from "@agentherd/protocol";
+import { matchRules } from "@agentherd/rules";
 import { turnPermits } from "./github-watch.ts";
 import type { HerdContext } from "./herd-context.ts";
 import { APP_WRITE, decide, type PipelineResult } from "./pipeline.ts";
@@ -52,9 +53,21 @@ function itemFor(ctx: HerdContext, taskId: string, calls: readonly AppCall[]): I
   };
 }
 
-/** The pipeline's answer for one call, as if it came alone. */
-function decideOne(ctx: HerdContext, base: Item, call: AppCall): PipelineResult {
-  const item: Item = {
+function isReadOnly(hints: AppHints | undefined): boolean {
+  return (
+    hints?.readOnly === true &&
+    hints.create === false &&
+    hints.update === false &&
+    hints.destructive === false
+  );
+}
+
+function isWeCom(call: AppCall): boolean {
+  return call.toolkit === "builtin:wecom";
+}
+
+function itemForCall(base: Item, call: AppCall): Item {
+  return {
     ...base,
     toolCall: {
       kind: "app",
@@ -65,14 +78,40 @@ function decideOne(ctx: HerdContext, base: Item, call: AppCall): PipelineResult 
       ...(call.hints === undefined ? {} : { appHints: call.hints }),
     },
   };
-  return decide(item, {
+}
+
+/** The pipeline's answer for one call, as if it came alone. */
+function decideOne(ctx: HerdContext, base: Item, call: AppCall): PipelineResult {
+  const item = itemForCall(base, call);
+  const policy = {
     mode: ctx.mode(),
     rules: ctx.store.listRules(),
     home: ctx.opts.userHome,
     protectedPaths: ctx.opts.protectedPaths,
     protectedLocationFiles: ctx.opts.protectedLocationFiles,
     ...turnPermits(ctx, base.sessionId),
-  });
+  };
+  const wecom = isWeCom(call);
+  if (wecom && policy.mode === "observe") {
+    // Observe normally only suggests rules. A WeCom deny still wins, even for an outbound step.
+    const enforced = decide(item, { ...policy, mode: "assist" });
+    if (enforced.apply && enforced.decision.action === "deny") return enforced;
+  }
+
+  const result = decide(item, policy);
+  if (wecom && !isReadOnly(call.hints) && result.apply && result.decision.action === "allow") {
+    return {
+      decision: {
+        ...result.decision,
+        action: "escalate",
+        confidence: 0,
+        risk: "medium",
+        reason: "WeCom tool is not read-only; needs your confirmation",
+      },
+      apply: false,
+    };
+  }
+  return result;
 }
 
 /**
@@ -120,8 +159,9 @@ export async function approveAppCalls(
     return allowed;
   }
 
+  const wecomCalls = calls.filter(isWeCom);
   ctx.registry.set(taskId, "waiting-approval");
-  return new Promise<boolean>((resolve) => {
+  const allowed = await new Promise<boolean>((resolve) => {
     let done = false;
     void ctx.inbox.add(
       item,
@@ -136,6 +176,33 @@ export async function approveAppCalls(
       },
       decision.reason,
       ctx.following.get(taskId)?.task.title,
+      wecomCalls.length > 0,
     );
   });
+  if (!allowed) return false;
+
+  if (wecomCalls.length === 0) return true;
+
+  // Rules can change while the owner is deciding. Only a current deny overrides their answer;
+  // outbound checks and task permits cannot mask it. Keep this separate from the owner's decision.
+  let denied: { slug: string; ruleId: string } | undefined;
+  try {
+    const rules = store.listRules();
+    for (const call of wecomCalls) {
+      const hit = matchRules(rules, itemForCall(item, call), ctx.opts.userHome);
+      if (hit?.action !== "deny") continue;
+      denied = { slug: call.slug, ruleId: hit.rule.id };
+      break;
+    }
+  } catch {
+    store.audit("app.call.recheck", { taskId, itemId: item.id, action: "error" });
+    throw new Error("could not verify current rules for WeCom");
+  }
+  if (denied !== undefined) {
+    const { slug, ruleId } = denied;
+    store.audit("app.call.recheck", { taskId, itemId: item.id, action: "deny", slug, ruleId });
+    // Throw so the gateway reports a rule block, not that the owner refused the call.
+    throw new Error(`WeCom call blocked by rule ${ruleId}`);
+  }
+  return true;
 }

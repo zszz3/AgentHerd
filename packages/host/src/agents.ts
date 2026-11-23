@@ -5,6 +5,7 @@
 // The host keeps one Agents and rebuilds profiles when it changes.
 
 import { existsSync } from "node:fs";
+import { homedir } from "node:os";
 import { join } from "node:path";
 import type { AgentProfile } from "@agentherd/protocol";
 import type { AgentSource, AgentView } from "./api.ts";
@@ -93,7 +94,11 @@ export class Agents {
       (p) => this.exists(p),
       this.opts.platform ?? process.platform,
     );
-    return onSystem === undefined ? undefined : { path: onSystem, source: "system" };
+    if (onSystem !== undefined) return { path: onSystem, source: "system" };
+    // A CLI installed under the owner's home is often missing from the app's PATH (ADR 0104).
+    const home = this.opts.userHome ?? homedir();
+    const inHome = (def.homeBins ?? []).map((p) => join(home, p)).find((p) => this.exists(p));
+    return inHome === undefined ? undefined : { path: inHome, source: "system" };
   }
 
   /** Required files (AgentDef.requires) absent from the download of `version`. */

@@ -37,6 +37,11 @@ export interface AgentProfile {
   exporter: string | null;
   /** `false`: start the agent without the `agentherd` MCP server (docs/spec/09-agent-tools.md). */
   mcp?: boolean;
+  /**
+   * The agent brings its own sign-in and models (Antigravity, ADR 0104): AgentHerd's model list
+   * is not used, and a model the owner names is set in the agent's session by name.
+   */
+  ownModels?: boolean;
 }
 
 /** Channel-neutral description of what an agent wants to do. */

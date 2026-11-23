@@ -88,9 +88,11 @@ export class TaskRunner {
     const { ctx } = this;
     const found = ctx.opts.profiles.find((p) => p.id === profileId);
     if (found === undefined) throw new Error(`unknown agent profile "${profileId}"`);
-    model = await this.configuredModel(profileId, model);
+    // An agent with its own models (Antigravity, ADR 0104) takes the owner's model by name.
+    const own = found.ownModels === true;
+    if (!own) model = await this.configuredModel(profileId, model);
     let profile = found;
-    if (model !== undefined) {
+    if (model !== undefined && !own) {
       if (ctx.opts.agentModels === undefined) throw new Error("no model list to choose from");
       profile = withModel(found, ctx.opts.agentModels.launchFor(profileId, model));
     }
@@ -137,6 +139,7 @@ export class TaskRunner {
       const connection = await startAgent(profile, { cwd: f.cwd });
       f.connection = connection;
       f.agentSessionId = await connection.newSession(f.cwd, mcpServers(ctx, f));
+      if (own && model !== undefined) await connection.setModel(f.agentSessionId, model);
     } catch (error) {
       const message = (error as Error).message;
       await f.connection?.close().catch(() => {});
@@ -514,9 +517,10 @@ export class TaskRunner {
     }
     for (const base of this.reopenCandidates(f)) {
       try {
-        const model = await this.configuredModel(base.id, f.task.model);
+        const own = base.ownModels === true;
+        const model = own ? f.task.model : await this.configuredModel(base.id, f.task.model);
         let profile = base;
-        if (model !== undefined) {
+        if (model !== undefined && !own) {
           if (ctx.opts.agentModels === undefined) throw new Error("no model list to choose from");
           profile = withModel(base, ctx.opts.agentModels.launchFor(base.id, model));
         }
@@ -524,7 +528,7 @@ export class TaskRunner {
         let sessionId: string | undefined;
         if (
           connection.loadsSessions &&
-          (ctx.opts.agentModels === undefined || f.task.model !== undefined) &&
+          (own || ctx.opts.agentModels === undefined || f.task.model !== undefined) &&
           f.agentSessionId !== undefined &&
           base.id === f.profile.id
         ) {
@@ -539,6 +543,7 @@ export class TaskRunner {
         if (sessionId === undefined) {
           try {
             sessionId = await connection.newSession(f.cwd, mcpServers(ctx, f));
+            if (own && model !== undefined) await connection.setModel(sessionId, model);
           } catch (error) {
             await connection.close().catch(() => {});
             throw error;
@@ -849,6 +854,8 @@ export class TaskRunner {
     const failed = f.task.model;
     if (models?.next === undefined || failed === undefined || f.endedWhy !== undefined)
       return false;
+    // Its models are not in AgentHerd's list (ADR 0104): nothing to switch to.
+    if (f.profile.ownModels === true) return false;
     if ((f.turnsEnded ?? 0) > 0 || f.turn.text.trim() !== "" || f.turn.toolCalls > 0) return false;
     const tried = f.triedModels ?? [];
     if (!tried.includes(failed)) tried.push(failed);

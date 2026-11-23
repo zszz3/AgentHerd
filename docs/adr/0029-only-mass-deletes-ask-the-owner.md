@@ -28,6 +28,11 @@ new agents get full access and their approvals are accepted without a card.
 - Entries the owner adds to `extraGuards` in `config.json` still always ask.
 - `observe` mode is unchanged: everything goes to the owner, rules only suggest.
 - The Herder's own tool calls keep the full built-in guard list; the Herder still cannot approve.
+- Changed 2026-11-23: deleting anything inside a temporary folder (`/tmp`, `/private/tmp`,
+  `/var/tmp` and the system's own `os.tmpdir()`) never asks, even all of it (`rm -rf /tmp/*`);
+  deleting the folder itself still does. A task's `rm -f /tmp/t3-desktop.log` before a build had
+  come to the owner as 「高风险」, because `/tmp` is outside the project. The owner: 「删tmp里的东西都
+  无所谓啊」. A path given through a variable (`$TMPDIR/x`) still asks: its value is unknown.
 
 ## Consequences
 

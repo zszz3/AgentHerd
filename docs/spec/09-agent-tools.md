@@ -6,7 +6,8 @@ Applied ADRs: [0019](../adr/0019-relay-verbatim-board-and-reports.md),
 [0041](../adr/0041-agent-tools-through-a-local-mcp-gateway.md),
 [0060](../adr/0060-pi-tools-through-the-mcp-gateway.md),
 [0076](../adr/0076-westock-market-quotes-and-research-cli.md),
-[0077](../adr/0077-xueqiu-danjuan-fund-holdings.md).
+[0077](../adr/0077-xueqiu-danjuan-fund-holdings.md),
+[0103](../adr/0103-wecom-office-tools-use-the-task-gateway.md).
 
 AgentHerd gives every task one MCP server, `agentherd`. Through it the agent reports progress
 (`herd_report`) and, when the owner has connected apps, uses them (Gmail, Slack, GitHub …)
@@ -265,6 +266,31 @@ New tasks get a note listing each skill with its `SKILL.md` path.
 
 **Herder.** Only for plugins with 「主管也能用」 on (off by default): the read-only tools through
 `plugin_call` and the skills through `plugin_skill`, listed under Connected accounts.
+
+## 3g. WeCom office connection (ADR 0103)
+
+In 应用连接 → 账号 → 企业微信, choose 扫码登录 and scan with WeCom. One login supplies
+credentials for the office services; no Bot Secret or per-service MCP URL is needed. The
+host runs the [official WeCom CLI](https://github.com/WecomTeam/wecom-cli) in a dedicated
+local profile. Cancel hides the QR and stops the pending login. Disconnect clears the local
+login and blocks calls from older tasks; revoke WeCom grants separately if needed.
+Copying the AgentHerd data directory preserves this profile, including any pending disconnect.
+A standalone WeCom CLI profile is not moved.
+
+The tool list covers supported calendars, meetings and minutes, to-dos, documents,
+mail, WeDrive metadata, contacts and eligible bot messaging. Listed
+tools come from the CLI catalog; they do not prove that the account has the associated
+WeCom grant. If WeCom rejects an operation, check that capability's authorization.
+Methods that need unrestricted local file access are not exposed. For bot chats, only
+approved sending and recent conversation metadata are in scope; no chat history,
+archiving or incoming events.
+
+Herder lists WeCom among the connected apps once its tool catalog is ready and delegates
+operations to tasks. WeCom is not a control channel or a direct Herder tool. The owner
+continues to direct work and confirm writes through Feishu. Existing rules apply to
+verified reads. Every write or uncertain call asks for approval, even in auto mode or
+when an allow rule matches; existing denies still block. The official npm binary includes
+[upstream call-chain reporting](https://github.com/WecomTeam/wecom-cli/blob/main/docs/data-collection.md).
 
 ## 4. Failure behavior
 

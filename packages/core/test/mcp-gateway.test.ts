@@ -224,6 +224,128 @@ describe("McpGateway with apps", () => {
   });
 });
 
+describe("McpGateway app preflight", () => {
+  const name = "WECOM_MESSAGE_SEND";
+  const info = { title: "WeCom: Send message", toolkit: "builtin:wecom" };
+
+  it("rejects invalid arguments before looking up or asking about a call", async () => {
+    const effects: string[] = [];
+    const apps = {
+      list: async () => [],
+      describe: async () => {
+        effects.push("describe");
+        return new Map();
+      },
+      preflight: async () => {
+        throw new Error("Invalid WeCom CLI tool arguments.");
+      },
+      call: async () => {
+        effects.push("call");
+      },
+    } satisfies AppTools;
+    const g = new McpGateway(() => {}, {
+      apps: () => apps,
+      approve: async () => {
+        effects.push("approve");
+        return true;
+      },
+    });
+    const answer = await g.handle(
+      g.register("task-1"),
+      call(1, "tools/call", {
+        name,
+        arguments: { access_token: "not-a-real-credential" },
+      }),
+    );
+
+    expect({ result: answer?.result, effects }).toEqual({
+      result: {
+        isError: true,
+        content: [{ type: "text", text: "app call failed: Invalid WeCom CLI tool arguments." }],
+      },
+      effects: [],
+    });
+  });
+
+  it("gives approval only the preflight summary and runs only the prepared call if allowed", async () => {
+    const asked: AppCall[] = [];
+    const ran: string[] = [];
+    const args = { text: "private office content" };
+    const apps = {
+      list: async () => [],
+      describe: async () => new Map([[name, info]]),
+      preflight: () => {
+        const text = args.text;
+        return {
+          approvalArguments: { text: "omitted" },
+          execute: async () => {
+            ran.push(text);
+            return { content: [{ type: "text", text: "ok" }] };
+          },
+        };
+      },
+      call: async () => {
+        ran.push("unprepared call");
+      },
+    } satisfies AppTools;
+    const g = new McpGateway(() => {}, {
+      apps: () => apps,
+      approve: async (_taskId, calls) => {
+        expect(ran).toEqual([]);
+        asked.push(...calls);
+        args.text = "changed while waiting";
+        return true;
+      },
+    });
+    const answer = await g.handle(
+      g.register("task-1"),
+      call(1, "tools/call", {
+        name,
+        arguments: args,
+      }),
+    );
+
+    expect(answer?.result).toEqual({ content: [{ type: "text", text: "ok" }] });
+    expect(asked).toEqual([{ slug: name, ...info, arguments: { text: "omitted" } }]);
+    expect(ran).toEqual(["private office content"]);
+  });
+
+  it.each(["WECOM_MESSAGE_SEND", "COMPOSIO_MULTI_EXECUTE_TOOL"])(
+    "rejects WeCom arguments without a prepared call when invoked via %s",
+    async (toolName) => {
+      const effects: string[] = [];
+      const apps: AppTools = {
+        list: async () => [],
+        describe: async () => {
+          effects.push("describe");
+          return new Map();
+        },
+        call: async () => {
+          effects.push("call");
+        },
+      };
+      const g = new McpGateway(() => {}, {
+        apps: () => apps,
+        approve: async () => {
+          effects.push("approve");
+          return true;
+        },
+      });
+      const args = { text: "private office content" };
+      const answer = await g.handle(
+        g.register("task-1"),
+        call(1, "tools/call", {
+          name: toolName,
+          arguments: toolName === name ? args : { tools: [{ tool_slug: name, arguments: args }] },
+        }),
+      );
+
+      expect(answer?.result).toMatchObject({ isError: true });
+      expect(effects).toEqual([]);
+    },
+  );
+});
+
 describe("parseReport", () => {
   it("cuts a long summary to 600 characters", async () => {
     const r = parseReport({ state: "ready", summary: "x".repeat(700) });

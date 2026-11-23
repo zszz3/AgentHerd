@@ -37,7 +37,9 @@ export function toAcpOutcome(
 
 function commandOf(rawInput: unknown): string | undefined {
   if (typeof rawInput !== "object" || rawInput === null) return undefined;
-  const command = (rawInput as { command?: unknown }).command;
+  // Antigravity names it CommandLine (`run_command`, ADR 0104).
+  const input = rawInput as { command?: unknown; CommandLine?: unknown };
+  const command = input.command ?? input.CommandLine;
   if (typeof command === "string") return command;
   if (Array.isArray(command) && command.every((c) => typeof c === "string")) {
     return command.join(" ");

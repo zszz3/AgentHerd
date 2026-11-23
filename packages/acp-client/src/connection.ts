@@ -144,6 +144,12 @@ export interface AgentConnection {
    *   was running, or the agent does not take it. Send it as the next prompt then.
    */
   steer(sessionId: string, text: string, images?: PromptImage[]): Promise<boolean>;
+  /**
+   * Picks the session's model by the agent's own name for it (ACP `session/set_config_option`,
+   * option "model"), for agents that bring their own models (ADR 0104).
+   * @throws When the agent refuses, e.g. it has no such model.
+   */
+  setModel(sessionId: string, model: string): Promise<void>;
   /** Sends `session/cancel` and answers the session's open permission requests `cancelled`. */
   cancel(sessionId: string): Promise<void>;
   on<K extends keyof Events>(event: K, listener: Listener<Events[K]>): () => void;
@@ -401,6 +407,15 @@ export async function startAgent(
         // Whatever went wrong, the message did not reach the turn; it goes as the next prompt.
         return false;
       }
+    },
+    async setModel(sessionId, model) {
+      await whileAlive(
+        agent.request(methods.agent.session.setConfigOption, {
+          sessionId,
+          configId: "model",
+          value: model,
+        }),
+      );
     },
     async cancel(sessionId) {
       for (const request of [...open.values()]) {

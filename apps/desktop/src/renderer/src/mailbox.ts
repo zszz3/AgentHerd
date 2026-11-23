@@ -4,9 +4,11 @@ import type {
   MailboxAct,
   MailboxActChoice,
   MailboxDraft,
+  MailboxFields,
   MailboxKind,
   MailboxLetterView,
   MailboxSource,
+  MailboxSourcePatch,
   MailboxSourceView,
   MailboxView,
   ScheduleWhen,
@@ -288,4 +290,80 @@ export function whenProblem(when: ScheduleWhen | undefined): string | undefined 
   return /^\d{4}-\d{2}-\d{2} ([01]\d|2[0-3]):[0-5]\d$/.test(when.at)
     ? undefined
     : "日期和时间写成 2026-11-23 09:00 这样";
+}
+
+/** A source as the form shows it, to change it (the same fields it was added with). */
+export function draftOf(s: MailboxSource): MailboxDraft {
+  const c = s.config;
+  const text = (v: unknown) => (typeof v === "string" ? v : undefined);
+  const words = Array.isArray(c.words) ? (c.words as string[]).join(", ") : text(c.words);
+  const what = Array.isArray(c.what) ? (c.what as MailboxDraft["what"]) : undefined;
+  const d: MailboxDraft = {
+    kind: s.kind,
+    name: s.name,
+    note: s.note,
+    ...(s.kind === "timer" ? {} : { everyMinutes: s.everyMinutes, act: actChoice(s.act) }),
+  };
+  const fields: Partial<MailboxDraft> = {
+    repo: text(c.repo),
+    what,
+    url: text(c.url),
+    words,
+    points: typeof c.points === "number" ? c.points : undefined,
+    command: text(c.command),
+    cwd: text(c.cwd),
+    label: text(c.label),
+    query: text(c.query),
+    platform: c.platform === "xiaohongshu" || c.platform === "zhihu" ? c.platform : undefined,
+    when: s.kind === "timer" ? (c.when as ScheduleWhen | undefined) : undefined,
+  };
+  for (const [k, v] of Object.entries(fields)) {
+    if (v !== undefined) (d as unknown as Record<string, unknown>)[k] = v;
+  }
+  return d;
+}
+
+const FIELD_KEYS = [
+  "repo",
+  "what",
+  "url",
+  "words",
+  "points",
+  "command",
+  "cwd",
+  "label",
+  "query",
+  "platform",
+  "when",
+] as const;
+
+/**
+ * What changed between a source and its edited form: only those go to the host, so an untouched
+ * source keeps its letters, and only a change of what it looks at makes it start over.
+ */
+export function editPatch(s: MailboxSource, d: MailboxDraft): MailboxSourcePatch {
+  const old = draftOf(s);
+  const patch: MailboxSourcePatch = {};
+  if (d.name.trim() !== old.name) patch.name = d.name.trim();
+  if ((d.note ?? "") !== (old.note ?? "")) patch.note = d.note ?? "";
+  if (s.kind !== "timer") {
+    if (d.everyMinutes !== undefined && d.everyMinutes !== old.everyMinutes) {
+      patch.everyMinutes = d.everyMinutes;
+    }
+    if (d.act !== undefined && d.act !== old.act) patch.act = d.act;
+  }
+  const same = FIELD_KEYS.every((k) => JSON.stringify(d[k]) === JSON.stringify(old[k]));
+  if (!same) {
+    const fields: MailboxFields = {};
+    for (const k of FIELD_KEYS) {
+      if (d[k] !== undefined) (fields as Record<string, unknown>)[k] = d[k];
+    }
+    patch.fields = fields;
+  }
+  return patch;
+}
+
+/** Whether a change makes the source start over: a new place to look, not a new note or name. */
+export function startsOver(patch: MailboxSourcePatch, kind: MailboxKind): boolean {
+  return patch.fields !== undefined && kind !== "timer";
 }
