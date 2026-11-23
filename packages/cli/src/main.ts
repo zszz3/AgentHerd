@@ -6,6 +6,7 @@ import { join, resolve } from "node:path";
 import { parseArgs } from "node:util";
 import { FeishuChannel } from "@agentherd/channel-feishu";
 import { Herd, Store } from "@agentherd/core";
+import { coreDataPaths } from "@agentherd/core/data-home-paths";
 import {
   applySystemProxy,
   feishuSecrets,
@@ -22,6 +23,7 @@ import {
   withLocation,
   writeConfig,
 } from "@agentherd/host";
+import { hostDataPaths } from "@agentherd/host/data-home-paths";
 import type { Locale, Mode } from "@agentherd/protocol";
 import QRCode from "qrcode";
 import { MODEL_USAGE, modelCommand } from "./models.ts";
@@ -121,9 +123,9 @@ function feishuChannel(home: string, locale?: Locale): FeishuChannel {
 }
 
 async function setupFeishu(home: string, out: Out): Promise<number> {
-  const runDir = join(home, "run");
+  const runDir = join(home, hostDataPaths.run.relative);
   mkdirSync(runDir, { recursive: true, mode: 0o700 });
-  const qrPng = join(runDir, "qr.png");
+  const qrPng = join(home, hostDataPaths.feishuQr.relative);
   // Every QR write settles before the lease is released, also when the setup fails.
   const qrWrites: Promise<void>[] = [];
   const setup = feishuChannel(home).setup({
@@ -210,7 +212,7 @@ async function run(
       (process.env.AGENTHERD_AGENTS
         ? new RuntimeStore(process.env.AGENTHERD_AGENTS).installed(id)?.path
         : undefined) ??
-      new RuntimeStore(join(home, "runtimes")).installed(id)?.path ??
+      new RuntimeStore(join(home, hostDataPaths.runtimes.relative)).installed(id)?.path ??
       findAgent(id),
   });
 
@@ -296,7 +298,7 @@ async function start(
 }
 
 function status(home: string, out: Out): number {
-  const store = Store.open(join(home, "herd.db"));
+  const store = Store.open(join(home, coreDataPaths.database.relative));
   try {
     out("Sessions:");
     for (const s of store.recentSessions(10))

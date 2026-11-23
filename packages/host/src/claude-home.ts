@@ -6,6 +6,7 @@
 
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import { hostDataPaths } from "./data-home-paths.ts";
 
 export const CLAUDE_CONFIG_ENV = "CLAUDE_CONFIG_DIR";
 
@@ -21,9 +22,9 @@ export const CLAUDE_SETTINGS = `${JSON.stringify(
 
 /** `env` with CLAUDE_CONFIG_DIR at `<home>/run/claude`, holding `CLAUDE_SETTINGS`. */
 export function withClaudeHome(home: string, env: Record<string, string>): Record<string, string> {
-  const dir = join(home, "run", "claude");
+  const dir = join(home, hostDataPaths.claude.relative);
   mkdirSync(dir, { recursive: true, mode: 0o700 });
-  const file = join(dir, "settings.json");
+  const file = join(home, hostDataPaths.claudeSettings.relative);
   if (!existsSync(file) || readFileSync(file, "utf8") !== CLAUDE_SETTINGS) {
     writeFileSync(file, CLAUDE_SETTINGS, { mode: 0o600 });
   }

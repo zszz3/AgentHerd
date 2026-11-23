@@ -10,6 +10,7 @@ import type { OutboundStep } from "@agentherd/rules";
 import { approveAppCalls } from "./app-calls.ts";
 import { Board } from "./board.ts";
 import { type Clock, systemClock } from "./clock.ts";
+import { coreDataPaths } from "./data-home-paths.ts";
 import { GitHubWatch } from "./github-watch.ts";
 import {
   allTasks,
@@ -100,7 +101,8 @@ export class Herd {
     this.texts = coreTexts(opts.locale ?? DEFAULT_LOCALE);
     this.clock = opts.clock ?? systemClock;
     const storeOptions = opts.secrets === undefined ? {} : { secrets: opts.secrets };
-    this.store = opts.store ?? Store.open(join(opts.home, "herd.db"), storeOptions);
+    this.store =
+      opts.store ?? Store.open(join(opts.home, coreDataPaths.database.relative), storeOptions);
     this.registry = new Registry(this.store, this.clock);
     const inbox = new Inbox({
       channel: opts.channel,

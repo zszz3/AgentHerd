@@ -8,6 +8,7 @@
 import { createHash } from "node:crypto";
 import { chmodSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import { hostDataPaths } from "./data-home-paths.ts";
 
 /** The owner's Codex sign-in and settings are not used for these runs. */
 export const CODEX_HOME_ENV = "CODEX_HOME";
@@ -38,7 +39,7 @@ export function withCodexHome(home: string, env: Record<string, string>): Record
   if (raw === undefined) return env;
   const text = codexHomeToml(JSON.parse(raw) as CodexConfig);
   const id = createHash("sha256").update(text).digest("hex").slice(0, 16);
-  const dir = join(home, "run", `codex-${id}`);
+  const dir = join(home, hostDataPaths.run.relative, `codex-${id}`);
   mkdirSync(dir, { recursive: true, mode: 0o700 });
   const file = join(dir, "config.toml");
   if (!existsSync(file) || readFileSync(file, "utf8") !== text) {

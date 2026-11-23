@@ -250,6 +250,7 @@ describe.runIf(supported)("applyLocationRequest", () => {
     ["WORKTREES", "worktrees"],
     ["feeds/TOLD.JSON", "feeds/told.json"],
     ["plugins/CATALOG.JSON", "plugins/catalog.json"],
+    ["logs/HOST.LOG", "logs/host.log"],
   ])(
     "does not give ordinary %s a reserved destination meaning",
     async (alias, key) => {
@@ -292,6 +293,9 @@ describe.runIf(supported)("applyLocationRequest", () => {
       mkdirSync(join(old, ...parts.slice(0, -1)), { recursive: true });
       writeFileSync(join(old, ...parts), "fixture");
     }
+    mkdirSync(join(old, "logs"));
+    writeFileSync(join(old, "logs", "host.log"), "fake host log");
+    writeFileSync(join(old, "logs", "notes.txt"), "fake owner note");
     const db = new DatabaseSync(join(old, "herd.db"));
     try {
       db.exec(`PRAGMA journal_mode=WAL; PRAGMA wal_autocheckpoint=0;
@@ -309,16 +313,25 @@ describe.runIf(supported)("applyLocationRequest", () => {
       );
       db.prepare("INSERT INTO sessions VALUES (?), (?)").run(cwd, external);
       db.prepare("INSERT INTO items VALUES (?), (?)").run(cwd, sibling);
-      const sourceNames = [...files, "herd.db", "herd.db-shm", "herd.db-wal"];
+      const sourceNames = [
+        ...files,
+        "logs/host.log",
+        "logs/notes.txt",
+        "herd.db",
+        "herd.db-shm",
+        "herd.db-wal",
+      ];
       const bytes = sourceNames.map((name) => readFileSync(join(old, name)));
       writeLocationRequest(ctx, { version: 1, parent, mode: "copy" });
       const counts: number[] = [];
       expect((await apply((n) => counts.push(n))).kind).toBe("applied");
-      expect(counts.at(-1)).toBe(7);
+      expect(counts.at(-1)).toBe(9);
       expect(sourceNames.map((name) => readFileSync(join(old, name)))).toEqual(bytes);
       expect(readdirSync(join(target, "run")).sort()).toEqual(["claude", "codex-x"]);
       for (const name of files.slice(0, 6))
         expect(readFileSync(join(target, name), "utf8")).toBe("fixture");
+      expect(readFileSync(join(target, "logs", "host.log"), "utf8")).toBe("fake host log");
+      expect(readFileSync(join(target, "logs", "notes.txt"), "utf8")).toBe("fake owner note");
       expect(existsSync(join(target, "herd.db-wal"))).toBe(false);
       expect(existsSync(join(target, "herd.db-shm"))).toBe(false);
       await verifyPrivateFolder(target);

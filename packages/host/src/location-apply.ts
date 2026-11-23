@@ -9,6 +9,8 @@ import {
 } from "node:fs";
 import { isAbsolute, join, relative, sep } from "node:path";
 import { DatabaseSync } from "node:sqlite";
+import { coreDataPaths } from "@agentherd/core/data-home-paths";
+import { fixedDataPaths, sqliteCompanions } from "./data-home-paths.ts";
 import {
   acquireLocationLease,
   type LocationContext,
@@ -35,49 +37,17 @@ export type ApplyResult =
   | { kind: "applied"; record: LocationRecord }
   | { kind: "failed"; code: ApplyFailure };
 
-const dbName = "herd.db";
-const walName = `${dbName}-wal`;
-const journalName = `${dbName}-journal`;
-const skipped = new Set([
-  walName,
-  `${dbName}-shm`,
-  journalName,
-  "run/herd.sock",
-  "run/mcp.sock",
-  "run/qr.png",
-]);
-// Names looked up by AgentHerd itself, relative to the data directory. Content inside
-// these containers is ordinary unless it too has a fixed app meaning.
-const persistent = [
-  "config.json",
-  "secrets.json",
-  "worktrees",
-  "tasks",
-  "run",
-  "run/claude",
-  "run/claude/settings.json",
-  "pi-sessions",
-  "plugins",
-  "plugins/catalog.json",
-  "plugins/.staging",
-  "runtimes",
-  "feeds",
-  "feeds/told.json",
-  "bin",
-  process.platform === "win32" ? "bin/westock.exe" : "bin/westock",
-  "models",
-  "danjuan",
-  "danjuan/profile",
-  "zhihu",
-  "zhihu/profile",
-  "xiaohongshu",
-  "xiaohongshu/cookies.json",
-];
-const reservedPaths = [dbName, ...skipped, ...persistent];
+const dbName = coreDataPaths.database.relative;
+const reservedPaths = fixedDataPaths.map((entry) => entry.relative);
+const skipped = new Set(
+  fixedDataPaths
+    .filter((entry) => entry.kind !== "persistent" && entry.relative !== dbName)
+    .map((entry) => entry.relative),
+);
 const fail = (code: ApplyFailure): ApplyResult => ({ kind: "failed", code });
 
 export function canCopy(home: string): boolean {
-  const worktrees = join(home, "worktrees");
+  const worktrees = join(home, coreDataPaths.worktrees.relative);
   try {
     const stats = lstatSync(worktrees, { throwIfNoEntry: false });
     return stats === undefined || (stats.isDirectory() && readdirSync(worktrees).length === 0);
@@ -93,9 +63,10 @@ function copyFile(source: string, destination: string): void {
 
 function rebase(path: string, from: string, to: string): string {
   if (!isAbsolute(path)) return path;
-  const tail = relative(join(from, "tasks"), path);
+  const tasks = coreDataPaths.tasks.relative;
+  const tail = relative(join(from, tasks), path);
   return tail && tail !== ".." && !tail.startsWith(`..${sep}`) && !isAbsolute(tail)
-    ? join(to, "tasks", tail)
+    ? join(to, tasks, tail)
     : path;
 }
 
@@ -141,7 +112,7 @@ function copyDatabase(from: string, to: string): void {
   const scratch = mkdtempSync(join(to, ".sqlite-copy-"));
   const snapshot = join(scratch, dbName);
   copyFile(join(from, dbName), snapshot);
-  for (const name of [walName, journalName]) {
+  for (const { relative: name } of [sqliteCompanions.wal, sqliteCompanions.journal]) {
     if (lstatSync(join(from, name), { throwIfNoEntry: false }))
       copyFile(join(from, name), join(scratch, name));
   }

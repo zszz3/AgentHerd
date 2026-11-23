@@ -13,6 +13,7 @@ import type {
   SocialSource,
 } from "@agentherd/core";
 import { type CdpPage, Chrome, findChrome } from "./cdp.ts";
+import { hostDataPaths } from "./data-home-paths.ts";
 import type { SocialState } from "./xiaohongshu.ts";
 
 /** Agent tools are named ZHIHU_<TOOL>. */
@@ -337,7 +338,7 @@ export class Zhihu implements SocialSource {
     this.opts = opts;
     this.browser =
       opts.browser ??
-      new ChromeZhihu(join(opts.home, "zhihu", "profile"), (code) => {
+      new ChromeZhihu(join(opts.home, hostDataPaths.zhihuProfile.relative), (code) => {
         this.opts.log?.(`[zhihu] Chrome exited (${code})`);
         if (this.state !== "off") this.set("failed", `知乎用的 Chrome 停了（${code ?? "signal"}）`);
       });

@@ -4,6 +4,7 @@
 
 import { appendFileSync, existsSync, mkdirSync } from "node:fs";
 import { join, resolve } from "node:path";
+import { hostDataPaths } from "@agentherd/host/data-home-paths";
 import { isHostRunning } from "@agentherd/host/server";
 import { app, type UtilityProcess, utilityProcess } from "electron";
 
@@ -34,10 +35,10 @@ export function agentsDir(): string | undefined {
 
 export async function ensureHost(home: string, sock: string): Promise<void> {
   if (await isHostRunning(sock)) return;
+  const logFile = join(home, hostDataPaths.hostLog.relative);
   if (child === undefined) {
-    const logDir = join(home, "logs");
+    const logDir = join(home, hostDataPaths.logs.relative);
     mkdirSync(logDir, { recursive: true, mode: 0o700 });
-    const logFile = join(logDir, "host.log");
     const agents = agentsDir();
     const p = utilityProcess.fork(hostEntry(), [], {
       serviceName: "AgentHerd host",
@@ -64,7 +65,7 @@ export async function ensureHost(home: string, sock: string): Promise<void> {
     if (await isHostRunning(sock)) return;
     await new Promise((r) => setTimeout(r, 150));
   }
-  throw new Error(`the host did not start within 15 s; see ${join(home, "logs", "host.log")}`);
+  throw new Error(`the host did not start within 15 s; see ${logFile}`);
 }
 
 /** How long the host gets to stop by itself before it is killed. */

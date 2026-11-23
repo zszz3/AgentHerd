@@ -13,6 +13,7 @@ import type {
   McpTool,
 } from "@agentherd/core";
 import { FEED_SOURCES } from "@agentherd/core";
+import { hostDataPaths } from "./data-home-paths.ts";
 
 export type Fetch = (url: string, init?: RequestInit) => Promise<Response>;
 
@@ -126,7 +127,7 @@ export class Feeds {
 
   constructor(opts: FeedsOptions) {
     this.opts = opts;
-    this.file = join(opts.home, "feeds", "told.json");
+    this.file = join(opts.home, hostDataPaths.feedTold.relative);
   }
 
   on(source: FeedSource): boolean {

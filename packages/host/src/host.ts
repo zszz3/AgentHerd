@@ -140,6 +140,7 @@ import { withClaudeHome } from "./claude-home.ts";
 import { withCodexHome } from "./codex-home.ts";
 import { type CliConfig, readConfig, secretFile, writeConfig } from "./config.ts";
 import { Danjuan, type DanjuanBrowser } from "./danjuan.ts";
+import { hostDataPaths } from "./data-home-paths.ts";
 import { LocalEmbedder } from "./embedder.ts";
 import { FEED_NAMES, Feeds } from "./feeds.ts";
 import { foldText, herderContextView, herderMessages } from "./herder-context-view.ts";
@@ -282,7 +283,8 @@ export class Host implements HostApi {
     this.opts = opts;
     this.agentList = new Agents({
       ...(opts.agentsDir === undefined ? {} : { bundled: new RuntimeStore(opts.agentsDir) }),
-      downloaded: opts.runtimes ?? new RuntimeStore(join(opts.home, "runtimes")),
+      downloaded:
+        opts.runtimes ?? new RuntimeStore(join(opts.home, hostDataPaths.runtimes.relative)),
       ...(opts.env === undefined ? {} : { env: { ...process.env, ...opts.env } }),
       ...(opts.catalog === undefined ? {} : { catalog: opts.catalog }),
       ...(opts.exists === undefined ? {} : { exists: opts.exists }),
@@ -965,7 +967,7 @@ export class Host implements HostApi {
       ...("env" in pi ? { piModelEnv: pi.env } : {}),
     });
     // Pi keeps its sessions here so an old task can be continued after a restart (ADR 0039).
-    const sessionDir = join(this.opts.home, "pi-sessions");
+    const sessionDir = join(this.opts.home, hostDataPaths.piSessions.relative);
     return profiles.map((p) => {
       const base =
         p.id === "pi" ? { ...p, env: { ...p.env, AGENTHERD_PI_SESSION_DIR: sessionDir } } : p;

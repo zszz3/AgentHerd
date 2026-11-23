@@ -8,6 +8,7 @@ import { join } from "node:path";
 import type { AppToolInfo, AppTools, McpTool } from "@agentherd/core";
 import type { DanjuanState, DanjuanTest, DanjuanView } from "./api.ts";
 import { type CdpPage, Chrome, findChrome } from "./cdp.ts";
+import { hostDataPaths } from "./data-home-paths.ts";
 
 export const DANJUAN_DOMAIN = "danjuanfunds.com";
 export const DANJUAN_ASSET_PAGE = `https://${DANJUAN_DOMAIN}/my-money`;
@@ -314,7 +315,7 @@ class ChromeDanjuan implements DanjuanBrowser {
   private closingLogin = false;
 
   constructor(home: string, log?: (line: string) => void) {
-    this.profileDir = join(home, "danjuan", "profile");
+    this.profileDir = join(home, hostDataPaths.danjuanProfile.relative);
     this.log = log;
   }
 

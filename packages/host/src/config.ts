@@ -7,6 +7,7 @@ import { join } from "node:path";
 import type { ModelSettings, SecretStore } from "@agentherd/core";
 import type { ModelTiers } from "@agentherd/herder";
 import type { AgentProfile, ChannelBinding, Locale, Mode } from "@agentherd/protocol";
+import { hostDataPaths } from "./data-home-paths.ts";
 import { resolveLocation } from "./data-location.ts";
 
 /** One installed plugin (ADR 0094). */
@@ -65,7 +66,7 @@ export function agentherdHome(env: NodeJS.ProcessEnv = process.env): string {
 }
 
 export function configPath(home: string): string {
-  return join(home, "config.json");
+  return join(home, hostDataPaths.config.relative);
 }
 
 export function readConfig(home: string): CliConfig {
@@ -82,7 +83,7 @@ export function writeConfig(home: string, config: CliConfig): void {
 }
 
 export function secretsPath(home: string): string {
-  return join(home, "secrets.json");
+  return join(home, hostDataPaths.secrets.relative);
 }
 
 function readSecrets(home: string): Record<string, string> {

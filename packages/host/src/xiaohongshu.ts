@@ -20,6 +20,7 @@ import type {
   SocialSource,
 } from "@agentherd/core";
 import { type McpHttpClient, mcpHttpClient } from "./composio.ts";
+import { hostDataPaths } from "./data-home-paths.ts";
 import { renameWithRetry } from "./runtimes.ts";
 
 export const XHS_VERSION = "v2.7.4";
@@ -155,7 +156,7 @@ export class Xiaohongshu implements SocialSource {
   }
 
   private dir(): string {
-    return join(this.opts.home, "xiaohongshu");
+    return join(this.opts.home, hostDataPaths.xiaohongshu.relative);
   }
 
   /** The pinned server binary, downloaded once. */
@@ -169,7 +170,7 @@ export class Xiaohongshu implements SocialSource {
     }
     const url = `https://github.com/xpzouying/xiaohongshu-mcp/releases/download/${XHS_VERSION}/${asset}`;
     const ext = plat === "win32" ? ".exe" : "";
-    const dir = join(this.opts.home, "bin");
+    const dir = join(this.opts.home, hostDataPaths.bin.relative);
     const bin = join(dir, `xiaohongshu-mcp-${XHS_VERSION}${ext}`);
     if (existsSync(bin)) return bin;
     mkdirSync(dir, { recursive: true, mode: 0o700 });
@@ -202,7 +203,7 @@ export class Xiaohongshu implements SocialSource {
       const env = {
         ...process.env,
         AUTH_TOKEN: this.token,
-        COOKIES_PATH: join(this.dir(), "cookies.json"),
+        COOKIES_PATH: join(this.opts.home, hostDataPaths.xiaohongshuCookies.relative),
         XHS_FP_SEED: String(this.opts.seed),
         // 小红书 is a service in China. Through a proxy or VPN with an overseas exit it sends the
         // browser to RedNote (rednote.com), whose page loads too slowly for the server's
@@ -308,7 +309,7 @@ export class Xiaohongshu implements SocialSource {
   private watchLogin(): void {
     if (this.loginTimer !== undefined) clearTimeout(this.loginTimer);
     const until = Date.now() + LOGIN_WAIT_MS;
-    const cookies = join(this.dir(), "cookies.json");
+    const cookies = join(this.opts.home, hostDataPaths.xiaohongshuCookies.relative);
     const stamp = () => (existsSync(cookies) ? statSync(cookies).mtimeMs : 0);
     const before = stamp();
     let ticks = 0;

@@ -6,6 +6,7 @@
 import { mkdirSync } from "node:fs";
 import { join } from "node:path";
 import type { Embedder } from "@agentherd/core";
+import { hostDataPaths } from "./data-home-paths.ts";
 
 export const EMBED_MODEL = "Xenova/bge-small-zh-v1.5";
 /** Where the model files come from; the mirror works where huggingface.co is blocked. */
@@ -27,7 +28,7 @@ export class LocalEmbedder implements Embedder {
   private failedAt = 0;
 
   constructor(home: string, log: (line: string) => void = () => {}) {
-    this.dir = join(home, "models");
+    this.dir = join(home, hostDataPaths.models.relative);
     this.log = log;
   }
 
