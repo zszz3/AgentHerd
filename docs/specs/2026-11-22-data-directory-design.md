@@ -52,7 +52,7 @@ The app creates `<parent>/AgentHerd` itself and sets owner-only access before wr
 - Windows: a protected DACL (inheritance removed) granting full control to the current user, `SYSTEM` and `Administrators`, owner set to the current user.
 - macOS: mode `0700`, owned by the current user, with no ACL entries.
 
-Read the permissions back and refuse to continue if they differ. The parent's own permissions do not matter beyond being able to create the folder. Never change the permissions of any folder the app did not create.
+Read the permissions back and refuse to continue if they differ. Require a directory chain that prevents other ordinary accounts from replacing any path component, including the new folder. Read or traverse access and the ability to create unrelated siblings are not by themselves reasons to refuse. Check ownership and the platform's rename, delete, and permission-changing rights before creating the target; if the app cannot establish that the chain is protected, refuse and ask the owner to pick a protected location. Never change the permissions of any folder the app did not create. The check does not defend against administrators, the current user, or a later change by a trusted owner.
 
 ## Copy
 
