@@ -32,6 +32,7 @@ export async function onPermission(
     mode: ctx.mode(),
     rules: store.listRules(),
     home: opts.userHome,
+    protectedPaths: opts.protectedPaths,
     ...(opts.extraGuards === undefined ? {} : { extraGuards: opts.extraGuards }),
     ...turnPermits(ctx, sessionId),
   });

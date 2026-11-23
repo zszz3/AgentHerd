@@ -1,4 +1,5 @@
 import { execFileSync } from "node:child_process";
+import { randomUUID } from "node:crypto";
 import {
   lstatSync,
   mkdirSync,
@@ -27,10 +28,18 @@ const isMac = process.platform === "darwin";
 
 let tmp: string;
 
-beforeEach(() => {
-  // The real path: macOS tmpdir() sits behind the /var link, which the check rejects.
-  tmp = mkdtempSync(join(realpathSync.native(tmpdir()), "agentherd-target-"));
-});
+beforeEach(async () => {
+  if (isWindows) {
+    tmp = join(
+      win32.parse(process.env.SystemRoot ?? "C:\\Windows").root,
+      `ah-target-${randomUUID()}`,
+    );
+    await createPrivateFolder(tmp);
+  } else {
+    // macOS tmpdir() sits behind the /var link, which the check rejects.
+    tmp = mkdtempSync(join(realpathSync.native(tmpdir()), "agentherd-target-"));
+  }
+}, 20_000);
 
 afterEach(() => {
   rmSync(tmp, { recursive: true, force: true });
@@ -54,7 +63,7 @@ function caseVariant(path: string): string {
 /** Grants broad inheritable access on a folder this test created, like a second drive's root. */
 function makeBroad(path: string): void {
   if (isWindows) {
-    execFileSync("icacls", [path, "/grant", "*S-1-5-11:(OI)(CI)M"], { stdio: "ignore" });
+    execFileSync("icacls", [path, "/grant", "*S-1-5-11:(OI)(CI)(RX,AD)"], { stdio: "ignore" });
   } else {
     execFileSync("/bin/chmod", [
       "+a",
@@ -194,6 +203,23 @@ describe("checkTargetParent", () => {
   });
 });
 
+describe("target path permissions", () => {
+  it("rejects replacement authority on an ancestor without changing its permissions", async () => {
+    const ancestor = join(tmp, "ancestor");
+    const parent = join(ancestor, "nested");
+    mkdirSync(parent, { recursive: true });
+    if (isWindows) {
+      execFileSync("icacls", [ancestor, "/grant", "*S-1-5-11:(DC)"], { stdio: "ignore" });
+    } else {
+      execFileSync("/bin/chmod", ["+a", "everyone allow delete_child", ancestor]);
+    }
+    const before = isWindows ? windowsAcl(ancestor) : macAclLines(ancestor);
+    expect(await codeOf(checkTargetParent(parent, []))).toBe("not-private");
+    expect(isWindows ? windowsAcl(ancestor) : macAclLines(ancestor)).toEqual(before);
+    expect(lstatSync(join(parent, TARGET_NAME), { throwIfNoEntry: false })).toBeUndefined();
+  }, 20_000);
+});
+
 describe("createPrivateFolder", () => {
   it("creates an owner-only folder under a broadly accessible parent", async () => {
     const parent = join(tmp, "broad");
@@ -234,7 +260,7 @@ describe("createPrivateFolder", () => {
 
     expect(await codeOf(createPrivateFolder(existing))).toBe("exists");
     expect(isWindows ? windowsAcl(existing) : macAclLines(existing)).toEqual(before);
-  });
+  }, 20_000);
 });
 
 describe("requireEmptyNewFolder", () => {

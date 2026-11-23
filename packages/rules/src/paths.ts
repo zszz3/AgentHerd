@@ -3,6 +3,7 @@ import path from "node:path";
 export interface PathContext {
   cwd: string;
   home: string;
+  protectedPaths?: readonly string[] | undefined;
 }
 
 /** True when `s` uses Windows drive, UNC, or backslash syntax. */

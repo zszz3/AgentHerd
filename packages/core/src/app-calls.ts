@@ -69,6 +69,7 @@ function decideOne(ctx: HerdContext, base: Item, call: AppCall): PipelineResult 
     mode: ctx.mode(),
     rules: ctx.store.listRules(),
     home: ctx.opts.userHome,
+    protectedPaths: ctx.opts.protectedPaths,
     ...turnPermits(ctx, base.sessionId),
   });
 }

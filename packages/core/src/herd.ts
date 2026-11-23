@@ -254,6 +254,7 @@ export class Herd {
       locale: this.opts.locale ?? DEFAULT_LOCALE,
       texts: this.texts,
       userHome: this.opts.userHome,
+      protectedPaths: this.opts.protectedPaths,
       profiles: () => this.opts.profiles.map((p) => ({ id: p.id, name: p.name })),
       tasks: () => this.tasks(),
       openTasks: () => this.openTasks(),

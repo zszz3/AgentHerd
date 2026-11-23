@@ -34,6 +34,12 @@ export function isFsError(error: unknown, code: string): boolean {
   return error instanceof Error && "code" in error && error.code === code;
 }
 
+export class LocationBusyError extends Error {
+  constructor() {
+    super("The AgentHerd data location is in use. Close other AgentHerd processes and retry.");
+  }
+}
+
 function asLocationGateError(error: unknown): Error {
   if (
     error instanceof Error &&
@@ -44,9 +50,7 @@ function asLocationGateError(error: unknown): Error {
   if (error instanceof Error && "errcode" in error && typeof error.errcode === "number") {
     const primary = error.errcode & 0xff; // SQLite encodes extended results above the low byte.
     if (primary === 5 || primary === 6) {
-      return new Error(
-        "The AgentHerd data location is in use. Close other AgentHerd processes and retry.",
-      );
+      return new LocationBusyError();
     }
     return gateFailure(
       `SQLite rejected the gate (result ${error.errcode}). Check the gate and profile permissions before retrying.`,

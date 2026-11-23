@@ -293,7 +293,10 @@ function checkSecrets(
 function checkSelfConfig(paths: readonly string[], ctx: PathContext): GuardResult {
   const homePath = pathModFor(ctx.home);
   for (const p of paths) {
-    if (SELF_CONFIG_DIRS.some((d) => isInside(p, homePath.join(ctx.home, d)))) {
+    if (
+      SELF_CONFIG_DIRS.some((d) => isInside(p, homePath.join(ctx.home, d))) ||
+      ctx.protectedPaths?.some((root) => isInside(p, root))
+    ) {
       return hit("self-config");
     }
     const pPath = pathModFor(p);

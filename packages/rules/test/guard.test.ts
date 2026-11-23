@@ -13,6 +13,28 @@ function hitId(call: ToolCallInfo, extra: ExtraGuard[] = []): string | null {
   return r.hit ? r.id : null;
 }
 
+it("guards custom, retained and location file paths without matching a sibling prefix", () => {
+  const where = {
+    cwd: "C:\\work",
+    home: "C:\\Users\\me",
+    protectedPaths: ["D:\\Custom", "E:\\Retained", "C:\\Users\\me\\location.json"],
+  };
+  for (const path of [
+    "d:\\CUSTOM\\state",
+    "E:\\Retained",
+    "C:\\Users\\me\\location.json",
+    "C:\\Users\\me\\.agentherd\\state",
+  ]) {
+    expect(guardCheck({ kind: "edit", title: "edit", paths: [path] }, where)).toMatchObject({
+      hit: true,
+      id: "self-config",
+    });
+  }
+  expect(
+    guardCheck({ kind: "edit", title: "edit", paths: ["D:\\Custom-old\\state"] }, where),
+  ).toEqual({ hit: false });
+});
+
 describe("rm-outside-cwd", () => {
   it.each([
     "rm -rf /",

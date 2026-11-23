@@ -68,14 +68,14 @@ export async function main(argv: string[], out: Out = console.log): Promise<numb
         return modelCommand(home, rest, out, { secrets: secretFile(home), readKey });
       });
     case "run":
-      return inLocation((home) => {
+      return inLocation((home, protectedPaths) => {
         applySystemProxy();
-        return run(home, rest, out);
+        return run(home, rest, out, protectedPaths);
       });
     case "start":
-      return inLocation((home) => {
+      return inLocation((home, protectedPaths) => {
         applySystemProxy();
-        return start(home, rest, out);
+        return start(home, rest, out, protectedPaths);
       });
     case "status":
       return inLocation((home) => status(home, out));
@@ -96,9 +96,13 @@ export async function main(argv: string[], out: Out = console.log): Promise<numb
  * Runs a command on the resolved data home under a shared lease, held until the command settles,
  * so a data location change never runs while it writes.
  */
-async function inLocation(command: (home: string) => number | Promise<number>): Promise<number> {
+async function inLocation(
+  command: (home: string, protectedPaths: readonly string[]) => number | Promise<number>,
+): Promise<number> {
   try {
-    return await withLocation(locationContext(), ({ home }) => command(home));
+    return await withLocation(locationContext(), ({ home, protectedPaths }) =>
+      command(home, protectedPaths),
+    );
   } catch (error) {
     if (!(error instanceof LocationError)) throw error;
     console.error(`agentherd: ${error.message} Open AgentHerd to recover.`);
@@ -162,7 +166,12 @@ async function readKey(prompt: string): Promise<string> {
   return readStdin();
 }
 
-async function run(home: string, args: string[], out: Out): Promise<number> {
+async function run(
+  home: string,
+  args: string[],
+  out: Out,
+  protectedPaths: readonly string[],
+): Promise<number> {
   const { values, positionals } = parseArgs({
     args,
     allowPositionals: true,
@@ -204,6 +213,7 @@ async function run(home: string, args: string[], out: Out): Promise<number> {
   });
 
   const herd = new Herd({
+    protectedPaths,
     home,
     userHome: homedir(),
     channel: feishuChannel(home, config.locale),
@@ -234,7 +244,12 @@ async function run(home: string, args: string[], out: Out): Promise<number> {
   }
 }
 
-async function start(home: string, args: string[], out: Out): Promise<number> {
+async function start(
+  home: string,
+  args: string[],
+  out: Out,
+  protectedPaths: readonly string[],
+): Promise<number> {
   const { values } = parseArgs({
     args,
     options: { script: { type: "string" }, mode: { type: "string" } },
@@ -248,6 +263,7 @@ async function start(home: string, args: string[], out: Out): Promise<number> {
     return 2;
   }
   const running = await runHost({
+    protectedPaths,
     home,
     ...(values.script === undefined ? {} : { script: resolve(values.script) }),
     log: out,

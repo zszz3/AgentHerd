@@ -47,20 +47,63 @@ $ErrorActionPreference = 'Stop'
 $sidType = [System.Security.Principal.SecurityIdentifier]
 $user = [System.Security.Principal.WindowsIdentity]::GetCurrent().User
 $path = $env:AGENTHERD_TARGET_PATH
+# TrustedInstaller owns the standard system volume root.
+$trusted = @($user.Value, 'S-1-5-18', 'S-1-5-32-544', 'S-1-5-80-956008885-3418522649-1831038044-1853292631-2271478464')
 function Out-Result($value) { [Console]::Out.Write(($value | ConvertTo-Json -Compress -Depth 3)); exit 0 }
 switch ($env:AGENTHERD_TARGET_MODE) {
   'check' {
     $drive = New-Object IO.DriveInfo ([IO.Path]::GetPathRoot($path))
     if ($drive.DriveType -ne 'Fixed' -or $drive.DriveFormat -ne 'NTFS') { Out-Result @{ check = 'not-local' } }
+    $chain = @()
     $item = Get-Item -LiteralPath $path -Force
-    while ($null -ne $item) {
+    while ($null -ne $item) { $chain = @($item) + $chain; $item = $item.Parent }
+    foreach ($item in $chain) {
       if (($item.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0) { Out-Result @{ check = 'link' } }
-      $item = $item.Parent
+      $security = Get-Acl -LiteralPath $item.FullName
+      $raw = [Security.AccessControl.RawSecurityDescriptor]::new($security.GetSecurityDescriptorBinaryForm(), 0)
+      if ($null -eq $raw.DiscretionaryAcl -or $trusted -notcontains $raw.Owner.Value) { Out-Result @{ check = 'not-private' } }
+      # DELETE_CHILD, WRITE_DAC, WRITE_OWNER, and GENERIC_ALL.
+      $danger = 0x100C0040
+      if ($null -ne $item.Parent) { $danger = $danger -bor 0x10000 } # DELETE (not a volume root)
+      # A directory's data/attribute write rights can change reparse metadata on an empty
+      # directory. Earlier components contain the next protected entry. FILE_ADD_SUBDIRECTORY
+      # and read/traverse alone do not allow changing reparse metadata.
+      if ($item.FullName -eq $chain[-1].FullName) { $danger = $danger -bor 0x40000102 }
+      $everyoneDenied = 0
+      foreach ($ace in $raw.DiscretionaryAcl) {
+        if ($ace.AceType -ne [Security.AccessControl.AceType]::AccessAllowed -and $ace.AceType -ne [Security.AccessControl.AceType]::AccessDenied) { Out-Result @{ check = 'not-private' } }
+        if (([int]$ace.AceFlags -band 8) -ne 0) { continue }
+        if ($ace.AceType -eq [Security.AccessControl.AceType]::AccessDenied) {
+          if ($ace.SecurityIdentifier.Value -eq 'S-1-1-0') { $everyoneDenied = $everyoneDenied -bor $ace.AccessMask }
+        } elseif ($trusted -notcontains $ace.SecurityIdentifier.Value -and ($ace.AccessMask -band $danger -band (-bnot $everyoneDenied)) -ne 0) {
+          Out-Result @{ check = 'not-private' }
+        }
+      }
     }
     Out-Result @{ check = 'ok' }
   }
   'create' {
-    if (Test-Path -LiteralPath $path) { Out-Result @{ exists = $true } }
+    Add-Type -TypeDefinition @'
+using System;
+using System.Runtime.InteropServices;
+public static class PrivateDirectory {
+  [StructLayout(LayoutKind.Sequential)]
+  private struct SecurityAttributes {
+    public int Length;
+    public IntPtr Descriptor;
+    public int InheritHandle;
+  }
+  [DllImport("kernel32.dll", CharSet = CharSet.Unicode, ExactSpelling = true, SetLastError = true)]
+  private static extern bool CreateDirectoryW(string path, ref SecurityAttributes attributes);
+  public static int Create(string path, byte[] descriptor) {
+    var pinned = GCHandle.Alloc(descriptor, GCHandleType.Pinned);
+    try {
+      var attributes = new SecurityAttributes { Length = Marshal.SizeOf(typeof(SecurityAttributes)), Descriptor = pinned.AddrOfPinnedObject() };
+      return CreateDirectoryW(path, ref attributes) ? 0 : Marshal.GetLastWin32Error();
+    } finally { pinned.Free(); }
+  }
+}
+'@
     $security = New-Object System.Security.AccessControl.DirectorySecurity
     $security.SetAccessRuleProtection($true, $false)
     $security.SetOwner($user)
@@ -69,7 +112,9 @@ switch ($env:AGENTHERD_TARGET_MODE) {
         (New-Object System.Security.Principal.SecurityIdentifier $sid),
         'FullControl', 'ContainerInherit, ObjectInherit', 'None', 'Allow')))
     }
-    [void][IO.Directory]::CreateDirectory($path, $security)
+    $code = [PrivateDirectory]::Create($path, $security.GetSecurityDescriptorBinaryForm())
+    if ($code -eq 183 -or $code -eq 80) { Out-Result @{ exists = $true } }
+    if ($code -ne 0) { throw "CreateDirectoryW failed ($code)" }
   }
   'verify' { }
   default { exit 2 }
@@ -161,6 +206,89 @@ function isOwnerOnlyWindows(value: unknown): boolean {
   return JSON.stringify([...sids].sort()) === JSON.stringify(expected);
 }
 
+function unsafeChain(): LocationTargetError {
+  return new LocationTargetError(
+    "not-private",
+    "Pick a folder whose path cannot be replaced by other users.",
+  );
+}
+
+async function checkMacChain(parent: string): Promise<void> {
+  const root = parse(parent).root;
+  const chain = [root];
+  for (const part of parent.slice(root.length).split(sep).filter(Boolean)) {
+    chain.push(join(chain.at(-1) ?? root, part));
+  }
+  const mounts = await run("/sbin/mount", [], { ...process.env, LC_ALL: "C" });
+  // Check each volume crossed by the path. A noowners mount can report the caller
+  // as the owner regardless of the actual owner, so mode/ACL inspection is not enough.
+  const devices = new Set<number>();
+  for (const path of chain) {
+    const stats = lstatSync(path);
+    if (!devices.has(stats.dev)) {
+      const df = await run("/bin/df", ["-P", "-Y", path], { ...process.env, LC_ALL: "C" });
+      const device = /^(\/dev\/disk\d+(?:s\d+)*)\s+(?:apfs|hfs)\s/.exec(
+        df.split("\n")[1] ?? "",
+      )?.[1];
+      const entries = device
+        ? mounts.split("\n").filter((line) => line.startsWith(`${device} on `))
+        : [];
+      const options = / \((?:apfs|hfs)(, [^()]*)?\)$/.exec(entries[0] ?? "");
+      if (entries.length !== 1 || !options || options[1]?.split(", ").includes("noowners"))
+        throw unsafeChain();
+      devices.add(stats.dev);
+    }
+    if (!stats.isDirectory() || (stats.uid !== 0 && stats.uid !== process.getuid?.()))
+      throw unsafeChain();
+    // All selected components have trusted owners. Sticky directories protect those
+    // entries from other accounts, including when ordinary users can create siblings.
+    const sticky = (stats.mode & 0o1000) !== 0;
+    // An ACL may supply search permission even where the mode's search bit is off.
+    if ((stats.mode & 0o022) !== 0 && !sticky) throw unsafeChain();
+    const out = await run("/bin/ls", ["-blde", path], { ...process.env, LC_ALL: "C" });
+    const [entry, ...rules] = out.trimEnd().split("\n");
+    const header = /^d[\w-]{9}([@+])?\s/.exec(entry ?? "");
+    if (!header || (header[1] === "+" && rules.length === 0)) throw unsafeChain();
+    for (const [index, line] of rules.entries()) {
+      const rule = /^\s*(\d+): (?:user|group):.+? (?:(?:inherited) )?(allow|deny) ([a-z_,]+)$/.exec(
+        line,
+      );
+      if (!rule || Number(rule[1]) !== index) throw unsafeChain();
+      const rights = (rule[3] ?? "").split(",");
+      const safe = [
+        "list",
+        "search",
+        "read",
+        "execute",
+        "add_file",
+        "add_subdirectory",
+        "readattr",
+        "readextattr",
+        "readsecurity",
+        "file_inherit",
+        "directory_inherit",
+        "limit_inherit",
+        "only_inherit",
+        "synchronize",
+      ];
+      const alteration = [
+        "delete",
+        "delete_child",
+        "writesecurity",
+        "chown",
+        "writeattr",
+        "writeextattr",
+        "write",
+        "append",
+      ];
+      if (rights.some((right) => !safe.includes(right) && !alteration.includes(right)))
+        throw unsafeChain();
+      if (rule[2] === "allow" && rights.some((right) => alteration.includes(right)))
+        throw unsafeChain();
+    }
+  }
+}
+
 async function verifyMac(path: string): Promise<boolean> {
   const stats = lstatSync(path);
   if (!stats.isDirectory() || stats.uid !== process.getuid?.() || (stats.mode & 0o7777) !== 0o700) {
@@ -227,16 +355,21 @@ export async function checkTargetParent(
     "Pick a folder on a local NTFS drive (Windows) or APFS/HFS+ disk (macOS).",
   );
   if (process.platform === "win32") {
-    const result = await runWindows("check", parent);
-    if (isRecord(result) && result.check === "not-local") throw notLocal;
-    if (isRecord(result) && result.check === "link") {
-      throw new LocationTargetError("link", "The picked folder path contains a reparse point.");
-    }
-    if (!isRecord(result) || result.check !== "ok") {
-      throw new LocationTargetError("invalid", "Windows gave an unexpected answer.");
+    // Validate both spellings if Windows resolves an alias (for example a DOS drive mapping).
+    for (const spelling of new Set([parent, realpathSync.native(parent)])) {
+      const result = await runWindows("check", spelling);
+      if (isRecord(result) && result.check === "not-local") throw notLocal;
+      if (isRecord(result) && result.check === "link") {
+        throw new LocationTargetError("link", "The picked folder path contains a reparse point.");
+      }
+      if (isRecord(result) && result.check === "not-private") throw unsafeChain();
+      if (!isRecord(result) || result.check !== "ok") {
+        throw new LocationTargetError("invalid", "Windows gave an unexpected answer.");
+      }
     }
   } else if (process.platform === "darwin") {
     if (!isMacLocalDisk(parent)) throw notLocal;
+    await checkMacChain(parent);
   } else {
     throw notLocal;
   }
@@ -267,7 +400,6 @@ export async function checkTargetParent(
 /** Creates `path` (must not exist) with owner-only access and reads it back. */
 export async function createPrivateFolder(path: string): Promise<void> {
   const exists = new LocationTargetError("exists", `${path} already exists.`);
-  if (lstatSync(path, { throwIfNoEntry: false })) throw exists;
   if (process.platform === "win32") {
     const result = await runWindows("create", path);
     if (isRecord(result) && result.exists === true) throw exists;

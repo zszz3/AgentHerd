@@ -24,7 +24,7 @@ let lease: LocationLease;
 let running: RunningHost;
 try {
   lease = acquireLocationLease(ctx.base, "shared");
-  running = await runHost({ home: resolveLocation(ctx).home });
+  running = await runHost(resolveLocation(ctx));
 } catch (error) {
   console.error(`[host] ${(error as Error).message}`);
   process.exit(1);

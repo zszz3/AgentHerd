@@ -125,6 +125,7 @@ export interface HerderHost {
   readonly locale: Locale;
   readonly texts: CoreTexts;
   readonly userHome: string;
+  readonly protectedPaths?: readonly string[] | undefined;
   profiles(): { id: string; name: string }[];
   tasks(): Task[];
   openTasks(): Task[];

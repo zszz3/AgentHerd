@@ -19,6 +19,7 @@ export interface PipelineContext {
   mode: Mode;
   rules: readonly Rule[];
   home: string;
+  protectedPaths?: readonly string[] | undefined;
   extraGuards?: readonly ExtraGuard[];
   /** Steps leaving the Mac that the owner allowed for this task (ADR 0056). */
   allowedSteps?: readonly OutboundStep[];
@@ -135,7 +136,7 @@ function decideUnsafe(item: Item, ctx: PipelineContext): PipelineResult {
     return { decision: escalate(item, "medium", "not a permission request"), apply: false };
   }
   if (item.toolCall !== undefined && item.toolCall.kind !== "app") {
-    const where = { cwd: item.cwd, home: ctx.home };
+    const where = { cwd: item.cwd, home: ctx.home, protectedPaths: ctx.protectedPaths };
     // A mass delete always goes to the owner, in every mode, whatever the rules say.
     const mass = massDeleteCheck(item.toolCall, where);
     if (mass.hit) {
