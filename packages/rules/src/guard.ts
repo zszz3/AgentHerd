@@ -131,10 +131,17 @@ export function guardCheck(
     }
   }
 
+  // The splitter removes quotes. Check the original spelling for just this one display form.
+  // Keep the parsed words intact for command guards; omit only the display operand from paths.
+  const fixedDisplay =
+    segments.length === 1 &&
+    segments[0]?.words.length === 2 &&
+    /^[ \t]*echo[ \t]+'\$[A-Za-z_][A-Za-z0-9_]*'[ \t]*$/.test(call.command ?? "");
   const commandPaths: string[] = [];
   let unresolved = resolvedPaths.some((p) => p === null);
   for (const segment of segments) {
-    for (const word of segment.words) {
+    for (const [index, word] of segment.words.entries()) {
+      if (fixedDisplay && index === 1) continue;
       for (const candidate of pathCandidates(word)) {
         const resolved = resolveWord(candidate, ctx);
         if (resolved === null) unresolved = true;

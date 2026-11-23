@@ -95,6 +95,8 @@ export function protectedPathMatch(
   if (candidate === undefined) return "unrelated";
   if (known !== unreadable && candidate !== unreadable)
     return sameIdentity(known, candidate) ? "match" : "unrelated";
+  // A known regular file cannot be another name for an unreadable directory.
+  if (!locationFile && candidate !== unreadable && candidate.isFile()) return "unrelated";
 
   // Distinct actual parents rule out another name for a directory entry. Follow parent
   // aliases before comparing; do not assume name spelling or apply this to hard-linked files.

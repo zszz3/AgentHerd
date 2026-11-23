@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, mkdtempSync, realpathSync, rmSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, realpathSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { ToolCallInfo } from "@agentherd/protocol";
@@ -44,6 +44,78 @@ it("asks about unresolved targets only in the presence of configured path guards
   ).toEqual({ hit: false });
 });
 
+describe("configured path guards distinguish fixed display text from operands", () => {
+  function withProtectedRoot(test: (where: typeof ctx & { protectedPaths: string[] }) => void) {
+    const home = mkdtempSync(join(realpathSync(tmpdir()), "herd-guard-"));
+    try {
+      const retained = join(home, "retained");
+      mkdirSync(retained);
+      test({ cwd: home, home, protectedPaths: [retained] });
+    } finally {
+      rmSync(home, { recursive: true });
+    }
+  }
+
+  it("does not ask for a standalone fixed display operand", () => {
+    withProtectedRoot((where) => {
+      expect(guardCheck(cmd("echo '$PRICE'"), where, [], "configured").hit).toBe(false);
+    });
+  });
+
+  it.each([
+    'cat "$FILE"',
+    'echo "$PRICE"',
+    "echo '$PRICE'suffix",
+    "echo '$PRICE tag'",
+    "echo '$PRICE' tag",
+    "echo '$PRICE' > note",
+    "echo note > '$PRICE'",
+    "echo '$PRICE'; echo note",
+    "echo '$PRICE'\n",
+    "env echo '$PRICE'",
+    "'echo' '$PRICE'",
+  ])("keeps asking about unresolved operands in %j", (command) => {
+    withProtectedRoot((where) => {
+      expect(guardCheck(cmd(command), where, [], "configured")).toMatchObject({ id: "unparsed" });
+    });
+  });
+
+  it("checks protected paths and extra guards independently of the display operand", () => {
+    withProtectedRoot((where) => {
+      const path = join(where.cwd, "retained", "note");
+      for (const call of [
+        cmd("echo '$PRICE'", [path]),
+        cmd("echo '$PRICE", [path]),
+        cmd(`echo '$PRICE' > "${path}"`),
+        cmd(`echo '$PRICE'; echo "${path}"`),
+      ]) {
+        expect(guardCheck(call, where, [], "configured")).toMatchObject({ id: "self-config" });
+      }
+      const display = "echo '$PRICE'";
+      const commandGuard = { id: "display", reason: "Fixture command", command: "echo *" };
+      const pathGuard = {
+        id: "notes",
+        reason: "Fixture path",
+        pathPrefix: join(where.cwd, "notes"),
+      };
+      expect(guardCheck(cmd(display), where, [commandGuard], "configured")).toMatchObject({
+        id: "display",
+      });
+      expect(
+        guardCheck(
+          cmd(display, [join(where.cwd, "notes", "note")]),
+          where,
+          [pathGuard],
+          "configured",
+        ),
+      ).toMatchObject({ id: "notes" });
+      expect(guardCheck(cmd(display, ["$FILE"]), where, [], "configured")).toMatchObject({
+        id: "unparsed",
+      });
+    });
+  });
+});
+
 it("asks only if an unreadable retained directory might still match", () => {
   const home = mkdtempSync(join(realpathSync(tmpdir()), "herd-guard-"));
   const parent = join(home, "previous");
@@ -55,8 +127,22 @@ it("asks only if an unreadable retained directory might still match", () => {
     const unrelated = join(otherParent, "sibling");
     mkdirSync(sameParent, { recursive: true });
     mkdirSync(unrelated, { recursive: true });
+    const file = join(parent, "note.txt");
+    writeFileSync(file, "fixture");
     const where = { cwd: home, home, protectedPaths: [retained] };
     for (const scope of ["configured", "all"] as const) {
+      for (const target of [file, join(file, "new")]) {
+        expect(guardCheck(cmd("fixture", [target]), where, [], scope).hit).toBe(false);
+      }
+      expect(guardCheck(cmd("fixture", [join(retained, "new")]), where, [], scope)).toMatchObject({
+        id: "self-config",
+        reason: "Changes AgentHerd's or an agent's permission configuration",
+      });
+      const location = { cwd: home, home, protectedLocationFiles: [retained] };
+      expect(guardCheck(cmd("fixture", [file]), location, [], scope)).toMatchObject({
+        id: "self-config",
+        reason: expect.stringContaining("could not be checked"),
+      });
       expect(guardCheck(cmd("fixture", [join(sameParent, "new")]), where, [], scope)).toMatchObject(
         { id: "self-config", reason: expect.stringContaining("could not be checked") },
       );
