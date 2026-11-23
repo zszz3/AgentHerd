@@ -15,6 +15,7 @@ import {
   checkTargetParent,
   createPrivateFolder,
   LocationTargetError,
+  requireEmptyNewFolder,
   TARGET_NAME,
   verifyPrivateFolder,
 } from "../src/location-target.ts";
@@ -233,6 +234,32 @@ describe("createPrivateFolder", () => {
 
     expect(await codeOf(createPrivateFolder(existing))).toBe("exists");
     expect(isWindows ? windowsAcl(existing) : macAclLines(existing)).toEqual(before);
+  });
+});
+
+describe("requireEmptyNewFolder", () => {
+  // createPrivateFolder calls this after the readback. A real mkdir-to-`chmod -N` race cannot
+  // be forced in a test, so the check is tested on its own.
+  it("refuses a new folder that already has entries and keeps them", () => {
+    const folder = join(tmp, "AgentHerd");
+    mkdirSync(join(folder, "run"), { recursive: true });
+    writeFileSync(join(folder, "secrets.json"), "{}");
+    let code = "ok";
+    try {
+      requireEmptyNewFolder(folder);
+    } catch (error) {
+      if (!(error instanceof LocationTargetError)) throw error;
+      code = error.code;
+    }
+    expect(code).toBe("not-private");
+    expect(lstatSync(join(folder, "secrets.json")).isFile()).toBe(true);
+    expect(lstatSync(join(folder, "run")).isDirectory()).toBe(true);
+  });
+
+  it("accepts an empty folder", () => {
+    const folder = join(tmp, "AgentHerd");
+    mkdirSync(folder);
+    expect(() => requireEmptyNewFolder(folder)).not.toThrow();
   });
 });
 

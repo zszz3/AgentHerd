@@ -3,7 +3,7 @@
 // owner-only access, because folders on a second drive usually inherit broad access.
 
 import { execFile } from "node:child_process";
-import { lstatSync, mkdirSync, realpathSync } from "node:fs";
+import { lstatSync, mkdirSync, readdirSync, realpathSync } from "node:fs";
 import { isAbsolute, join, normalize, parse, resolve, sep } from "node:path";
 import { isFsError, isMacLocalDisk, systemPowerShell } from "./location-gate.ts";
 import { mcpSocketPath } from "./mcp-socket.ts";
@@ -274,6 +274,7 @@ export async function createPrivateFolder(path: string): Promise<void> {
     if (!isOwnerOnlyWindows(result)) {
       throw new LocationTargetError("not-private", "The new folder is not owner-only.");
     }
+    requireEmptyNewFolder(path);
     return;
   }
   if (process.platform !== "darwin") {
@@ -288,6 +289,18 @@ export async function createPrivateFolder(path: string): Promise<void> {
   // Drop ACL entries inherited from the parent, only on the folder this call just created.
   await run("/bin/chmod", ["-N", path], process.env);
   await verifyPrivateFolder(path);
+  requireEmptyNewFolder(path);
+}
+
+/**
+ * A folder created a moment ago must still be empty once it is owner-only. On macOS, `mkdir`
+ * applies the parent's inherited ACL entries until `chmod -N` runs, so another user could add
+ * entries in that window; we cannot prove who created them, so the folder is left in place.
+ */
+export function requireEmptyNewFolder(path: string): void {
+  if (readdirSync(path).length !== 0) {
+    throw new LocationTargetError("not-private", "The new folder is not empty.");
+  }
 }
 
 /** Reads back permissions of a folder this app created. */
