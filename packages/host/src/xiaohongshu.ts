@@ -20,22 +20,16 @@ import type {
   SocialSource,
 } from "@agentherd/core";
 import { type McpHttpClient, mcpHttpClient } from "./composio.ts";
-import { hostDataPaths } from "./data-home-paths.ts";
+import { hostDataPaths, XHS_VERSION, xhsDownload } from "./data-home-paths.ts";
 import { renameWithRetry } from "./runtimes.ts";
 
-export const XHS_VERSION = "v2.7.4";
-const XHS_ASSETS: Record<string, string> = {
-  "darwin-arm64": "xiaohongshu-mcp-darwin-arm64",
-  "win32-x64": "xiaohongshu-mcp-windows-amd64.exe",
-  "win32-arm64": "xiaohongshu-mcp-windows-amd64.exe",
-  "linux-x64": "xiaohongshu-mcp-linux-amd64",
-};
+export { XHS_VERSION };
 
 export function xhsAsset(
   plat: NodeJS.Platform = platform(),
   cpu: string = arch(),
 ): string | undefined {
-  return XHS_ASSETS[`${plat}-${cpu}`];
+  return xhsDownload(plat, cpu)?.asset;
 }
 /** Agent tools are named XIAOHONGSHU_<TOOL> so approvals and the owner see where they go. */
 export const XHS_PREFIX = "XIAOHONGSHU_";
@@ -164,20 +158,20 @@ export class Xiaohongshu implements SocialSource {
     if (this.opts.binary !== undefined) return this.opts.binary();
     const plat = this.opts.platform ?? platform();
     const cpu = this.opts.arch ?? arch();
-    const asset = xhsAsset(plat, cpu);
-    if (asset === undefined) {
+    const download = xhsDownload(plat, cpu);
+    if (download === undefined) {
       throw new Error(`小红书 does not support ${plat}-${cpu} yet`);
     }
+    const { asset, paths } = download;
     const url = `https://github.com/xpzouying/xiaohongshu-mcp/releases/download/${XHS_VERSION}/${asset}`;
-    const ext = plat === "win32" ? ".exe" : "";
     const dir = join(this.opts.home, hostDataPaths.bin.relative);
-    const bin = join(dir, `xiaohongshu-mcp-${XHS_VERSION}${ext}`);
+    const bin = join(this.opts.home, paths.xiaohongshuBinary.relative);
     if (existsSync(bin)) return bin;
     mkdirSync(dir, { recursive: true, mode: 0o700 });
     this.opts.log?.(`[xiaohongshu] downloading ${url}`);
     const res = await this.fetchFn(url);
     if (!res.ok) throw new Error(`could not download xiaohongshu-mcp: HTTP ${res.status}`);
-    const part = `${bin}.part`;
+    const part = join(this.opts.home, paths.xiaohongshuPartial.relative);
     writeFileSync(part, Buffer.from(await res.arrayBuffer()));
     if (plat !== "win32") chmodSync(part, 0o755);
     await renameWithRetry(part, bin);

@@ -5,6 +5,30 @@ export const westockDataPaths = {
   posix: { relative: "bin/westock", kind: "persistent" },
 } as const satisfies Record<string, DataHomePath>;
 
+const bin = { relative: "bin", kind: "persistent" } as const;
+
+export const XHS_VERSION = "v2.7.4";
+const xhsAssets: Record<string, string> = {
+  "darwin-arm64": "xiaohongshu-mcp-darwin-arm64",
+  "win32-x64": "xiaohongshu-mcp-windows-amd64.exe",
+  "win32-arm64": "xiaohongshu-mcp-windows-amd64.exe",
+  "linux-x64": "xiaohongshu-mcp-linux-amd64",
+};
+
+export function xhsDownload(plat: NodeJS.Platform, cpu: string) {
+  const asset = xhsAssets[`${plat}-${cpu}`];
+  if (asset === undefined) return undefined;
+  const ext = plat === "win32" ? ".exe" : "";
+  const relative = `${bin.relative}/xiaohongshu-mcp-${XHS_VERSION}${ext}`;
+  return {
+    asset,
+    paths: {
+      xiaohongshuBinary: { relative, kind: "persistent" },
+      xiaohongshuPartial: { relative: `${relative}.part`, kind: "transient" },
+    } as const satisfies Record<string, DataHomePath>,
+  };
+}
+
 export const hostDataPaths = {
   config: { relative: "config.json", kind: "persistent" },
   secrets: { relative: "secrets.json", kind: "persistent" },
@@ -21,7 +45,8 @@ export const hostDataPaths = {
   runtimes: { relative: "runtimes", kind: "persistent" },
   feeds: { relative: "feeds", kind: "persistent" },
   feedTold: { relative: "feeds/told.json", kind: "persistent" },
-  bin: { relative: "bin", kind: "persistent" },
+  bin,
+  ...xhsDownload(process.platform, process.arch)?.paths,
   westock: process.platform === "win32" ? westockDataPaths.win32 : westockDataPaths.posix,
   models: { relative: "models", kind: "persistent" },
   danjuan: { relative: "danjuan", kind: "persistent" },

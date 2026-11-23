@@ -27,16 +27,20 @@ import { applyLocationRequest } from "../src/location-apply.ts";
 import { createPrivateFolder, verifyPrivateFolder } from "../src/location-target.ts";
 
 import { socketPath } from "../src/server.ts";
+import { XHS_VERSION, xhsAsset } from "../src/xiaohongshu.ts";
 
 const sourceMissing = vi.hoisted(() => new Set<string>());
+const destinationAliases = vi.hoisted(() => new Map<string, string>());
 vi.mock("node:fs", async (importOriginal) => {
   const fs = await importOriginal<typeof import("node:fs")>();
   return {
     ...fs,
-    lstatSync: ((...args: Parameters<typeof fs.lstatSync>) =>
-      typeof args[0] === "string" && sourceMissing.has(args[0])
-        ? undefined
-        : fs.lstatSync(...args)) as typeof fs.lstatSync,
+    lstatSync: ((...args: Parameters<typeof fs.lstatSync>) => {
+      const [path, options] = args;
+      if (typeof path !== "string") return fs.lstatSync(...args);
+      if (sourceMissing.has(path)) return undefined;
+      return fs.lstatSync(destinationAliases.get(path) ?? path, options);
+    }) as typeof fs.lstatSync,
   };
 });
 
@@ -68,6 +72,7 @@ describe.runIf(supported)("applyLocationRequest", () => {
   });
   afterEach(() => {
     sourceMissing.clear();
+    destinationAliases.clear();
     rmSync(tmp, { recursive: true, force: true });
   });
 
@@ -272,6 +277,55 @@ describe.runIf(supported)("applyLocationRequest", () => {
         expect(result).toMatchObject({ kind: "applied" });
         expect(readFileSync(join(target, ...parts), "utf8")).toBe("fixture");
       }
+    },
+    20_000,
+  );
+
+  it.runIf(xhsAsset() !== undefined).each(["", ".part"])(
+    "refuses an ordinary file that aliases the fixed Xiaohongshu path (suffix %j)",
+    async (suffix) => {
+      const ext = process.platform === "win32" ? ".exe" : "";
+      const name = `xiaohongshu-mcp-${XHS_VERSION}${ext}${suffix}`;
+      const alias = name.toUpperCase();
+      const ordinary = join(old, "bin", alias);
+      const selection = JSON.stringify({ version: 1, active: old, retained: [] });
+      mkdirSync(join(old, "bin"));
+      writeFileSync(ordinary, "ordinary text fixture");
+      writeFileSync(record(), selection, { mode: 0o600 });
+      // Model mixed lookup at these two paths; only the migration decision is exercised.
+      sourceMissing.add(join(old, "bin", name));
+      destinationAliases.set(join(target, "bin", name), join(target, "bin", alias));
+      writeLocationRequest(ctx, { version: 1, parent, mode: "copy" });
+
+      const result = await apply();
+
+      expect(result).toEqual({ kind: "failed", code: "copy-failed" });
+      expect(readFileSync(ordinary, "utf8")).toBe("ordinary text fixture");
+      expect(readFileSync(record(), "utf8")).toBe(selection);
+      expect(resolveLocation(ctx)).toMatchObject({ source: "saved", home: old });
+    },
+    20_000,
+  );
+
+  it.runIf(xhsAsset() !== undefined)(
+    "keeps the cached Xiaohongshu file and omits an incomplete download",
+    async () => {
+      const ext = process.platform === "win32" ? ".exe" : "";
+      const name = `xiaohongshu-mcp-${XHS_VERSION}${ext}`;
+      const bin = join(old, "bin", name);
+      const part = `${bin}.part`;
+      mkdirSync(join(old, "bin"));
+      writeFileSync(bin, "cached text fixture");
+      writeFileSync(part, "incomplete text fixture");
+      writeLocationRequest(ctx, { version: 1, parent, mode: "copy" });
+
+      const result = await apply();
+
+      expect(result).toMatchObject({ kind: "applied" });
+      expect(readdirSync(join(target, "bin"))).toEqual([name]);
+      expect(readFileSync(join(target, "bin", name), "utf8")).toBe("cached text fixture");
+      expect(readFileSync(bin, "utf8")).toBe("cached text fixture");
+      expect(readFileSync(part, "utf8")).toBe("incomplete text fixture");
     },
     20_000,
   );
