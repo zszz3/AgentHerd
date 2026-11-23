@@ -17,7 +17,13 @@ export interface LocationLease {
   release(): void;
 }
 
-const gateFile = ".agentherd-location.lock.sqlite";
+export const gateFile = ".agentherd-location.lock.sqlite";
+/** Exclusive leases that are not released yet, so a writer can prove it holds one. */
+const liveExclusive = new WeakSet<LocationLease>();
+
+export function isLiveExclusiveLease(lease: LocationLease): boolean {
+  return liveExclusive.has(lease);
+}
 const createSentinel = "CREATE TABLE location_gate (id INTEGER PRIMARY KEY, v INTEGER NOT NULL)";
 
 function gateFailure(reason: string): Error {
@@ -347,11 +353,12 @@ export function acquireLocationLease(root: string, mode: LocationMode): Location
       throw gateFailure("the gate file changed identity; check the user profile before retrying.");
     }
     let released = false;
-    return {
+    const lease: LocationLease = {
       mode,
       release() {
         if (released) return;
         released = true;
+        liveExclusive.delete(lease);
         try {
           connection.exec("ROLLBACK");
         } finally {
@@ -359,6 +366,8 @@ export function acquireLocationLease(root: string, mode: LocationMode): Location
         }
       },
     };
+    if (mode === "exclusive") liveExclusive.add(lease);
+    return lease;
   } catch (error) {
     db?.close();
     throw asLocationGateError(error);

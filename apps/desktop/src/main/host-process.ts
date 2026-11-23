@@ -42,9 +42,9 @@ export async function ensureHost(home: string, sock: string): Promise<void> {
     const p = utilityProcess.fork(hostEntry(), [], {
       serviceName: "AgentHerd host",
       stdio: "pipe",
+      // The host resolves the data location itself, under its own lease.
       env: {
         ...process.env,
-        AGENTHERD_HOME: home,
         ...(agents === undefined ? {} : { AGENTHERD_AGENTS: agents }),
       },
     });

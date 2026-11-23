@@ -6,6 +6,7 @@
   "exports": {
     ".": "./src/index.ts",
     "./api": "./src/api.ts",
+    "./data-location": "./src/data-location.ts",
     "./server": "./src/server.ts"
   },
   "bin": {

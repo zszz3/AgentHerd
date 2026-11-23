@@ -3,7 +3,6 @@
 // (`agentherd start`); main talks to it only over the local API socket.
 
 import { readFileSync, writeFileSync } from "node:fs";
-import { homedir } from "node:os";
 import { join } from "node:path";
 import type {
   HostEvent,
@@ -14,8 +13,23 @@ import type {
   TasksView,
 } from "@agentherd/host/api";
 import { HOST_METHODS } from "@agentherd/host/api";
+import {
+  acquireLocationLease,
+  type LocationLease,
+  locationContext,
+  resolveLocation,
+} from "@agentherd/host/data-location";
 import { connectHost, type HostClient, socketPath } from "@agentherd/host/server";
-import { app, BrowserWindow, ipcMain, Menu, nativeTheme, powerSaveBlocker, shell } from "electron";
+import {
+  app,
+  BrowserWindow,
+  dialog,
+  ipcMain,
+  Menu,
+  nativeTheme,
+  powerSaveBlocker,
+  shell,
+} from "electron";
 import type { Notice, NoticeTab } from "../shared/pet-notify.ts";
 import { ApproveKey, type PetArm, shortcutLabel } from "../shared/pet-shortcuts.ts";
 import { isTheme, type Theme, themeFrom, themeText } from "../shared/theme.ts";
@@ -32,7 +46,26 @@ app.setAboutPanelOptions({ applicationName: "AgentHerd", copyright: "MIT License
 const APP_ICON = join(import.meta.dirname, "../../resources/icon.png");
 /** Black on clear, so macOS tints it for a light or dark menu bar (ADR 0079). */
 const MENU_BAR_ICON = join(import.meta.dirname, "../../resources/trayTemplate.png");
-const home = process.env.AGENTHERD_HOME ?? join(homedir(), ".agentherd");
+/**
+ * Takes the shared location lease before anything touches the data directory and resolves it
+ * the same way the host and the CLI do. The lease is held until the owned host has stopped.
+ */
+function openDataLocation(): { home: string; lease: LocationLease } {
+  const ctx = locationContext();
+  let lease: LocationLease | undefined;
+  try {
+    lease = acquireLocationLease(ctx.base, "shared");
+    return { home: resolveLocation(ctx).home, lease };
+  } catch (error) {
+    lease?.release();
+    // Recovery from a corrupt or missing location comes with the data directory settings.
+    dialog.showErrorBox("AgentHerd cannot open its data directory", (error as Error).message);
+    process.exit(1);
+  }
+}
+
+const dataLocation = openDataLocation();
+const home = dataLocation.home;
 const sock = socketPath(home);
 
 let win: BrowserWindow | undefined;
@@ -428,7 +461,11 @@ app.on("window-all-closed", () => {
   }
 });
 
-app.on("will-quit", () => shortcuts.dispose());
+// before-quit has already waited for the owned host to stop.
+app.on("will-quit", () => {
+  shortcuts.dispose();
+  dataLocation.lease.release();
+});
 
 app.on("before-quit", (event) => {
   quitting = true;

@@ -7,6 +7,7 @@ import { join } from "node:path";
 import type { ModelSettings, SecretStore } from "@agentherd/core";
 import type { ModelTiers } from "@agentherd/herder";
 import type { AgentProfile, ChannelBinding, Locale, Mode } from "@agentherd/protocol";
+import { resolveLocation } from "./data-location.ts";
 
 /** One installed plugin (ADR 0094). */
 export interface PluginEntry {
@@ -58,8 +59,9 @@ export interface CliConfig {
   herderWindow?: number;
 }
 
+/** The resolved data home; callers that write under it must hold a lease (`withLocation`). */
 export function agentherdHome(env: NodeJS.ProcessEnv = process.env): string {
-  return env.AGENTHERD_HOME ?? join(homedir(), ".agentherd");
+  return resolveLocation({ base: homedir(), env }).home;
 }
 
 export function configPath(home: string): string {
