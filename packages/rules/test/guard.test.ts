@@ -2,10 +2,74 @@ import { existsSync, mkdirSync, mkdtempSync, realpathSync, rmSync } from "node:f
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { ToolCallInfo } from "@agentherd/protocol";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { type ExtraGuard, guardCheck } from "../src/guard.ts";
 
+const denied = vi.hoisted(() => new Set<string>());
+vi.mock("node:fs", async (load) => {
+  const fs = await load<typeof import("node:fs")>();
+  return {
+    ...fs,
+    lstatSync: ((...args: Parameters<typeof fs.lstatSync>) => {
+      if (typeof args[0] === "string" && denied.has(args[0])) {
+        throw Object.assign(new Error("Fixture metadata unavailable"), { code: "EACCES" });
+      }
+      return fs.lstatSync(...args);
+    }) as typeof fs.lstatSync,
+  };
+});
+
 const ctx = { cwd: "/work/proj", home: "/Users/me" };
+
+it("keeps configured path decisions when command parsing fails", () => {
+  const extra = [{ id: "fixture-path", reason: "Fixture path", pathPrefix: "/fixture" }];
+  const malformed = cmd("fixture '", ["/fixture/note"]);
+  for (const scope of ["configured", "all"] as const) {
+    expect(guardCheck(malformed, ctx, extra, scope)).toMatchObject({ id: "fixture-path" });
+  }
+  expect(guardCheck(malformed, ctx, [], "configured")).toEqual({ hit: false });
+  expect(
+    guardCheck(cmd("fixture '"), { ...ctx, protectedPaths: ["/fixture"] }, [], "configured"),
+  ).toMatchObject({ id: "unparsed" });
+});
+
+it("asks about unresolved targets only in the presence of configured path guards", () => {
+  const unresolved = cmd("fixture $FIXTURE_PATH");
+  expect(guardCheck(unresolved, ctx, [], "configured")).toEqual({ hit: false });
+  expect(
+    guardCheck(unresolved, { ...ctx, protectedPaths: ["/fixture"] }, [], "configured"),
+  ).toMatchObject({ id: "unparsed" });
+  expect(
+    guardCheck(cmd("fixture note"), { ...ctx, protectedPaths: ["/fixture"] }, [], "configured"),
+  ).toEqual({ hit: false });
+});
+
+it("asks only if an unreadable retained directory might still match", () => {
+  const home = mkdtempSync(join(realpathSync(tmpdir()), "herd-guard-"));
+  const parent = join(home, "previous");
+  const retained = join(parent, "retained");
+  denied.add(retained);
+  try {
+    const sameParent = join(parent, "sibling");
+    const otherParent = join(home, "other");
+    const unrelated = join(otherParent, "sibling");
+    mkdirSync(sameParent, { recursive: true });
+    mkdirSync(unrelated, { recursive: true });
+    const where = { cwd: home, home, protectedPaths: [retained] };
+    for (const scope of ["configured", "all"] as const) {
+      expect(guardCheck(cmd("fixture", [join(sameParent, "new")]), where, [], scope)).toMatchObject(
+        { id: "self-config", reason: expect.stringContaining("could not be checked") },
+      );
+      expect(guardCheck(cmd("fixture", [join(home, "missing", "new")]), where, [], scope).hit).toBe(
+        false,
+      );
+      expect(guardCheck(cmd("fixture", [unrelated]), where, [], scope).hit).toBe(false);
+    }
+  } finally {
+    denied.delete(retained);
+    rmSync(home, { recursive: true });
+  }
+});
 
 function cmd(command: string, paths: string[] = []): ToolCallInfo {
   return { kind: "execute", title: command, command, paths };

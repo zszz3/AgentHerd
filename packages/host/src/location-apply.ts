@@ -46,6 +46,34 @@ const skipped = new Set([
   "run/mcp.sock",
   "run/qr.png",
 ]);
+// Names looked up by AgentHerd itself, relative to the data directory. Content inside
+// these containers is ordinary unless it too has a fixed app meaning.
+const persistent = [
+  "config.json",
+  "secrets.json",
+  "worktrees",
+  "tasks",
+  "run",
+  "run/claude",
+  "run/claude/settings.json",
+  "pi-sessions",
+  "plugins",
+  "plugins/catalog.json",
+  "plugins/.staging",
+  "runtimes",
+  "feeds",
+  "feeds/told.json",
+  "bin",
+  process.platform === "win32" ? "bin/westock.exe" : "bin/westock",
+  "models",
+  "danjuan",
+  "danjuan/profile",
+  "zhihu",
+  "zhihu/profile",
+  "xiaohongshu",
+  "xiaohongshu/cookies.json",
+];
+const reservedPaths = [dbName, ...skipped, ...persistent];
 const fail = (code: ApplyFailure): ApplyResult => ({ kind: "failed", code });
 
 export function canCopy(home: string): boolean {
@@ -139,16 +167,19 @@ function copyHome(from: string, to: string, progress: (files: number) => void): 
   if (!root.isDirectory()) throw new Error("Expected a data directory.");
   let files = 0;
   let copySqlite = false;
-  function walk(path: string[], destinationPath: string[], logical: string): void {
+  function walk(path: string[], destinationPath: string[], logical: string | undefined): void {
     const sourceDir = join(from, ...path);
     const names = readdirSync(sourceDir);
     const reserved = new Map<string, string>();
-    // Only the root and the actual `run` directory have names with special meaning.
-    const keys = [dbName, "run", ...skipped].filter((key) =>
-      logical === "" ? !key.includes("/") : logical === "run" && key.startsWith("run/"),
-    );
+    const prefix = logical ? `${logical}/` : "";
+    const keys =
+      logical === undefined
+        ? []
+        : reservedPaths.filter(
+            (key) => key.startsWith(prefix) && !key.slice(prefix.length).includes("/"),
+          );
     for (const key of keys) {
-      const expected = key.slice(logical.length === 0 ? 0 : logical.length + 1);
+      const expected = key.slice(prefix.length);
       if (names.includes(expected)) {
         reserved.set(expected, key);
         continue;
@@ -167,7 +198,7 @@ function copyHome(from: string, to: string, progress: (files: number) => void): 
       const parts = [...path, name];
       const key = reserved.get(name);
       const source = join(from, ...parts);
-      const destParts = [...destinationPath, key === "run" ? key : name];
+      const destParts = [...destinationPath, key === undefined ? name : key.slice(prefix.length)];
       const destination = join(to, ...destParts);
       const stats = lstatSync(source);
       if (key !== undefined && skipped.has(key)) {
@@ -179,7 +210,7 @@ function copyHome(from: string, to: string, progress: (files: number) => void): 
         copySqlite = true;
       } else if (stats.isDirectory()) {
         mkdirSync(destination, { mode: 0o700 });
-        walk(parts, destParts, key === "run" ? key : "nested");
+        walk(parts, destParts, key);
       } else {
         copyFile(source, destination);
         progress(++files);
@@ -188,7 +219,7 @@ function copyHome(from: string, to: string, progress: (files: number) => void): 
     // The copied ordinary tree is the probe: use the destination's real name lookup,
     // not the source volume's rules or a platform-wide case assumption.
     for (const key of keys) {
-      if (key === "run" && [...reserved.values()].includes(key)) continue;
+      if (key !== dbName && !skipped.has(key) && [...reserved.values()].includes(key)) continue;
       if (lstatSync(join(to, key), { throwIfNoEntry: false })) {
         throw new Error("An ordinary entry would occupy a reserved destination path.");
       }

@@ -1,4 +1,4 @@
-import { lstatSync } from "node:fs";
+import { lstatSync, statSync } from "node:fs";
 import path from "node:path";
 
 export interface PathContext {
@@ -57,42 +57,79 @@ export function isInside(target: string, dir: string): boolean {
   return rel === "" || (rel !== ".." && !rel.startsWith("../") && !p.isAbsolute(rel));
 }
 
-/** Matches declared data paths, with a narrow case fallback for absent location metadata. */
-export function isInsideProtectedPath(target: string, root: string, locationFile = false): boolean {
+/** Compare declared data paths using native identity, not spelling alone. */
+export function protectedPathMatch(
+  target: string,
+  root: string,
+  locationFile = false,
+): "match" | "unrelated" | "uncertain" {
   const p = pathModFor(target, root);
-  if (!p.isAbsolute(target) || !p.isAbsolute(root)) return false;
+  if (!p.isAbsolute(target) || !p.isAbsolute(root)) return "unrelated";
   const resolvedRoot = p.resolve(stripExtendedPrefix(root));
   let ancestor = p.resolve(stripExtendedPrefix(target));
   const depth = (value: string) =>
     value.slice(p.parse(value).root.length).split(p.sep).filter(Boolean).length;
   for (let count = depth(ancestor) - depth(resolvedRoot); count > 0; count--)
     ancestor = p.dirname(ancestor);
-  if (depth(ancestor) !== depth(resolvedRoot)) return false;
-  if (ancestor === resolvedRoot) return true;
-  if (p !== path) return false;
-  const known = pathIdentity(resolvedRoot);
-  if (known !== undefined) return known === pathIdentity(ancestor);
-  if (
-    !locationFile ||
-    p.basename(ancestor).toLowerCase() !== p.basename(resolvedRoot).toLowerCase()
-  )
-    return false;
+  if (depth(ancestor) !== depth(resolvedRoot)) return "unrelated";
+  if (ancestor === resolvedRoot) return "match";
+  if (p !== path) return "unrelated";
+
   const parent = p.dirname(resolvedRoot);
   const candidateParent = p.dirname(ancestor);
-  if (candidateParent === parent) return true;
-  const knownParent = pathIdentity(parent);
-  return knownParent !== undefined && knownParent === pathIdentity(candidateParent);
+  const known = inspectPath(resolvedRoot);
+  if (known === undefined) {
+    // Only absent location metadata gets a name-based fallback.
+    if (
+      !locationFile ||
+      p.basename(ancestor).toLowerCase() !== p.basename(resolvedRoot).toLowerCase()
+    )
+      return "unrelated";
+    if (candidateParent === parent) return "match";
+    const a = inspectPath(parent, true);
+    const b = inspectPath(candidateParent, true);
+    if (a === unreadable || b === unreadable) return "uncertain";
+    return a !== undefined && b !== undefined && sameIdentity(a, b) ? "match" : "unrelated";
+  }
+  const candidate = inspectPath(ancestor);
+  if (candidate === undefined) return "unrelated";
+  if (known !== unreadable && candidate !== unreadable)
+    return sameIdentity(known, candidate) ? "match" : "unrelated";
+
+  // Distinct actual parents rule out another name for a directory entry. Follow parent
+  // aliases before comparing; do not assume name spelling or apply this to hard-linked files.
+  if (!locationFile && candidate !== unreadable && candidateParent !== parent) {
+    if (candidate.isDirectory()) {
+      const a = inspectPath(parent, true);
+      const b = inspectPath(candidateParent, true);
+      if (
+        a !== undefined &&
+        b !== undefined &&
+        a !== unreadable &&
+        b !== unreadable &&
+        !sameIdentity(a, b)
+      )
+        return "unrelated";
+    }
+  }
+  return "uncertain";
 }
 
-function pathIdentity(path: string): string | undefined {
+const unreadable = Symbol("unreadable path identity");
+
+function inspectPath(path: string, follow = false) {
   try {
-    const entry = lstatSync(path, { bigint: true, throwIfNoEntry: false });
-    return entry === undefined ? undefined : `${entry.dev}:${entry.ino}`;
+    return (follow ? statSync : lstatSync)(path, { bigint: true, throwIfNoEntry: false });
   } catch (error) {
-    // A path with a regular-file ancestor does not exist.
-    if (error instanceof Error && "code" in error && error.code === "ENOTDIR") return undefined;
-    throw error;
+    if (error instanceof Error && "code" in error) {
+      if (error.code === "ENOENT" || error.code === "ENOTDIR") return undefined;
+    }
+    return unreadable;
   }
+}
+
+function sameIdentity(a: { dev: bigint; ino: bigint }, b: { dev: bigint; ino: bigint }): boolean {
+  return a.dev === b.dev && a.ino === b.ino;
 }
 
 /** True when two paths resolve to the same location (case-insensitive for Windows paths). */

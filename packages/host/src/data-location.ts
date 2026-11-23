@@ -4,7 +4,9 @@
 
 import { randomUUID } from "node:crypto";
 import {
+  accessSync,
   closeSync,
+  constants,
   fstatSync,
   fsyncSync,
   opendirSync,
@@ -156,6 +158,7 @@ function writeJson(path: string, value: unknown): void {
 
 function canListDirectory(path: string): boolean {
   try {
+    if (process.platform !== "win32") accessSync(path, constants.X_OK);
     const dir = opendirSync(path);
     try {
       dir.readSync();

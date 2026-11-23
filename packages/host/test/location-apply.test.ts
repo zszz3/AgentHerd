@@ -244,9 +244,43 @@ describe.runIf(supported)("applyLocationRequest", () => {
     }
   }, 20_000);
 
+  it.each([
+    ["CONFIG.JSON", "config.json"],
+    ["SECRETS.JSON", "secrets.json"],
+    ["WORKTREES", "worktrees"],
+    ["feeds/TOLD.JSON", "feeds/told.json"],
+    ["plugins/CATALOG.JSON", "plugins/catalog.json"],
+  ])(
+    "does not give ordinary %s a reserved destination meaning",
+    async (alias, key) => {
+      const parts = alias.split("/");
+      const ordinary = join(old, ...parts);
+      const canonical = join(old, key);
+      mkdirSync(join(old, ...parts.slice(0, -1)), { recursive: true });
+      writeFileSync(ordinary, "fixture");
+      const aliasesOnTarget = existsSync(canonical);
+      sourceMissing.add(canonical);
+      writeLocationRequest(ctx, { version: 1, parent, mode: "copy" });
+      const result = await apply();
+      expect(readFileSync(ordinary, "utf8")).toBe("fixture");
+      if (aliasesOnTarget) {
+        expect(result).toEqual({ kind: "failed", code: "copy-failed" });
+        expect(existsSync(record())).toBe(false);
+        expect(resolveLocation(ctx).home).toBe(old);
+      } else {
+        expect(result).toMatchObject({ kind: "applied" });
+        expect(readFileSync(join(target, ...parts), "utf8")).toBe("fixture");
+      }
+    },
+    20_000,
+  );
+
   it("keeps committed WAL rows and agent sessions; rebases only structured scratch paths", async () => {
     const files = [
       "secrets.json",
+      "config.json",
+      "feeds/told.json",
+      "plugins/catalog.json",
       "run/claude/session",
       "run/codex-x/session",
       "run/qr.png",
@@ -280,10 +314,10 @@ describe.runIf(supported)("applyLocationRequest", () => {
       writeLocationRequest(ctx, { version: 1, parent, mode: "copy" });
       const counts: number[] = [];
       expect((await apply((n) => counts.push(n))).kind).toBe("applied");
-      expect(counts.at(-1)).toBe(4);
+      expect(counts.at(-1)).toBe(7);
       expect(sourceNames.map((name) => readFileSync(join(old, name)))).toEqual(bytes);
       expect(readdirSync(join(target, "run")).sort()).toEqual(["claude", "codex-x"]);
-      for (const name of files.slice(0, 3))
+      for (const name of files.slice(0, 6))
         expect(readFileSync(join(target, name), "utf8")).toBe("fixture");
       expect(existsSync(join(target, "herd.db-wal"))).toBe(false);
       expect(existsSync(join(target, "herd.db-shm"))).toBe(false);

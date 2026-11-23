@@ -11,7 +11,7 @@ import {
 } from "node:fs";
 import { homedir, tmpdir } from "node:os";
 import { join } from "node:path";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   type LocationContext,
   LocationError,
@@ -24,6 +24,20 @@ import {
   writeLocationRequest,
 } from "../src/data-location.ts";
 import { acquireLocationLease, type LocationLease } from "../src/location-gate.ts";
+
+const searchDenied = vi.hoisted(() => new Set<string>());
+vi.mock("node:fs", async (load) => {
+  const fs = await load<typeof import("node:fs")>();
+  return {
+    ...fs,
+    accessSync: (path: Parameters<typeof fs.accessSync>[0], mode?: number) => {
+      if (typeof path === "string" && mode === fs.constants.X_OK && searchDenied.has(path)) {
+        throw Object.assign(new Error("Fixture search denied"), { code: "EACCES" });
+      }
+      fs.accessSync(path, mode);
+    },
+  };
+});
 
 let ctx: LocationContext;
 let recordPath: string;
@@ -92,6 +106,21 @@ describe("resolve the data location", () => {
       join(ctx.base, ".agentherd-location.lock.sqlite"),
       join(ctx.base, ".agentherd-location.lock.sqlite-journal"),
     ]);
+  });
+
+  it("requires search as well as listing for a saved POSIX directory", () => {
+    mkdirSync(saved);
+    put(record);
+    searchDenied.add(saved);
+    if (process.platform === "win32") vi.stubGlobal("process", { ...process, platform: "darwin" });
+    try {
+      expect(locationError(() => resolveLocation(ctx)).code).toBe("location-unavailable");
+      ctx.env.AGENTHERD_HOME = saved;
+      expect(resolveLocation(ctx)).toMatchObject({ home: saved, source: "env" });
+    } finally {
+      vi.unstubAllGlobals();
+      searchDenied.delete(saved);
+    }
   });
 
   it("lets AGENTHERD_HOME win even over a corrupt record, leaving it untouched", () => {
