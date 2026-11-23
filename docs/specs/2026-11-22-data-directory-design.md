@@ -60,7 +60,7 @@ Inventory data produced by the current app before implementing the copy. Include
 
 A non-empty `worktrees` directory blocks copying; start empty stays available. Rebase structured scratch workspace paths (task, session and item working directories under the old `tasks` tree) to the new root; do not rewrite arbitrary text, project paths, or external agent files.
 
-Copy into a private staging folder `<parent>/AgentHerd.partial-<random>` created the same way as the target, validate it (database `quick_check`, required files present, permissions still private), then rename it to `<parent>/AgentHerd` on the same volume and read the permissions back. Commit the location record last. Before that point every failure leaves the old directory selected and intact. The app may remove a staging folder it created during this attempt; it never deletes the original or anything it did not create.
+Create `<parent>/AgentHerd` exclusively and verify that it is private and empty before copying directly into it. Refuse if the folder already exists, even if it is private and empty. Do not publish the directory by rename: on macOS an ordinary rename can replace an existing empty directory. Verify the copied data (database `quick_check`, required files present, permissions still private), then commit the location record last. On failure or interruption, the old directory remains selected and intact. A partial destination may remain; tell the owner to choose another parent or inspect and remove the unused folder before retrying. The app does not automatically delete either directory.
 
 ## Boundaries
 
