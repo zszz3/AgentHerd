@@ -6,6 +6,7 @@ import type { ToolCallInfo } from "@agentherd/protocol";
 import { globMatch } from "./glob.ts";
 import {
   isInside,
+  isInsideProtectedPath,
   isWinPath,
   type PathContext,
   pathCandidates,
@@ -98,13 +99,30 @@ export function guardCheck(
   call: ToolCallInfo,
   ctx: PathContext,
   extraGuards: readonly ExtraGuard[] = [],
+  scope: "all" | "configured" = "all",
 ): GuardResult {
+  const configuredOnly = scope === "configured";
+  const callPaths = call.paths.map((p) => resolveWord(p, ctx) ?? p);
+  const protectedHit = (paths: readonly string[]) =>
+    ctx.protectedLocationFiles?.some((file) =>
+      paths.some((p) => isInsideProtectedPath(p, file, true)),
+    ) || ctx.protectedPaths?.some((root) => paths.some((p) => isInsideProtectedPath(p, root)));
+  if (protectedHit(callPaths)) return hit("self-config");
+  if (
+    configuredOnly &&
+    !ctx.protectedPaths?.length &&
+    !ctx.protectedLocationFiles?.length &&
+    extraGuards.length === 0
+  )
+    return { hit: false };
+
   let segments: Segment[] = [];
   if (call.command !== undefined && call.command.trim() !== "") {
     try {
       segments = splitCommand(call.command);
     } catch (error) {
-      if (error instanceof UnparsedCommandError) return hit("unparsed", error.message);
+      if (error instanceof UnparsedCommandError)
+        return configuredOnly ? { hit: false } : hit("unparsed", error.message);
       throw error;
     }
   }
@@ -118,8 +136,9 @@ export function guardCheck(
       }
     }
   }
-  const callPaths = call.paths.map((p) => resolveWord(p, ctx) ?? p);
   const allPaths = [...callPaths, ...commandPaths];
+  if (protectedHit(commandPaths)) return hit("self-config");
+  if (configuredOnly) return checkExtra(extraGuards, segments, allPaths, ctx);
 
   const results: GuardResult[] = [
     checkRm(call, segments, callPaths, ctx),
@@ -293,10 +312,7 @@ function checkSecrets(
 function checkSelfConfig(paths: readonly string[], ctx: PathContext): GuardResult {
   const homePath = pathModFor(ctx.home);
   for (const p of paths) {
-    if (
-      SELF_CONFIG_DIRS.some((d) => isInside(p, homePath.join(ctx.home, d))) ||
-      ctx.protectedPaths?.some((root) => isInside(p, root))
-    ) {
+    if (SELF_CONFIG_DIRS.some((d) => isInside(p, homePath.join(ctx.home, d)))) {
       return hit("self-config");
     }
     const pPath = pathModFor(p);

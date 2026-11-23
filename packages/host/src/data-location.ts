@@ -7,10 +7,10 @@ import {
   closeSync,
   fstatSync,
   fsyncSync,
+  opendirSync,
   openSync,
   readSync,
   renameSync,
-  statSync,
   unlinkSync,
   writeSync,
 } from "node:fs";
@@ -41,8 +41,10 @@ export interface LocationRecord {
 export interface LocationSnapshot {
   home: string;
   source: "env" | "saved" | "default";
-  /** The home, the default, saved roots and the location files. */
+  /** The home, the default and saved roots. */
   protectedPaths: readonly string[];
+  /** Declared metadata names, protected even before the files exist. */
+  protectedLocationFiles: readonly string[];
 }
 
 export interface LocationRequest {
@@ -152,9 +154,15 @@ function writeJson(path: string, value: unknown): void {
   }
 }
 
-function isDirectory(path: string): boolean {
+function canListDirectory(path: string): boolean {
   try {
-    return statSync(path).isDirectory();
+    const dir = opendirSync(path);
+    try {
+      dir.readSync();
+      return true;
+    } finally {
+      dir.closeSync();
+    }
   } catch {
     return false;
   }
@@ -193,7 +201,7 @@ export function resolveLocation(ctx: LocationContext): LocationSnapshot {
     record = readLocationRecord(ctx);
     home = record?.active ?? fallback;
     source = record === undefined ? "default" : "saved";
-    if (record !== undefined && !isDirectory(home)) {
+    if (record !== undefined && !canListDirectory(home)) {
       throw new LocationError(
         "location-unavailable",
         `The saved AgentHerd data directory ${home} is unavailable.`,
@@ -206,12 +214,14 @@ export function resolveLocation(ctx: LocationContext): LocationSnapshot {
     fallback,
     ...(record === undefined ? [] : [record.active, ...record.retained]),
     ...(record?.previous === undefined ? [] : [record.previous]),
+  ];
+  const protectedLocationFiles = [
     join(ctx.base, recordFile),
     join(ctx.base, requestFile),
     gate,
     `${gate}-journal`,
   ];
-  return { home, source, protectedPaths: [...new Set(paths)] };
+  return { home, source, protectedPaths: [...new Set(paths)], protectedLocationFiles };
 }
 
 /** Runs `work` on the resolved location under a shared lease held until it settles. */

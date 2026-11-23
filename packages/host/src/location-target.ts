@@ -69,14 +69,20 @@ switch ($env:AGENTHERD_TARGET_MODE) {
       # directory. Earlier components contain the next protected entry. FILE_ADD_SUBDIRECTORY
       # and read/traverse alone do not allow changing reparse metadata.
       if ($item.FullName -eq $chain[-1].FullName) { $danger = $danger -bor 0x40000102 }
-      $everyoneDenied = 0
+      $denied = @{}
       foreach ($ace in $raw.DiscretionaryAcl) {
         if ($ace.AceType -ne [Security.AccessControl.AceType]::AccessAllowed -and $ace.AceType -ne [Security.AccessControl.AceType]::AccessDenied) { Out-Result @{ check = 'not-private' } }
+        # Inherit-only entries do not apply here. Existing descendants are checked below
+        # in their own turn, and the newly created target has a protected DACL.
         if (([int]$ace.AceFlags -band 8) -ne 0) { continue }
+        $sid = $ace.SecurityIdentifier.Value
         if ($ace.AceType -eq [Security.AccessControl.AceType]::AccessDenied) {
-          if ($ace.SecurityIdentifier.Value -eq 'S-1-1-0') { $everyoneDenied = $everyoneDenied -bor $ace.AccessMask }
-        } elseif ($trusted -notcontains $ace.SecurityIdentifier.Value -and ($ace.AccessMask -band $danger -band (-bnot $everyoneDenied)) -ne 0) {
-          Out-Result @{ check = 'not-private' }
+          # Only an earlier Everyone or exact-SID deny proves a later allow cannot grant
+          # those same bits. Do not infer group membership or expand generic rights.
+          $denied[$sid] = [int]$denied[$sid] -bor ($ace.AccessMask -band 0x0FFFFFFF)
+        } elseif ($trusted -notcontains $sid) {
+          $blocked = [int]$denied['S-1-1-0'] -bor [int]$denied[$sid]
+          if (($ace.AccessMask -band $danger -band (-bnot $blocked)) -ne 0) { Out-Result @{ check = 'not-private' } }
         }
       }
     }
@@ -209,7 +215,7 @@ function isOwnerOnlyWindows(value: unknown): boolean {
 function unsafeChain(): LocationTargetError {
   return new LocationTargetError(
     "not-private",
-    "Pick a folder whose path cannot be replaced by other users.",
+    "AgentHerd could not verify that other users cannot replace this folder path. Pick a protected folder.",
   );
 }
 

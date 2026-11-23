@@ -1,9 +1,11 @@
+import { lstatSync } from "node:fs";
 import path from "node:path";
 
 export interface PathContext {
   cwd: string;
   home: string;
   protectedPaths?: readonly string[] | undefined;
+  protectedLocationFiles?: readonly string[] | undefined;
 }
 
 /** True when `s` uses Windows drive, UNC, or backslash syntax. */
@@ -53,6 +55,44 @@ export function isInside(target: string, dir: string): boolean {
   }
   const rel = p.relative(p.resolve(dir), p.resolve(target));
   return rel === "" || (rel !== ".." && !rel.startsWith("../") && !p.isAbsolute(rel));
+}
+
+/** Matches declared data paths, with a narrow case fallback for absent location metadata. */
+export function isInsideProtectedPath(target: string, root: string, locationFile = false): boolean {
+  const p = pathModFor(target, root);
+  if (!p.isAbsolute(target) || !p.isAbsolute(root)) return false;
+  const resolvedRoot = p.resolve(stripExtendedPrefix(root));
+  let ancestor = p.resolve(stripExtendedPrefix(target));
+  const depth = (value: string) =>
+    value.slice(p.parse(value).root.length).split(p.sep).filter(Boolean).length;
+  for (let count = depth(ancestor) - depth(resolvedRoot); count > 0; count--)
+    ancestor = p.dirname(ancestor);
+  if (depth(ancestor) !== depth(resolvedRoot)) return false;
+  if (ancestor === resolvedRoot) return true;
+  if (p !== path) return false;
+  const known = pathIdentity(resolvedRoot);
+  if (known !== undefined) return known === pathIdentity(ancestor);
+  if (
+    !locationFile ||
+    p.basename(ancestor).toLowerCase() !== p.basename(resolvedRoot).toLowerCase()
+  )
+    return false;
+  const parent = p.dirname(resolvedRoot);
+  const candidateParent = p.dirname(ancestor);
+  if (candidateParent === parent) return true;
+  const knownParent = pathIdentity(parent);
+  return knownParent !== undefined && knownParent === pathIdentity(candidateParent);
+}
+
+function pathIdentity(path: string): string | undefined {
+  try {
+    const entry = lstatSync(path, { bigint: true, throwIfNoEntry: false });
+    return entry === undefined ? undefined : `${entry.dev}:${entry.ino}`;
+  } catch (error) {
+    // A path with a regular-file ancestor does not exist.
+    if (error instanceof Error && "code" in error && error.code === "ENOTDIR") return undefined;
+    throw error;
+  }
 }
 
 /** True when two paths resolve to the same location (case-insensitive for Windows paths). */

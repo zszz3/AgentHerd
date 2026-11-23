@@ -255,6 +255,7 @@ export class Herd {
       texts: this.texts,
       userHome: this.opts.userHome,
       protectedPaths: this.opts.protectedPaths,
+      protectedLocationFiles: this.opts.protectedLocationFiles,
       profiles: () => this.opts.profiles.map((p) => ({ id: p.id, name: p.name })),
       tasks: () => this.tasks(),
       openTasks: () => this.openTasks(),

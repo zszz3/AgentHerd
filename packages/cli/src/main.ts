@@ -11,6 +11,7 @@ import {
   feishuSecrets,
   findAgent,
   LocationError,
+  type LocationSnapshot,
   locationContext,
   RuntimeStore,
   readConfig,
@@ -45,6 +46,7 @@ Environment:
 `;
 
 type Out = (line: string) => void;
+type LocationGuards = Pick<LocationSnapshot, "protectedPaths" | "protectedLocationFiles">;
 
 export async function main(argv: string[], out: Out = console.log): Promise<number> {
   const [command, ...rest] = argv;
@@ -68,14 +70,14 @@ export async function main(argv: string[], out: Out = console.log): Promise<numb
         return modelCommand(home, rest, out, { secrets: secretFile(home), readKey });
       });
     case "run":
-      return inLocation((home, protectedPaths) => {
+      return inLocation((home, location) => {
         applySystemProxy();
-        return run(home, rest, out, protectedPaths);
+        return run(home, rest, out, location);
       });
     case "start":
-      return inLocation((home, protectedPaths) => {
+      return inLocation((home, location) => {
         applySystemProxy();
-        return start(home, rest, out, protectedPaths);
+        return start(home, rest, out, location);
       });
     case "status":
       return inLocation((home) => status(home, out));
@@ -97,11 +99,11 @@ export async function main(argv: string[], out: Out = console.log): Promise<numb
  * so a data location change never runs while it writes.
  */
 async function inLocation(
-  command: (home: string, protectedPaths: readonly string[]) => number | Promise<number>,
+  command: (home: string, location: LocationGuards) => number | Promise<number>,
 ): Promise<number> {
   try {
-    return await withLocation(locationContext(), ({ home, protectedPaths }) =>
-      command(home, protectedPaths),
+    return await withLocation(locationContext(), ({ home, source: _source, ...guards }) =>
+      command(home, guards),
     );
   } catch (error) {
     if (!(error instanceof LocationError)) throw error;
@@ -170,7 +172,7 @@ async function run(
   home: string,
   args: string[],
   out: Out,
-  protectedPaths: readonly string[],
+  location: LocationGuards,
 ): Promise<number> {
   const { values, positionals } = parseArgs({
     args,
@@ -213,7 +215,7 @@ async function run(
   });
 
   const herd = new Herd({
-    protectedPaths,
+    ...location,
     home,
     userHome: homedir(),
     channel: feishuChannel(home, config.locale),
@@ -248,7 +250,7 @@ async function start(
   home: string,
   args: string[],
   out: Out,
-  protectedPaths: readonly string[],
+  location: LocationGuards,
 ): Promise<number> {
   const { values } = parseArgs({
     args,
@@ -263,7 +265,7 @@ async function start(
     return 2;
   }
   const running = await runHost({
-    protectedPaths,
+    ...location,
     home,
     ...(values.script === undefined ? {} : { script: resolve(values.script) }),
     log: out,

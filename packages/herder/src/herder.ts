@@ -1033,7 +1033,12 @@ export class Herder implements HerderPort {
     }
     const result = guardCheck(
       { kind: "session_start", title: "session_start", paths: [cwd] },
-      { cwd, home: this.host.userHome, protectedPaths: this.host.protectedPaths },
+      {
+        cwd,
+        home: this.host.userHome,
+        protectedPaths: this.host.protectedPaths,
+        protectedLocationFiles: this.host.protectedLocationFiles,
+      },
     );
     if (!result.hit) return undefined;
     this.host.audit("herder.guard", { name, id: result.id, reason: result.reason });

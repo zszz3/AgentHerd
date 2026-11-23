@@ -40,6 +40,32 @@ const denyPush: Rule = {
 };
 
 describe("decide", () => {
+  it.each([undefined, [{ id: "fixture", reason: "fixture", pathPrefix: "/volume" }]])(
+    "asks about a known location before allow-all with extras %j",
+    (extraGuards) => {
+      const result = decide(item({ kind: "read", paths: ["/volume/retained/.env"] }), {
+        home: HOME,
+        mode: "auto",
+        rules: [allowAll],
+        protectedPaths: ["/volume/retained"],
+        ...(extraGuards === undefined ? {} : { extraGuards }),
+      });
+      expect(result).toMatchObject({
+        apply: false,
+        decision: { action: "escalate", risk: "high" },
+      });
+    },
+  );
+
+  it("does not restore unrelated built-ins or match a sibling prefix", () => {
+    const result = decide(item({ kind: "read", paths: ["/volume/retained-old/.env"] }), {
+      home: HOME,
+      mode: "auto",
+      rules: [allowAll],
+      protectedPaths: ["/volume/retained"],
+    });
+    expect(result).toMatchObject({ apply: true, decision: { action: "allow" } });
+  });
   it.each(["assist", "auto"] as const)("no rule → approved in %s (ADR 0029)", (mode) => {
     const r = decide(item({ command: "pnpm test" }), { mode, rules: [], home: HOME });
     expect(r.apply).toBe(true);

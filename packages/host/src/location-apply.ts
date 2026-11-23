@@ -138,30 +138,67 @@ function copyHome(from: string, to: string, progress: (files: number) => void): 
   if (!root) return;
   if (!root.isDirectory()) throw new Error("Expected a data directory.");
   let files = 0;
-  function walk(path: string[]): void {
-    for (const name of readdirSync(join(from, ...path))) {
-      const parts = [...path, name];
-      const key = parts.join("/");
-      const source = join(from, ...parts);
-      const destination = join(to, ...parts);
-      if (skipped.has(key)) {
-        if (lstatSync(source).isDirectory()) throw new Error("A transient path is a directory.");
+  let copySqlite = false;
+  function walk(path: string[], destinationPath: string[], logical: string): void {
+    const sourceDir = join(from, ...path);
+    const names = readdirSync(sourceDir);
+    const reserved = new Map<string, string>();
+    // Only the root and the actual `run` directory have names with special meaning.
+    const keys = [dbName, "run", ...skipped].filter((key) =>
+      logical === "" ? !key.includes("/") : logical === "run" && key.startsWith("run/"),
+    );
+    for (const key of keys) {
+      const expected = key.slice(logical.length === 0 ? 0 : logical.length + 1);
+      if (names.includes(expected)) {
+        reserved.set(expected, key);
         continue;
       }
+      const entry = lstatSync(join(sourceDir, expected), { bigint: true, throwIfNoEntry: false });
+      if (entry === undefined) continue;
+      const matches = names.filter((name) => {
+        const candidate = lstatSync(join(sourceDir, name), { bigint: true });
+        return candidate.dev === entry.dev && candidate.ino === entry.ino;
+      });
+      if (matches.length !== 1 || matches[0] === undefined || reserved.has(matches[0]))
+        throw new Error("A reserved data path cannot be identified uniquely.");
+      reserved.set(matches[0], key);
+    }
+    for (const name of names) {
+      const parts = [...path, name];
+      const key = reserved.get(name);
+      const source = join(from, ...parts);
+      const destParts = [...destinationPath, key === "run" ? key : name];
+      const destination = join(to, ...destParts);
       const stats = lstatSync(source);
+      if (key !== undefined && skipped.has(key)) {
+        if (!stats.isFile() && !stats.isSocket())
+          throw new Error("Unexpected transient entry type.");
+        continue;
+      }
       if (key === dbName) {
-        copyDatabase(from, to);
-        progress(++files);
+        copySqlite = true;
       } else if (stats.isDirectory()) {
         mkdirSync(destination, { mode: 0o700 });
-        walk(parts);
+        walk(parts, destParts, key === "run" ? key : "nested");
       } else {
         copyFile(source, destination);
         progress(++files);
       }
     }
+    // The copied ordinary tree is the probe: use the destination's real name lookup,
+    // not the source volume's rules or a platform-wide case assumption.
+    for (const key of keys) {
+      if (key === "run" && [...reserved.values()].includes(key)) continue;
+      if (lstatSync(join(to, key), { throwIfNoEntry: false })) {
+        throw new Error("An ordinary entry would occupy a reserved destination path.");
+      }
+    }
   }
-  walk([]);
+  walk([], [], "");
+  if (copySqlite) {
+    copyDatabase(from, to);
+    progress(++files);
+  }
 }
 
 export async function applyLocationRequest(
@@ -179,12 +216,15 @@ export async function applyLocationRequest(
     const request = takeLocationRequest(ctx);
     if (request === undefined) return { kind: "none" };
     if (request === "corrupt") return fail("corrupt-request");
-    const { home, source, protectedPaths } = resolveLocation(ctx);
+    const { home, source, protectedPaths, protectedLocationFiles } = resolveLocation(ctx);
     if (source === "env") return fail("env-override");
     if (await isHostRunning(socketPath(home))) return fail("host-running");
     let target: string;
     try {
-      target = await checkTargetParent(request.parent, protectedPaths);
+      target = await checkTargetParent(request.parent, [
+        ...protectedPaths,
+        ...protectedLocationFiles,
+      ]);
       if (request.mode === "copy" && !canCopy(home)) return fail("worktrees");
       await createPrivateFolder(target);
     } catch {

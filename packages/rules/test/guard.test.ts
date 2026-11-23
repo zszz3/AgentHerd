@@ -1,3 +1,6 @@
+import { existsSync, mkdirSync, mkdtempSync, realpathSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import type { ToolCallInfo } from "@agentherd/protocol";
 import { describe, expect, it } from "vitest";
 import { type ExtraGuard, guardCheck } from "../src/guard.ts";
@@ -20,7 +23,7 @@ it("guards custom, retained and location file paths without matching a sibling p
     protectedPaths: ["D:\\Custom", "E:\\Retained", "C:\\Users\\me\\location.json"],
   };
   for (const path of [
-    "d:\\CUSTOM\\state",
+    "D:\\Custom\\state",
     "E:\\Retained",
     "C:\\Users\\me\\location.json",
     "C:\\Users\\me\\.agentherd\\state",
@@ -33,6 +36,59 @@ it("guards custom, retained and location file paths without matching a sibling p
   expect(
     guardCheck({ kind: "edit", title: "edit", paths: ["D:\\Custom-old\\state"] }, where),
   ).toEqual({ hit: false });
+});
+
+it("uses the fixture volume's lookup for declared roots and missing children", () => {
+  const home = mkdtempSync(join(realpathSync(tmpdir()), "herd-guard-"));
+  try {
+    const root = join(home, "Retained");
+    const variant = join(home, "RETAINED");
+    mkdirSync(root);
+    const where = { cwd: home, home, protectedPaths: [root] };
+    const before = existsSync(variant);
+    expect(guardCheck(cmd("fixture", [join(variant, "not-created")]), where).hit).toBe(before);
+    expect(guardCheck(cmd("fixture", [join(home, "Retained-old", "not-created")]), where).hit).toBe(
+      false,
+    );
+  } finally {
+    rmSync(home, { recursive: true });
+  }
+});
+
+it("asks for case variants only of declared absent location metadata", () => {
+  const home = mkdtempSync(join(realpathSync(tmpdir()), "herd-guard-"));
+  try {
+    const reserved = join(home, ".agentherd-location-request.json");
+    const variant = join(home, ".AGENTHERD-LOCATION-REQUEST.JSON");
+    const ordinary = join(home, "Retained");
+    const unrelated = join(home, "unrelated");
+    const where = {
+      cwd: home,
+      home,
+      protectedPaths: [ordinary],
+      protectedLocationFiles: [reserved],
+    };
+    mkdirSync(unrelated);
+    for (const scope of ["all", "configured"] as const) {
+      expect(guardCheck(cmd("fixture", [variant]), where, [], scope)).toMatchObject({
+        hit: true,
+        id: "self-config",
+      });
+      expect(guardCheck(cmd(`fixture "${variant}"`), where, [], scope).hit).toBe(true);
+      for (const path of [
+        join(home, "RETAINED"),
+        join(unrelated, ".AGENTHERD-LOCATION-REQUEST.JSON"),
+        `${variant}.bak`,
+      ]) {
+        expect(guardCheck(cmd("fixture", [path]), where, [], scope).hit).toBe(false);
+      }
+      mkdirSync(reserved);
+      expect(guardCheck(cmd("fixture", [variant]), where, [], scope).hit).toBe(existsSync(variant));
+      rmSync(reserved, { recursive: true });
+    }
+  } finally {
+    rmSync(home, { recursive: true });
+  }
 });
 
 describe("rm-outside-cwd", () => {

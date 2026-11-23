@@ -17,7 +17,7 @@ import { tmpdir } from "node:os";
 import { join, parse } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { fileURLToPath } from "node:url";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   type LocationContext,
   resolveLocation,
@@ -27,6 +27,18 @@ import { applyLocationRequest } from "../src/location-apply.ts";
 import { createPrivateFolder, verifyPrivateFolder } from "../src/location-target.ts";
 
 import { socketPath } from "../src/server.ts";
+
+const sourceMissing = vi.hoisted(() => new Set<string>());
+vi.mock("node:fs", async (importOriginal) => {
+  const fs = await importOriginal<typeof import("node:fs")>();
+  return {
+    ...fs,
+    lstatSync: ((...args: Parameters<typeof fs.lstatSync>) =>
+      typeof args[0] === "string" && sourceMissing.has(args[0])
+        ? undefined
+        : fs.lstatSync(...args)) as typeof fs.lstatSync,
+  };
+});
 
 const supported = process.platform === "win32" || process.platform === "darwin";
 let tmp: string;
@@ -54,7 +66,10 @@ describe.runIf(supported)("applyLocationRequest", () => {
     mkdirSync(old, { recursive: true, mode: 0o700 });
     mkdirSync(parent, { mode: 0o700 });
   });
-  afterEach(() => rmSync(tmp, { recursive: true, force: true }));
+  afterEach(() => {
+    sourceMissing.clear();
+    rmSync(tmp, { recursive: true, force: true });
+  });
 
   it("does nothing without a request, drops corrupt requests and honors an override", async () => {
     expect(await apply()).toEqual({ kind: "none" });
@@ -170,6 +185,63 @@ describe.runIf(supported)("applyLocationRequest", () => {
     writeLocationRequest(ctx, { version: 1, parent, mode: "copy" });
     expect(await apply()).toEqual({ kind: "failed", code: "copy-failed" });
     expect(existsSync(record())).toBe(false);
+  }, 20_000);
+
+  it("uses source-volume lookup for database and transient names", async () => {
+    const sourceDb = join(old, "HERD.DB");
+    const run = join(old, "RUN");
+    mkdirSync(run);
+    writeFileSync(join(run, "QR.PNG"), "fixture");
+    const db = new DatabaseSync(sourceDb);
+    try {
+      db.exec(`PRAGMA journal_mode=WAL; PRAGMA wal_autocheckpoint=0;
+        CREATE TABLE tasks (cwd TEXT); PRAGMA wal_checkpoint(TRUNCATE)`);
+      const cwd = join(old, "tasks", "fixture");
+      db.prepare("INSERT INTO tasks VALUES (?)").run(cwd);
+      const names = ["HERD.DB", "HERD.DB-wal", "HERD.DB-shm", "RUN/QR.PNG"];
+      const before = names.map((name) => readFileSync(join(old, name)));
+      const insensitive = existsSync(join(old, "herd.db"));
+      writeLocationRequest(ctx, { version: 1, parent, mode: "copy" });
+      expect(await apply()).toMatchObject({ kind: "applied" });
+      expect(names.map((name) => readFileSync(join(old, name)))).toEqual(before);
+      if (insensitive) {
+        expect(readdirSync(target).sort()).toEqual(["herd.db", "run"]);
+        expect(readdirSync(join(target, "run"))).toEqual([]);
+        const copied = new DatabaseSync(join(target, "herd.db"), { readOnly: true });
+        try {
+          expect(copied.prepare("SELECT cwd FROM tasks").get()?.cwd).toBe(
+            join(target, "tasks", "fixture"),
+          );
+        } finally {
+          copied.close();
+        }
+      } else {
+        expect(readFileSync(join(target, "RUN", "QR.PNG"), "utf8")).toBe("fixture");
+        expect(readFileSync(join(target, "HERD.DB"))).toEqual(before[0]);
+      }
+    } finally {
+      db.close();
+    }
+  }, 20_000);
+
+  it("refuses an ordinary file that the destination resolves as a reserved transient", async () => {
+    mkdirSync(join(old, "run"));
+    const ordinary = join(old, "run", "QR.PNG");
+    const canonical = join(old, "run", "qr.png");
+    writeFileSync(ordinary, "ordinary fixture");
+    // Model just the source lookup on a case-sensitive volume. The destination lookup is real.
+    sourceMissing.add(canonical);
+    writeLocationRequest(ctx, { version: 1, parent, mode: "copy" });
+    const result = await apply();
+    expect(readFileSync(ordinary, "utf8")).toBe("ordinary fixture");
+    if (existsSync(canonical)) {
+      expect(result).toEqual({ kind: "failed", code: "copy-failed" });
+      expect(existsSync(record())).toBe(false);
+      expect(resolveLocation(ctx).home).toBe(old);
+    } else {
+      expect(result).toMatchObject({ kind: "applied" });
+      expect(readFileSync(join(target, "run", "QR.PNG"), "utf8")).toBe("ordinary fixture");
+    }
   }, 20_000);
 
   it("keeps committed WAL rows and agent sessions; rebases only structured scratch paths", async () => {

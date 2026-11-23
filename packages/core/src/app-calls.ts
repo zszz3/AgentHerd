@@ -70,6 +70,7 @@ function decideOne(ctx: HerdContext, base: Item, call: AppCall): PipelineResult 
     rules: ctx.store.listRules(),
     home: ctx.opts.userHome,
     protectedPaths: ctx.opts.protectedPaths,
+    protectedLocationFiles: ctx.opts.protectedLocationFiles,
     ...turnPermits(ctx, base.sessionId),
   });
 }

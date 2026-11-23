@@ -1,4 +1,6 @@
+import { execFileSync } from "node:child_process";
 import {
+  chmodSync,
   mkdirSync,
   mkdtempSync,
   readdirSync,
@@ -82,11 +84,14 @@ describe("resolve the data location", () => {
         join(ctx.base, ".agentherd"),
         join(ctx.base, "previous"),
         join(ctx.base, "retained"),
-        recordPath,
-        requestPath,
-        join(ctx.base, ".agentherd-location.lock.sqlite"),
       ]),
     );
+    expect(snapshot.protectedLocationFiles).toEqual([
+      recordPath,
+      requestPath,
+      join(ctx.base, ".agentherd-location.lock.sqlite"),
+      join(ctx.base, ".agentherd-location.lock.sqlite-journal"),
+    ]);
   });
 
   it("lets AGENTHERD_HOME win even over a corrupt record, leaving it untouched", () => {
@@ -117,6 +122,31 @@ describe("resolve the data location", () => {
     expect(readdirSync(ctx.base)).toEqual([".agentherd-location.json"]);
     writeFileSync(saved, "not a directory");
     expect(locationError(() => resolveLocation(ctx)).code).toBe("location-unavailable");
+  });
+
+  it("rejects a saved directory that can be statted but not read, unless overridden", () => {
+    mkdirSync(saved);
+    put(record);
+    const windows = process.platform === "win32";
+    if (windows) {
+      execFileSync("icacls", [saved, "/deny", "*S-1-1-0:(RD)"], { stdio: "ignore" });
+    } else {
+      chmodSync(saved, 0o300);
+    }
+    try {
+      expect(() => readdirSync(saved)).toThrow(/EACCES|EPERM/);
+      expect(locationError(() => resolveLocation(ctx)).code).toBe("location-unavailable");
+      const override = join(ctx.base, "override");
+      ctx.env.AGENTHERD_HOME = override;
+      expect(resolveLocation(ctx)).toMatchObject({ home: override, source: "env" });
+    } finally {
+      if (windows) {
+        execFileSync("icacls", [saved, "/remove:d", "*S-1-1-0"], { stdio: "ignore" });
+      } else {
+        chmodSync(saved, 0o700);
+      }
+    }
+    expect(readdirSync(saved)).toEqual([]);
   });
 
   it("holds a shared lease across await and releases it when the work rejects", async () => {

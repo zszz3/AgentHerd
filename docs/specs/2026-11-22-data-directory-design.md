@@ -56,7 +56,7 @@ Read the permissions back and refuse to continue if they differ. Require a direc
 
 ## Copy
 
-Inventory data produced by the current app before implementing the copy. Include settings, secrets, the SQLite database, AgentHerd-owned history and installed plugins. Copy the database with SQLite (`VACUUM INTO` or the backup API) so committed WAL content is included. Preserve persistent agent session data under `run/`; omit sockets, PIDs, QR codes and other named transient files, not the entire directory. Reject unexpected links and special files rather than following or silently skipping them. Do not change the source.
+Inventory data produced by the current app before implementing the copy. Include settings, secrets, the SQLite database, AgentHerd-owned history and installed plugins. Copy the database with SQLite (`VACUUM INTO` or the backup API) so committed WAL content is included. Preserve persistent agent session data under `run/`; omit sockets, PIDs, QR codes and other named transient files, not the entire directory. Reject unexpected links and special files rather than following or silently skipping them. If an ordinary source entry resolves to a reserved name on the destination, refuse the copy before publishing the record. Do not change the source.
 
 A non-empty `worktrees` directory blocks copying; start empty stays available. Rebase structured scratch workspace paths (task, session and item working directories under the old `tasks` tree) to the new root; do not rewrite arbitrary text, project paths, or external agent files.
 
@@ -66,7 +66,7 @@ Create `<parent>/AgentHerd` exclusively and verify that it is private and empty 
 
 - Electron main owns the picker, the request file and the restart. The renderer uses a typed preload bridge and never passes filesystem paths or receives credentials.
 - The host package owns location resolution, admission, the private folder and the copy; it does not import Electron. Do not change the host wire protocol or the permission decision flow.
-- Continue guarding the default, active and retained data directories and the location files in both the task pipeline and Herder path checks. Match resolved roots, not the basename `.agentherd`. Do not log secret contents.
+- Continue guarding the default, active and retained data directories and the location files in both the task pipeline and Herder path checks. Match resolved roots, not the basename `.agentherd`. For existing declared paths, use filesystem identity for alternate spellings, including when the requested child does not yet exist. If a declared location metadata file is absent, ask the owner about case variants of its reserved name in the same profile directory. This fallback does not apply to data roots or unrelated files. This does not restore unrelated built-in guards to the task pipeline. Do not log secret contents.
 - Record the architecture decision and update the [architecture](../spec/02-architecture.md), [security](../spec/06-security.md) and [delivery](../spec/07-delivery.md) specs with the implementation.
 
 ## Acceptance checks

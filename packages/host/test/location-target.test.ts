@@ -204,6 +204,43 @@ describe("checkTargetParent", () => {
 });
 
 describe("target path permissions", () => {
+  it.runIf(isWindows)(
+    "accepts an exact-principal deny before the corresponding allow",
+    async () => {
+      const parent = join(tmp, "ordered");
+      mkdirSync(parent);
+      execFileSync("icacls", [parent, "/grant", "*S-1-5-11:(DC)"], { stdio: "ignore" });
+      // Use a different group for the deny, then set the ordered DACL with the native API:
+      // icacls /deny would remove the matching Allow bits and not exercise access ordering.
+      const script = `
+$ErrorActionPreference = 'Stop'
+$path = $env:TEST_ACL_PATH
+$acl = Get-Acl -LiteralPath $path
+$sid = [Security.Principal.SecurityIdentifier]::new('S-1-5-11')
+$acl.AddAccessRule([Security.AccessControl.FileSystemAccessRule]::new($sid, 'DeleteSubdirectoriesAndFiles', 'Deny'))
+Set-Acl -LiteralPath $path -AclObject $acl`;
+      execFileSync(
+        "powershell.exe",
+        [
+          "-NoProfile",
+          "-NonInteractive",
+          "-EncodedCommand",
+          Buffer.from(script, "utf16le").toString("base64"),
+        ],
+        {
+          env: { ...process.env, TEST_ACL_PATH: parent },
+          stdio: "ignore",
+        },
+      );
+      const before = windowsAcl(parent);
+      expect(
+        before.rules.filter((rule) => rule.sid === "S-1-5-11").map((rule) => rule.type),
+      ).toEqual(["Deny", "Allow"]);
+      expect(await codeOf(checkTargetParent(parent, []))).toBe("ok");
+      expect(windowsAcl(parent)).toEqual(before);
+    },
+    20_000,
+  );
   it("rejects replacement authority on an ancestor without changing its permissions", async () => {
     const ancestor = join(tmp, "ancestor");
     const parent = join(ancestor, "nested");

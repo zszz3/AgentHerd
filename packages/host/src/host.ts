@@ -174,6 +174,7 @@ export const AGENT_DOWN_MS = 30 * 60_000;
 export interface HostOptions {
   home: string;
   protectedPaths?: readonly string[] | undefined;
+  protectedLocationFiles?: readonly string[] | undefined;
   /** Run background memory jobs (task cases, reviews) with a cheap model. Off in tests. */
   memoryJobs?: boolean;
   userHome?: string;
@@ -794,6 +795,7 @@ export class Host implements HostApi {
       home: this.opts.home,
       userHome: this.opts.userHome ?? homedir(),
       protectedPaths: this.opts.protectedPaths,
+      protectedLocationFiles: this.opts.protectedLocationFiles,
       channel: this.petFeed.wrap(this.opts.createChannel(locale)),
       binding: config.channel,
       mode: config.mode ?? "assist",
