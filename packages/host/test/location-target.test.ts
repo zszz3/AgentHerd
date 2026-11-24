@@ -37,8 +37,9 @@ beforeEach(async () => {
     );
     await createPrivateFolder(tmp);
   } else {
-    // macOS tmpdir() sits behind the /var link, which the check rejects.
-    tmp = mkdtempSync(join(realpathSync.native(tmpdir()), "agentherd-target-"));
+    // macOS tmpdir() sits behind the /var link, which the check rejects. Its real path is
+    // already long, so keep the name short: the target's sockets must fit in `sun_path`.
+    tmp = mkdtempSync(join(realpathSync.native(tmpdir()), "ah-"));
   }
 }, 20_000);
 
@@ -190,17 +191,26 @@ describe("checkTargetParent", () => {
   });
 
   it.runIf(isMac)("rejects a parent too long for macOS sockets", async () => {
-    const parent = join(tmp, "p".repeat(80));
-    mkdirSync(parent);
-    const target = join(parent, "AgentHerd");
-    expect(Buffer.byteLength(socketPath(target), "utf8")).toBeGreaterThan(103);
-    expect(await codeOf(checkTargetParent(parent, []))).toBe("socket-path-too-long");
+    // Size the parent's name so the longer socket is exactly at the 103-byte limit, then one over.
+    const limit = 103;
+    const bytes = (name: string) =>
+      Math.max(
+        ...[socketPath, mcpSocketPath].map((path) =>
+          Buffer.byteLength(path(join(tmp, name, TARGET_NAME)), "utf8"),
+        ),
+      );
+    const fits = "p".repeat(limit - bytes(""));
+    expect(fits.length).toBeGreaterThan(0);
+    expect(bytes(fits)).toBe(limit);
 
-    const ok = join(tmp, "p".repeat(10));
+    const ok = join(tmp, fits);
     mkdirSync(ok);
-    const okTarget = await checkTargetParent(ok, []);
-    expect(Buffer.byteLength(socketPath(okTarget), "utf8")).toBeLessThanOrEqual(103);
-    expect(Buffer.byteLength(mcpSocketPath(okTarget), "utf8")).toBeLessThanOrEqual(103);
+    expect(await checkTargetParent(ok, [])).toBe(join(ok, TARGET_NAME));
+
+    const parent = join(tmp, `${fits}p`);
+    mkdirSync(parent);
+    expect(bytes(`${fits}p`)).toBe(limit + 1);
+    expect(await codeOf(checkTargetParent(parent, []))).toBe("socket-path-too-long");
   });
 });
 

@@ -30,7 +30,8 @@ const children: ChildProcess[] = [];
 beforeEach(() => {
   // The gate needs a protected local profile; on Windows the temp folder may not qualify.
   const parent = realpathSync.native(process.platform === "win32" ? homedir() : tmpdir());
-  base = mkdtempSync(join(parent, "agentherd-cli-location-"));
+  // Keep the name short: macOS tmpdir() is long and the host socket must fit in `sun_path`.
+  base = mkdtempSync(join(parent, "ah-cli-"));
   home = join(base, ".agentherd");
   // os.homedir() follows these in the child processes.
   env = { ...process.env, HOME: base, USERPROFILE: base };
