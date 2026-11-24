@@ -28,6 +28,8 @@ interface Ports {
   ready(home: string): void;
   changed(files: number): void;
   checkParent(parent: string, protectedPaths: readonly string[]): Promise<string>;
+  /** Rejects when a picked existing directory fails the path safety checks. */
+  checkHome(home: string): Promise<void>;
   /** Settles (rejects) soon after `signal` aborts. */
   apply(progress: (files: number) => void, signal: AbortSignal): Promise<ApplyResult>;
 }
@@ -197,6 +199,14 @@ export class DataDirectory {
         const target = choice === "pick" ? await this.ports.pick(true) : this.view.previous;
         if (target === undefined || this.closed) return cancelled;
         if (choice === "previous" && !(await this.ports.confirmPrevious(target))) return cancelled;
+        if (choice === "pick") {
+          // A picked folder gets the path checks a new parent gets; it must already hold data.
+          try {
+            await this.ports.checkHome(target);
+          } catch {
+            return errorResult("unsafe-home");
+          }
+        }
         if (this.closed) return cancelled;
         const lease = acquireLocationLease(this.ctx.base, "exclusive");
         try {

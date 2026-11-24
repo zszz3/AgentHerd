@@ -41,6 +41,7 @@ function fixture(env: NodeJS.ProcessEnv = {}) {
     ready: vi.fn(),
     changed: vi.fn(),
     checkParent: vi.fn(async () => join(parent, "AgentHerd")),
+    checkHome: vi.fn(async (_home: string) => {}),
     apply: vi.fn((progress: (files: number) => void, _signal: AbortSignal) =>
       applyLocationRequest(ctx, progress),
     ),
@@ -235,6 +236,20 @@ test("pick accepts only an existing AgentHerd directory at its real path", async
   ports.pick.mockResolvedValue(parent);
   expect(await controller.recover("pick")).toEqual({ ok: true, state: "recovered" });
   expect(readLocationRecord(ctx)).toEqual({ version: 1, active: parent, retained: [] });
+  controller.close();
+});
+
+test("pick refuses an AgentHerd directory that fails the path safety checks", async () => {
+  const { ctx, parent, ports, controller } = fixture();
+  writeFileSync(join(ctx.base, ".agentherd-location.json"), "not json");
+  await controller.start();
+  writeFileSync(join(parent, "herd.db"), "");
+  ports.pick.mockResolvedValue(parent);
+  ports.checkHome.mockRejectedValue(new Error("not-private"));
+  expect(await controller.recover("pick")).toEqual({ ok: false, code: "unsafe-home" });
+  expect(ports.checkHome).toHaveBeenCalledWith(parent);
+  expect(readFileSync(join(ctx.base, ".agentherd-location.json"), "utf8")).toBe("not json");
+  expect(ports.ready).not.toHaveBeenCalled();
   controller.close();
 });
 

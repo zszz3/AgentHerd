@@ -17,6 +17,8 @@ function explain(code: string): string {
       return "复制或校验失败。新位置可能留有不完整的文件夹，请选择其他位置。";
     case "corrupt-request":
       return "无法读取切换请求，请重新选择。";
+    case "unsafe-home":
+      return "所选文件夹需要在本地磁盘上、路径中没有链接，且其他用户不能修改。请选择其他文件夹。";
     case "not-agentherd":
       return "所选文件夹不是现有的 AgentHerd 数据目录（缺少 herd.db），请选择其他文件夹。";
     case "location-unavailable":

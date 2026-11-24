@@ -13,6 +13,7 @@ import { tmpdir } from "node:os";
 import { join, win32 } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
+  checkExistingHome,
   checkTargetParent,
   createPrivateFolder,
   LocationTargetError,
@@ -200,6 +201,34 @@ describe("checkTargetParent", () => {
     const okTarget = await checkTargetParent(ok, []);
     expect(Buffer.byteLength(socketPath(okTarget), "utf8")).toBeLessThanOrEqual(103);
     expect(Buffer.byteLength(mcpSocketPath(okTarget), "utf8")).toBeLessThanOrEqual(103);
+  });
+});
+
+describe("checkExistingHome", () => {
+  it("accepts a private folder on a local disk", async () => {
+    const home = join(tmp, "home");
+    mkdirSync(home, { mode: 0o700 });
+    await expect(checkExistingHome(home)).resolves.toBeUndefined();
+  });
+
+  it("rejects a relative or missing folder", async () => {
+    expect(await codeOf(checkExistingHome("relative/home"))).toBe("invalid");
+    expect(await codeOf(checkExistingHome(join(tmp, "missing")))).toBe("invalid");
+  });
+
+  it("rejects a symlink or junction in the folder path", async () => {
+    const real = join(tmp, "real");
+    mkdirSync(join(real, "inner"), { recursive: true });
+    const link = join(tmp, "link");
+    symlinkSync(real, link, isWindows ? "junction" : "dir");
+    expect(await codeOf(checkExistingHome(link))).toBe("link");
+    expect(await codeOf(checkExistingHome(join(link, "inner")))).toBe("link");
+  });
+
+  it.runIf(isMac)("rejects a folder too long for macOS sockets", async () => {
+    const home = join(tmp, "h".repeat(90));
+    mkdirSync(home, { mode: 0o700 });
+    expect(await codeOf(checkExistingHome(home))).toBe("socket-path-too-long");
   });
 });
 

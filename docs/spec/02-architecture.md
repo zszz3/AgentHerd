@@ -125,7 +125,9 @@ They hold a shared lease while accessing data. The record, pending request and g
 `<home>`, in the user profile. Settings → About changes the location at restart, before the host
 starts. The owner can start empty or copy supported data without removing the old directory.
 A failed apply leaves the selection unchanged. An unavailable selection opens recovery without
-starting the host or falling back to the default.
+starting the host or falling back to the default. A folder picked in recovery must already hold
+`herd.db` and pass the path checks of a new parent: a local disk, no links, not replaceable or
+writable by other users, and (on macOS) host sockets that fit.
 
 | Path | Content |
 | --- | --- |

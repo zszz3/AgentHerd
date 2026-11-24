@@ -2,7 +2,7 @@ import { join } from "node:path";
 import { Worker } from "node:worker_threads";
 import { type LocationContext, LocationError } from "@agentherd/host/data-location";
 import type { ApplyResult } from "@agentherd/host/location-apply";
-import { checkTargetParent } from "@agentherd/host/location-target";
+import { checkExistingHome, checkTargetParent } from "@agentherd/host/location-target";
 import { app, type BrowserWindow, dialog, type IpcMainInvokeEvent, ipcMain } from "electron";
 import { changeConfirmation, DataDirectory } from "./data-directory.ts";
 
@@ -83,6 +83,7 @@ export function setupDataDirectory(
         win.webContents.mainFrame.send("app:data-directory-progress", files);
     },
     checkParent: checkTargetParent,
+    checkHome: checkExistingHome,
     apply: (progress, signal) => apply(ctx, progress, signal),
   });
   function validate(event: IpcMainInvokeEvent, args: unknown[], count: number): void {

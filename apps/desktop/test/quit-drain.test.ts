@@ -28,6 +28,7 @@ test("a tray quit drains the owned host, then quits and releases the lease", asy
     ready: () => {},
     changed: () => {},
     checkParent: async () => "",
+    checkHome: async () => {},
     apply: (progress) => applyLocationRequest(ctx, progress),
   });
   try {

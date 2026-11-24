@@ -327,11 +327,11 @@ function canonical(path: string): string[] {
   }
 }
 
-/** Validates the picked parent and returns `<parent>/AgentHerd` (not created). */
-export async function checkTargetParent(
-  parent: string,
-  protectedPaths: readonly string[],
-): Promise<string> {
+/**
+ * An absolute, existing folder on a supported local volume, reached without links, that other
+ * users cannot replace or (for the folder itself) write to.
+ */
+async function checkFolderPath(parent: string): Promise<void> {
   if (!isAbsolute(parent) || normalize(parent) !== parent) {
     throw new LocationTargetError("invalid", "Pick an absolute folder path.");
   }
@@ -379,7 +379,26 @@ export async function checkTargetParent(
   } else {
     throw notLocal;
   }
+}
 
+/** The host's sockets under `home` must fit macOS `sun_path`. */
+function requireShortSockets(home: string): void {
+  if (
+    process.platform === "darwin" &&
+    [socketPath(home), mcpSocketPath(home)].some(
+      (p) => Buffer.byteLength(p, "utf8") > maxMacSocketBytes,
+    )
+  ) {
+    throw new LocationTargetError("socket-path-too-long", "Pick a folder with a shorter path.");
+  }
+}
+
+/** Validates the picked parent and returns `<parent>/AgentHerd` (not created). */
+export async function checkTargetParent(
+  parent: string,
+  protectedPaths: readonly string[],
+): Promise<string> {
+  await checkFolderPath(parent);
   const target = join(parent, TARGET_NAME);
   const targets = [target, join(realpathSync.native(parent), TARGET_NAME)];
   for (const path of protectedPaths) {
@@ -392,15 +411,17 @@ export async function checkTargetParent(
   if (lstatSync(target, { throwIfNoEntry: false })) {
     throw new LocationTargetError("exists", `${TARGET_NAME} already exists in the picked folder.`);
   }
-  if (
-    process.platform === "darwin" &&
-    [socketPath(target), mcpSocketPath(target)].some(
-      (p) => Buffer.byteLength(p, "utf8") > maxMacSocketBytes,
-    )
-  ) {
-    throw new LocationTargetError("socket-path-too-long", "Pick a folder with a shorter path.");
-  }
+  requireShortSockets(target);
   return target;
+}
+
+/**
+ * Validates an existing AgentHerd directory picked for recovery with the same path checks as a
+ * new parent. It is not checked for overlap or emptiness: it is meant to hold AgentHerd data.
+ */
+export async function checkExistingHome(home: string): Promise<void> {
+  await checkFolderPath(home);
+  requireShortSockets(home);
 }
 
 /** Creates `path` (must not exist) with owner-only access and reads it back. */
