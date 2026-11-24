@@ -18,7 +18,11 @@ import { DatabaseSync } from "node:sqlite";
 import { fileURLToPath } from "node:url";
 import { Worker } from "node:worker_threads";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { acquireLocationLease, type LocationMode } from "../src/location-gate.ts";
+import {
+  acquireLocationLease,
+  checkWindowsProfile,
+  type LocationMode,
+} from "../src/location-gate.ts";
 
 vi.mock("node:child_process", async (importOriginal) => {
   const actual = await importOriginal<typeof import("node:child_process")>();
@@ -410,6 +414,12 @@ describe("location gate", () => {
   it.skipIf(process.platform === "win32")("rejects a base writable by other users", () => {
     chmodSync(base, 0o777);
     expectGateFailure();
+  });
+
+  // Windows creates profile folders owned by SYSTEM, and an elevated admin's files are
+  // owned by Administrators. Both already hold full control, so either may own the profile.
+  it.runIf(process.platform === "win32")("accepts the current user's real profile", () => {
+    expect(() => checkWindowsProfile(realpathSync.native(homedir()), [])).not.toThrow();
   });
 
   it("does not accept a missing, relative, or noncanonical base", () => {

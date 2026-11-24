@@ -130,7 +130,9 @@ foreach ($path in $paths) {
     if (!$path.EndsWith('.sqlite-journal') -or $path -eq $paths[0]) { exit 2 }
     continue
   }
-  if ($acl.GetOwner($sidType).Value -ne $sid -or !$acl.AreAccessRulesCanonical) { exit 2 }
+  # Windows creates profiles owned by SYSTEM; an elevated admin's files are owned by
+  # Administrators. Both are trusted below with full control, so owning adds no access.
+  if ($trusted -notcontains $acl.GetOwner($sidType).Value -or !$acl.AreAccessRulesCanonical) { exit 2 }
   $descriptor = [Security.AccessControl.RawSecurityDescriptor]::new($acl.GetSecurityDescriptorBinaryForm(), 0)
   if ($null -eq $descriptor.DiscretionaryAcl) { exit 2 }
   foreach ($ace in $acl.GetAccessRules($true, $true, $sidType)) {
@@ -161,7 +163,8 @@ export function isMacLocalDisk(path: string): boolean {
   return /^\/dev\/disk\d+(?:s\d+)*\s+(?:apfs|hfs)\s/.test(fs.split("\n")[1] ?? "");
 }
 
-function checkWindowsProfile(root: string, paths: string[]): void {
+/** Read-only NTFS checks of the profile `root` and existing gate files in `paths`. */
+export function checkWindowsProfile(root: string, paths: string[]): void {
   const powershell = systemPowerShell();
   if (!powershell) {
     throw gateFailure("Windows system tools are unavailable; check your Windows installation.");

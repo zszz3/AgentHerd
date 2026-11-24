@@ -74,6 +74,12 @@ try {
         }
         Start-Sleep -Milliseconds 750
     }
+    # The desktop logs little on its own; show what the host left behind.
+    Get-ChildItem -LiteralPath $tmp -Recurse -Filter '*.log' -ErrorAction SilentlyContinue |
+        ForEach-Object {
+            Write-Host "--- $($_.FullName)"
+            Get-Content -LiteralPath $_.FullName -Tail 50
+        }
     throw "Desktop did not become ready within 240 s: $lastProbe"
 } finally {
     if ($null -ne $app -and !$app.HasExited) {
