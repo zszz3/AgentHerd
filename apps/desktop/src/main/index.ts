@@ -24,6 +24,7 @@ import { ensureHost, stopOwnedHost } from "./host-process.ts";
 import { MenuBar } from "./menu-bar.ts";
 import { Notifier } from "./notifier.ts";
 import { PetWindow } from "./pet-window.ts";
+import { holdQuit } from "./quit-drain.ts";
 import { Shortcuts } from "./shortcuts.ts";
 
 app.setName("AgentHerd");
@@ -42,7 +43,6 @@ const dataLocation = setupDataDirectory(
   },
 );
 let startup: Promise<void> | undefined;
-let drained = false;
 /** The menu bar icon on macOS, the tray icon on Windows (ADR 0079). */
 let menuBar: MenuBar | undefined;
 let client: HostClient | undefined;
@@ -383,14 +383,13 @@ function createWindow(): void {
   });
   created.webContents.on("will-navigate", (event) => event.preventDefault());
   if (startup === undefined) {
+    // The hidden window has rendered its first view before we begin copying. A page that failed
+    // to load is shown too, so the owner is not left without a window.
     const start = () => {
+      if (!quitting && process.env.AGENTHERD_CAPTURE === undefined) created.show();
       if (!quitting && startup === undefined) startup = dataLocation.start();
     };
-    // The hidden window has rendered its initial moving view before we begin copying.
-    created.once("ready-to-show", () => {
-      if (!quitting && process.env.AGENTHERD_CAPTURE === undefined) created.show();
-      start();
-    });
+    created.once("ready-to-show", start);
     created.webContents.once("did-fail-load", start);
   }
   const devUrl = process.env.ELECTRON_RENDERER_URL;
@@ -458,17 +457,19 @@ app.on("will-quit", () => {
   dataLocation.close();
 });
 
-app.on("before-quit", (event) => {
-  if (drained) return;
-  event.preventDefault();
-  if (quitting) return;
-  quitting = true;
-  menuBar?.destroy();
-  menuBar = undefined;
-  client?.close();
-  // Repeated quit requests cannot release the lease before the last log write.
-  void Promise.allSettled([startup, stopOwnedHost()]).then(() => {
-    drained = true;
-    app.quit();
-  });
-});
+app.on(
+  "before-quit",
+  holdQuit(
+    async () => {
+      quitting = true;
+      menuBar?.destroy();
+      menuBar = undefined;
+      client?.close();
+      // A move still running in the worker must not keep the app from quitting.
+      dataLocation.stop();
+      // Repeated quit requests cannot release the lease before the last log write.
+      await Promise.allSettled([startup, stopOwnedHost()]);
+    },
+    () => app.quit(),
+  ),
+);

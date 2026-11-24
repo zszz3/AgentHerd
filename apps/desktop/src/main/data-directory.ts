@@ -1,7 +1,9 @@
 import {
   acquireLocationLease,
   canListDirectory,
+  hasLocationRequest,
   isAgentHerdHome,
+  LocationBusyError,
   type LocationContext,
   LocationError,
   type LocationLease,
@@ -26,7 +28,8 @@ interface Ports {
   ready(home: string): void;
   changed(files: number): void;
   checkParent(parent: string, protectedPaths: readonly string[]): Promise<string>;
-  apply(progress: (files: number) => void): Promise<ApplyResult>;
+  /** Settles (rejects) soon after `signal` aborts. */
+  apply(progress: (files: number) => void, signal: AbortSignal): Promise<ApplyResult>;
 }
 
 const errorResult = (code: string): DataDirectoryResult => ({ ok: false, code });
@@ -56,8 +59,9 @@ export function changeConfirmation(
 const cancelled = { ok: true, state: "cancelled" } as const;
 
 export class DataDirectory {
-  private view: DataDirectoryView = { state: "moving", canCopy: false };
+  private view: DataDirectoryView = { state: "starting", canCopy: false };
   private lease?: LocationLease;
+  private readonly stopping = new AbortController();
   private acting = false;
   private closed = false;
 
@@ -76,16 +80,21 @@ export class DataDirectory {
   async start(): Promise<void> {
     let result: ApplyResult;
     try {
-      result = await this.ports.apply((files) => this.ports.changed(files));
-    } catch (error) {
-      if (error instanceof LocationError) {
-        this.unavailable();
-        return;
-      }
-      this.view = { state: "unavailable", canCopy: false };
+      // Only a pending request is shown as a move; a normal start stays neutral.
+      if (hasLocationRequest(this.ctx)) this.view = { state: "moving", canCopy: false };
+      result = await this.ports.apply((files) => this.ports.changed(files), this.stopping.signal);
+    } catch {
+      // Whatever failed, offer the recovery the saved record allows.
+      this.unavailable();
       return;
     }
     this.admit(result.kind === "failed" ? result.code : undefined);
+  }
+
+  /** Quit begins: end a running apply and start no host after it. */
+  stop(): void {
+    this.closed = true;
+    this.stopping.abort();
   }
 
   private saved(): LocationRecord | undefined {
@@ -98,6 +107,12 @@ export class DataDirectory {
   }
 
   private unavailable(): void {
+    const override = this.ctx.env.AGENTHERD_HOME;
+    if (override !== undefined) {
+      // The environment wins over the record, so name its directory and offer no return.
+      this.view = { state: "unavailable", canCopy: false, home: override };
+      return;
+    }
     const saved = this.saved();
     this.view = {
       state: "unavailable",
@@ -113,7 +128,8 @@ export class DataDirectory {
       this.lease = acquireLocationLease(this.ctx.base, "shared");
       const { home, source } = resolveLocation(this.ctx);
       this.view = {
-        state: failure ? "failed" : source === "env" ? "override" : "ready",
+        // While the environment wins, the app shows the override and offers no change.
+        state: source === "env" ? "override" : failure ? "failed" : "ready",
         home,
         canCopy: source !== "env" && canCopy(home),
         ...(failure ? { failure } : {}),
@@ -129,7 +145,7 @@ export class DataDirectory {
   }
 
   close(): void {
-    this.closed = true;
+    this.stop();
     this.lease?.release();
     this.lease = undefined;
   }
@@ -139,8 +155,9 @@ export class DataDirectory {
     this.acting = true;
     try {
       return await work();
-    } catch {
-      return errorResult("location-error");
+    } catch (error) {
+      // Another AgentHerd or a CLI holds the location: tell the owner to close it.
+      return errorResult(error instanceof LocationBusyError ? "busy" : "location-error");
     } finally {
       this.acting = false;
     }

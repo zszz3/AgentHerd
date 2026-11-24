@@ -3,7 +3,7 @@ import type { ApplyFailure } from "@agentherd/host/location-apply";
 export type RecoveryChoice = "retry" | "previous" | "pick";
 
 export interface DataDirectoryView {
-  state: "ready" | "override" | "unavailable" | "moving" | "failed";
+  state: "starting" | "ready" | "override" | "unavailable" | "moving" | "failed";
   home?: string;
   previous?: string;
   canCopy: boolean;

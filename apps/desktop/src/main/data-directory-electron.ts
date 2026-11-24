@@ -6,12 +6,18 @@ import { checkTargetParent } from "@agentherd/host/location-target";
 import { app, type BrowserWindow, dialog, type IpcMainInvokeEvent, ipcMain } from "electron";
 import { changeConfirmation, DataDirectory } from "./data-directory.ts";
 
-function apply(ctx: LocationContext, progress: (files: number) => void): Promise<ApplyResult> {
+function apply(
+  ctx: LocationContext,
+  progress: (files: number) => void,
+  signal: AbortSignal,
+): Promise<ApplyResult> {
   // Keep synchronous copy and SQLite verification off the UI thread.
   return new Promise((resolve, reject) => {
     const worker = new Worker(join(import.meta.dirname, "data-directory-worker.js"), {
       workerData: ctx,
     });
+    // Quit must not wait for a copy; an interrupted copy keeps the old location selected.
+    signal.addEventListener("abort", () => void worker.terminate(), { once: true });
     worker.on(
       "message",
       (message: { files: number } | { result: ApplyResult } | { error: string }) => {
@@ -77,7 +83,7 @@ export function setupDataDirectory(
         win.webContents.mainFrame.send("app:data-directory-progress", files);
     },
     checkParent: checkTargetParent,
-    apply: (progress) => apply(ctx, progress),
+    apply: (progress, signal) => apply(ctx, progress, signal),
   });
   function validate(event: IpcMainInvokeEvent, args: unknown[], count: number): void {
     const win = owner();

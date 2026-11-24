@@ -4,26 +4,36 @@ import { createRequire } from "node:module";
 import { homedir, tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { DatabaseSync } from "node:sqlite";
+import { hostDataPaths } from "@agentherd/host/data-home-paths";
+import { socketPath } from "@agentherd/host/server";
 import { build } from "electron-vite";
 import { expect, test } from "vitest";
 import { runSearchFixture, SearchFixtureStillRunning } from "./search-fixture.ts";
+
+/** macOS `sun_path` holds 104 bytes including the terminating NUL (location-target.ts). */
+const MAX_MAC_SOCKET_BYTES = 103;
 
 test.skipIf(process.platform !== "win32" && process.platform !== "darwin")(
   "copies on a second desktop lifecycle and the CLI uses the same directory",
   async () => {
     const desktop = resolve(import.meta.dirname, "..");
     const repo = resolve(desktop, "../..");
+    // Short names: macOS temp folders are long, and both sockets must fit in `sun_path`.
     const profile = mkdtempSync(
-      join(
-        realpathSync.native(process.platform === "win32" ? homedir() : tmpdir()),
-        "herd-desktop-location-",
-      ),
+      join(realpathSync.native(process.platform === "win32" ? homedir() : tmpdir()), "ah-"),
     );
     let safeToRemove = true;
     try {
       const home = join(profile, ".agentherd");
-      const parent = join(profile, "new parent");
+      const parent = join(profile, "a b");
       const target = join(parent, "AgentHerd");
+      if (process.platform === "darwin") {
+        for (const dir of [home, target]) {
+          for (const sock of [socketPath(dir), join(dir, hostDataPaths.mcpSocket.relative)]) {
+            expect(Buffer.byteLength(sock, "utf8"), sock).toBeLessThanOrEqual(MAX_MAC_SOCKET_BYTES);
+          }
+        }
+      }
       const inert = "{}\n";
       mkdirSync(home, { mode: 0o700 });
       mkdirSync(parent, { mode: 0o700 });
@@ -54,17 +64,24 @@ test.skipIf(process.platform !== "win32" && process.platform !== "darwin")(
           env,
           35_000,
         );
-      expect(await launch("first")).toMatchObject({
-        view: { home },
+      const first = (await launch("first")) as { painted: string; copied: number };
+      expect(first).toMatchObject({
+        view: { state: "ready", home },
         host: home,
+        copied: 0,
         change: { ok: true, state: "restarting" },
         relaunch: true,
       });
+      // A normal start paints a neutral screen: no move is pending, so none is shown.
+      expect(first.painted).toContain("正在启动 AgentHerd");
+      expect(first.painted).not.toContain("正在处理数据目录");
       const before = readFileSync(join(home, "herd.db"));
-      const second = (await launch("second")) as { painted: string };
+      const second = (await launch("second")) as { painted: string; copied: number };
       expect(second).toMatchObject({ view: { state: "ready", home: target }, host: target });
-      // The first paint after relaunch is the static moving shell, not the main UI.
-      expect(second.painted).toContain("正在处理数据目录");
+      // The relaunch paints the start screen, not the main UI, before the copy begins, and the
+      // window then receives the copy's progress.
+      expect(second.painted).toContain("正在启动 AgentHerd");
+      expect(second.copied).toBeGreaterThan(0);
       // A row that exists only in the target database proves the CLI reads the target.
       const marker = "data-directory-e2e-marker";
       const db = new DatabaseSync(join(target, "herd.db"));

@@ -28,10 +28,11 @@ function explain(code: string): string {
 
 export function DataDirectoryGate({ children }: { children: ReactNode }) {
   const bridge = window.agentherd.dataDirectory;
-  const [view, setView] = useState<DataDirectoryView>({ state: "moving", canCopy: false });
+  const [view, setView] = useState<DataDirectoryView>({ state: "starting", canCopy: false });
   const [files, setFiles] = useState(0);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const [dismissed, setDismissed] = useState(false);
   useEffect(() => {
     if (!bridge) return;
     let active = true;
@@ -42,7 +43,9 @@ export function DataDirectoryGate({ children }: { children: ReactNode }) {
         .catch(() => ({ state: "unavailable", canCopy: false }) as const);
       if (!active) return;
       setView(next);
-      if (next.state === "moving") timer = setTimeout(() => void refresh(), 150);
+      if (next.state === "starting" || next.state === "moving") {
+        timer = setTimeout(() => void refresh(), 150);
+      }
     };
     const unsubscribe = bridge.onProgress(setFiles);
     void refresh();
@@ -66,16 +69,22 @@ export function DataDirectoryGate({ children }: { children: ReactNode }) {
       setBusy(false);
     }
   }
-  if (!bridge || (view.state !== "moving" && view.state !== "unavailable")) {
+  if (
+    !bridge ||
+    (view.state !== "starting" && view.state !== "moving" && view.state !== "unavailable")
+  ) {
     return (
       <>
-        {view.failure && (
-          <p
+        {view.failure && !dismissed && (
+          <div
             role="alert"
-            className="fixed right-4 bottom-4 z-50 max-w-sm rounded-card border border-line bg-canvas p-4 text-ink"
+            className="fixed right-4 bottom-4 z-50 flex max-w-sm items-start gap-2 rounded-card border border-line bg-canvas p-4 text-ink"
           >
-            数据目录未更改。{explain(view.failure)}
-          </p>
+            <p>数据目录未更改。{explain(view.failure)}</p>
+            <Button variant="ghost" size="sm" onClick={() => setDismissed(true)}>
+              知道了
+            </Button>
+          </div>
         )}
         {children}
       </>
@@ -86,7 +95,9 @@ export function DataDirectoryGate({ children }: { children: ReactNode }) {
       <div className="app-drag h-9 shrink-0" />
       <main className="flex-1 overflow-auto rounded-card border border-line bg-canvas px-8 py-12">
         <div className="mx-auto max-w-[760px]">
-          {view.state === "moving" ? (
+          {view.state === "starting" ? (
+            <h1 className="font-semibold text-xl">正在启动 AgentHerd</h1>
+          ) : view.state === "moving" ? (
             <>
               <h1 className="font-semibold text-xl">正在处理数据目录</h1>
               <p role="status" className="mt-2 text-ink-muted">

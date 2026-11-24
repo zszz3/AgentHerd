@@ -20,7 +20,7 @@ test.each(["timeout", "post-failure"])(
     const child = Object.assign(new EventEmitter(), {
       stdout: new EventEmitter(),
       stderr: new EventEmitter(),
-      kill: vi.fn(),
+      kill: vi.fn(() => child.emit("exit", null)),
       postMessage() {
         if (mode === "post-failure") throw new Error("inert fixture");
       },
@@ -40,6 +40,34 @@ test.each(["timeout", "post-failure"])(
     }
   },
 );
+
+test("a killed host has exited before the stop resolves", async () => {
+  const home = mkdtempSync(join(tmpdir(), "herd-kill-test-"));
+  const child = Object.assign(new EventEmitter(), {
+    stdout: new EventEmitter(),
+    stderr: new EventEmitter(),
+    kill: vi.fn(),
+    postMessage() {},
+  });
+  probe.mockResolvedValueOnce(false).mockResolvedValueOnce(true);
+  fork.mockReturnValueOnce(child);
+  try {
+    await ensureHost(home, "fixture", () => false);
+    let stopped = false;
+    const stop = stopOwnedHost(0).then(() => {
+      stopped = true;
+    });
+    await vi.waitFor(() => expect(child.kill).toHaveBeenCalledOnce());
+    await new Promise((r) => setTimeout(r, 20));
+    // Until the process is gone it still holds its shared lease; a relaunch would see it busy.
+    expect(stopped).toBe(false);
+    child.emit("exit", null);
+    await stop;
+    expect(stopped).toBe(true);
+  } finally {
+    rmSync(home, { recursive: true, force: true });
+  }
+});
 
 test("does not fork after quit begins during the initial probe", async () => {
   fork.mockClear();

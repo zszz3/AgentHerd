@@ -41,7 +41,9 @@ function fixture(env: NodeJS.ProcessEnv = {}) {
     ready: vi.fn(),
     changed: vi.fn(),
     checkParent: vi.fn(async () => join(parent, "AgentHerd")),
-    apply: vi.fn((progress: (files: number) => void) => applyLocationRequest(ctx, progress)),
+    apply: vi.fn((progress: (files: number) => void, _signal: AbortSignal) =>
+      applyLocationRequest(ctx, progress),
+    ),
   };
   const controller = new DataDirectory(ctx, ports);
   controllers.push(controller);
@@ -97,8 +99,80 @@ test("hides copy with worktrees and requests a restart only after confirmation",
   controller.close();
 });
 
+test("a normal start is not shown as a move", async () => {
+  const { ports, controller } = fixture();
+  expect(controller.status().state).toBe("starting");
+  ports.apply.mockImplementation(async () => {
+    expect(controller.status().state).toBe("starting");
+    return { kind: "none" };
+  });
+  await controller.start();
+  expect(controller.status().state).toBe("ready");
+});
+
+test("stop ends an unsettled apply and starts no host", async () => {
+  const { ports, controller } = fixture();
+  ports.apply.mockImplementation(
+    (_progress, signal) =>
+      new Promise((_resolve, reject) =>
+        signal.addEventListener("abort", () => reject(new Error("worker terminated"))),
+      ),
+  );
+  const start = controller.start();
+  controller.stop();
+  await start;
+  expect(ports.ready).not.toHaveBeenCalled();
+});
+
+test("a worker failure still offers the known roots for recovery", async () => {
+  const { ctx, ports, controller, save } = fixture();
+  const active = join(ctx.base, "active");
+  const previous = join(ctx.base, "old");
+  mkdirSync(active);
+  mkdirSync(previous);
+  save(active, previous);
+  ports.apply.mockRejectedValue(new Error("Data directory startup failed"));
+  await controller.start();
+  expect(controller.status()).toEqual({
+    state: "unavailable",
+    canCopy: false,
+    home: active,
+    previous,
+  });
+  expect(ports.ready).not.toHaveBeenCalled();
+});
+
+test("an unavailable override names the environment's directory", async () => {
+  const { ctx, ports, controller, save } = fixture({ AGENTHERD_HOME: "/from-env" });
+  const active = join(ctx.base, "active");
+  mkdirSync(active);
+  save(active);
+  ports.apply.mockRejectedValue(new Error("Data directory startup failed"));
+  await controller.start();
+  expect(controller.status()).toEqual({
+    state: "unavailable",
+    canCopy: false,
+    home: "/from-env",
+  });
+});
+
+test("recovery reports a busy lease as busy", async () => {
+  const { ctx, parent, ports, controller } = fixture();
+  writeFileSync(join(ctx.base, ".agentherd-location.json"), "not json");
+  await controller.start();
+  writeFileSync(join(parent, "herd.db"), "");
+  ports.pick.mockResolvedValue(parent);
+  const other = acquireLocationLease(ctx.base, "shared");
+  try {
+    expect(await controller.recover("pick")).toEqual({ ok: false, code: "busy" });
+  } finally {
+    other.release();
+  }
+});
+
 test("publishes moving progress before starting host, and failed apply runs on old home", async () => {
-  const { ctx, ports, controller } = fixture();
+  const { ctx, parent, ports, controller } = fixture();
+  writeLocationRequest(ctx, { version: 1, parent, mode: "empty" });
   ports.apply.mockImplementation(async (progress) => {
     expect(controller.status().state).toBe("moving");
     expect(ports.ready).not.toHaveBeenCalled();
@@ -171,8 +245,9 @@ test("the environment wins over a corrupt record and a pending request", async (
   writeFileSync(join(ctx.base, ".agentherd-location.json"), "not json");
   writeLocationRequest(ctx, { version: 1, parent, mode: "empty" });
   await controller.start();
+  // The environment wins, so the app shows the override and offers no change.
   expect(controller.status()).toMatchObject({
-    state: "failed",
+    state: "override",
     failure: "env-override",
     home: override,
     canCopy: false,

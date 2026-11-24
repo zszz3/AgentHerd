@@ -28,7 +28,12 @@ import {
   type LocationLease,
 } from "./location-gate.ts";
 
-export { acquireLocationLease, type LocationLease, type LocationMode } from "./location-gate.ts";
+export {
+  acquireLocationLease,
+  LocationBusyError,
+  type LocationLease,
+  type LocationMode,
+} from "./location-gate.ts";
 
 export interface LocationContext {
   /** The trusted per-user base, normally `os.homedir()`. */
@@ -272,6 +277,11 @@ export function writeLocationRecord(
 export function writeLocationRequest(ctx: LocationContext, request: LocationRequest): void {
   if (!isRequest(request)) throw new Error("The data location request is invalid.");
   writeJson(join(ctx.base, requestFile), request);
+}
+
+/** Whether a request waits for the next startup; reads nothing but the file's presence. */
+export function hasLocationRequest(ctx: LocationContext): boolean {
+  return lstatSync(join(ctx.base, requestFile), { throwIfNoEntry: false }) !== undefined;
 }
 
 /** Reads and deletes the pending request, so it is applied at most once. */

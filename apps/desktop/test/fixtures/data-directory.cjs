@@ -13,12 +13,19 @@ dialog.showOpenDialog = async () => ({ canceled: false, filePaths: [parent] });
 dialog.showMessageBox = async (_win, options) => ({ response: options.buttons.length - 1 });
 
 // Main starts applying a request only after the window's first paint (ready-to-show). This
-// listener is added first, so it reads what the owner sees before the copy can finish.
+// listener is added first, so it reads what the owner sees before the copy can start, and
+// counts the copy progress the window receives.
 let firstPaint;
 app.once("browser-window-created", (_event, win) => {
   firstPaint = new Promise((resolve) => {
     win.once("ready-to-show", () => {
-      win.webContents.executeJavaScript("document.body.innerText").then(resolve, resolve);
+      win.webContents
+        .executeJavaScript(`(() => {
+          window.__copied = 0;
+          window.agentherd.dataDirectory.onProgress((files) => { window.__copied = files; });
+          return document.body.innerText;
+        })()`)
+        .then(resolve, resolve);
     });
   });
 });
@@ -32,12 +39,14 @@ app.once("browser-window-created", (_event, win) => {
   const result = await page.executeJavaScript(`(async () => {
     const sleep = () => new Promise(r => setTimeout(r, 30));
     const api = window.agentherd.dataDirectory;
-    while ((await api.status()).state === 'moving') await sleep();
+    const busy = (state) => state === 'starting' || state === 'moving';
+    while (busy((await api.status()).state)) await sleep();
     while (!(await window.agentherd.host.status().catch(() => undefined))) await sleep();
     const view = await api.status();
     const host = await window.agentherd.host.status();
+    const copied = window.__copied;
     const change = ${JSON.stringify(phase)} === 'first' ? await api.change() : undefined;
-    return { view, host: host.home, change };
+    return { view, host: host.home, copied, change };
   })()`);
   const painted = String(await firstPaint);
   console.log(`SEARCH_RESULT ${JSON.stringify({ ...result, painted, relaunch })}`);

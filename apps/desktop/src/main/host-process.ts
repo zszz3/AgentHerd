@@ -79,6 +79,8 @@ export async function ensureHost(
 
 /** How long the host gets to stop by itself before it is killed. */
 export const HOST_STOP_MS = 8000;
+/** How long a killed host gets to exit before quit goes on without it. */
+const HOST_KILL_MS = 2000;
 
 export function ownsHost(): boolean {
   return child !== undefined;
@@ -86,7 +88,7 @@ export function ownsHost(): boolean {
 
 /**
  * Asks the host to stop (it ends its tasks and tells the owner), then kills it if it is still
- * running after `HOST_STOP_MS`. On Windows `kill()` ends the process at once, so the message
+ * running after `HOST_STOP_MS` and waits up to `HOST_KILL_MS` for it to exit. On Windows `kill()` ends the process at once, so the message
  * is the only way the host gets to clean up.
  */
 export function stopOwnedHost(timeoutMs = HOST_STOP_MS): Promise<void> {
@@ -95,22 +97,24 @@ export function stopOwnedHost(timeoutMs = HOST_STOP_MS): Promise<void> {
   if (owned === undefined) return Promise.resolve();
   const { process: p, detachLog } = owned;
   return new Promise((done) => {
-    const timer = setTimeout(() => {
+    let killTimer: ReturnType<typeof setTimeout> | undefined;
+    // Until it has exited the host holds its shared lease, which a relaunch would see as busy.
+    const kill = () => {
       detachLog();
       p.kill();
-      done();
-    }, timeoutMs);
+      killTimer = setTimeout(done, HOST_KILL_MS);
+    };
+    const timer = setTimeout(kill, timeoutMs);
     p.once("exit", () => {
       clearTimeout(timer);
+      clearTimeout(killTimer);
       done();
     });
     try {
       p.postMessage({ type: "stop" });
     } catch {
       clearTimeout(timer);
-      detachLog();
-      p.kill();
-      done();
+      kill();
     }
   });
 }
