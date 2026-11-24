@@ -9,6 +9,19 @@ let relaunch = false;
 app.relaunch = () => {
   relaunch = true;
 };
+// The change quits the app on its own. Hold that quit until the result line is flushed: pipes
+// are asynchronous on macOS, so a quit that completes first can drop the line.
+const quit = app.quit.bind(app);
+let reported = false;
+app.quit = () => {
+  if (reported) quit();
+};
+function report(result) {
+  process.stdout.write(`SEARCH_RESULT ${JSON.stringify(result)}\n`, () => {
+    reported = true;
+    quit();
+  });
+}
 dialog.showOpenDialog = async () => ({ canceled: false, filePaths: [parent] });
 dialog.showMessageBox = async (_win, options) => ({ response: options.buttons.length - 1 });
 
@@ -49,8 +62,7 @@ app.once("browser-window-created", (_event, win) => {
     return { view, host: host.home, copied, change };
   })()`);
   const painted = String(await firstPaint);
-  console.log(`SEARCH_RESULT ${JSON.stringify({ ...result, painted, relaunch })}`);
-  app.quit();
+  report({ ...result, painted, relaunch });
 })().catch((error) => {
   console.error(error);
   app.exit(1);
