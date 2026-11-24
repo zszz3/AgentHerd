@@ -1,10 +1,11 @@
 // 应用连接: the accounts agents can use for the owner, and public news (ADR 0058, 0059).
 // Each account is one folded row. 插件 installs Claude Code / Gemini CLI plugins (ADR 0094).
 
-import type { WecomView } from "@agentherd/host/api";
+import type { DingTalkView, WecomView } from "@agentherd/host/api";
 import { useEffect, useState } from "react";
 import { MoreAppsRow, NotionRow } from "../components/AppsSection";
 import { DanjuanRow } from "../components/DanjuanSection";
+import { DingTalkRow } from "../components/DingTalkSection";
 import { FeedsSection } from "../components/FeedsSection";
 import { LarkRow } from "../components/LarkSection";
 import { ObsidianRow } from "../components/ObsidianRow";
@@ -16,7 +17,13 @@ import { WestockRow } from "../components/WestockSection";
 import { call, useApp } from "../store";
 
 /** 「已连接 4 个 · 1 个出错」 across the account rows. */
-function Summary({ wecom }: { wecom: WecomView | undefined }) {
+function Summary({
+  wecom,
+  dingtalk,
+}: {
+  wecom: WecomView | undefined;
+  dingtalk: DingTalkView | undefined;
+}) {
   const socials = useApp((s) => s.socials);
   const lark = useApp((s) => s.lark);
   const apps = useApp((s) => s.apps);
@@ -27,11 +34,13 @@ function Summary({ wecom }: { wecom: WecomView | undefined }) {
     (lark.state === "ready" ? 1 : 0) +
     (apps.apps.some((a) => a.slug === "notion" && a.connected) ? 1 : 0) +
     (vault !== undefined && vault !== "" ? 1 : 0) +
-    (wecom?.state === "connected" ? 1 : 0);
+    (wecom?.state === "connected" ? 1 : 0) +
+    (dingtalk?.state === "connected" ? 1 : 0);
   const failed =
     socials.filter((s) => s.state === "failed").length +
     (lark.state === "failed" ? 1 : 0) +
-    (wecom?.state === "failed" ? 1 : 0);
+    (wecom?.state === "failed" ? 1 : 0) +
+    (dingtalk?.state === "failed" ? 1 : 0);
   return (
     <p className="text-ink-2 text-md">
       {connected === 0 ? "还没连接账号" : `已连接 ${connected} 个`}
@@ -43,6 +52,7 @@ function Summary({ wecom }: { wecom: WecomView | undefined }) {
 export function ConnectionsPage() {
   const [moreOpen, setMoreOpen] = useState(false);
   const [wecom, setWecom] = useState<WecomView>();
+  const [dingtalk, setDingtalk] = useState<DingTalkView>();
   useEffect(() => {
     void call((h) => h.socials()).then((socials) => socials && useApp.setState({ socials }));
     void call((h) => h.lark()).then((lark) => lark && useApp.setState({ lark }));
@@ -54,12 +64,13 @@ export function ConnectionsPage() {
   return (
     <div className="flex flex-col gap-7">
       <div className="flex flex-col gap-3">
-        <Summary wecom={wecom} />
+        <Summary wecom={wecom} dingtalk={dingtalk} />
         <Section title="账号">
           <Group>
             <SocialRows />
             <LarkRow />
             <WecomRow view={wecom} onView={setWecom} />
+            <DingTalkRow view={dingtalk} onView={setDingtalk} />
             <NotionRow onNeedKey={() => setMoreOpen(true)} />
             <ObsidianRow />
             <MoreAppsRow open={moreOpen} onOpenChange={setMoreOpen} />

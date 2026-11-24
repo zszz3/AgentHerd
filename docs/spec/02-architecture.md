@@ -120,7 +120,7 @@ Rules:
 ## 5. Storage
 
 AgentHerd data is under `<home>`. The desktop, host and CLI prefer `AGENTHERD_HOME`,
-then the per-user saved location, then `~/.agentherd` if no record exists ([ADR 0105](../adr/0105-one-shared-data-location.md)).
+then the per-user saved location, then `~/.agentherd` if no record exists ([ADR 0106](../adr/0106-one-shared-data-location.md)).
 They hold a shared lease while accessing data. The record, pending request and gate are outside
 `<home>`, in the user profile. Settings → About changes the location at restart, before the host
 starts. The owner can start empty or copy supported data without removing the old directory.

@@ -37,8 +37,35 @@ export const wecomConfigFiles = {
   disconnectPending: "disconnect-pending",
 } as const;
 
+const dingTalkDws = { relative: "dingtalk-dws", kind: "persistent" } as const;
+
+// The DingTalk Workspace CLI keeps its sign-in under these names inside `dingTalkDws`.
+export const dingTalkStateFiles = {
+  config: "config",
+  credentials: "credentials",
+  resetPending: "reset-pending",
+} as const;
+
 export const hostDataPaths = {
   wecomCli,
+  dingTalkDws,
+  dingTalkConfig: {
+    relative: `${dingTalkDws.relative}/${dingTalkStateFiles.config}`,
+    kind: "persistent",
+  },
+  // The CLI takes this lock while it runs and creates it again when it is missing.
+  dingTalkConfigLock: {
+    relative: `${dingTalkDws.relative}/${dingTalkStateFiles.config}/.data.lock`,
+    kind: "transient",
+  },
+  dingTalkCredentials: {
+    relative: `${dingTalkDws.relative}/${dingTalkStateFiles.credentials}`,
+    kind: "persistent",
+  },
+  dingTalkResetPending: {
+    relative: `${dingTalkDws.relative}/${dingTalkStateFiles.resetPending}`,
+    kind: "persistent",
+  },
   config: { relative: "config.json", kind: "persistent" },
   secrets: { relative: "secrets.json", kind: "persistent" },
   run: { relative: "run", kind: "persistent" },

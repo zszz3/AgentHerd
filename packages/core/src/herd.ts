@@ -7,7 +7,7 @@ import { join } from "node:path";
 import type { AgentProfile, Inbound, Item, Mode, Rule } from "@agentherd/protocol";
 import { DEFAULT_LOCALE } from "@agentherd/protocol";
 import type { OutboundStep } from "@agentherd/rules";
-import { approveAppCalls } from "./app-calls.ts";
+import { approveAppCalls, blockDeniedOfficePreflight } from "./app-calls.ts";
 import { Board } from "./board.ts";
 import { type Clock, systemClock } from "./clock.ts";
 import { coreDataPaths } from "./data-home-paths.ts";
@@ -152,6 +152,7 @@ export class Herd {
         {
           ...(opts.apps === undefined ? {} : { apps: opts.apps }),
           approve: (taskId, calls) => approveAppCalls(this.ctx, taskId, calls),
+          checkPreflight: (taskId, call) => blockDeniedOfficePreflight(this.ctx, taskId, call),
           denied: (title) => this.texts.appDenied(title),
           ack: (taskId, text) => this.runner.ack(taskId, text),
         },

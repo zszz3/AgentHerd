@@ -26,6 +26,7 @@ import type {
   AppsView,
   DanjuanTest,
   DanjuanView,
+  DingTalkView,
   FeedView,
   HostEvent,
   HostStatus,
@@ -453,6 +454,14 @@ function installFakeBridge(): void {
     wecom = wecomDisconnected;
     return delay(wecom);
   };
+  const dingtalkDisconnected: DingTalkView = { state: "disconnected", capabilities: [] };
+  let dingtalk = dingtalkDisconnected;
+  let dingtalkTimer: ReturnType<typeof setTimeout> | undefined;
+  const clearDingTalk = () => {
+    clearTimeout(dingtalkTimer);
+    dingtalk = dingtalkDisconnected;
+    return delay(dingtalk);
+  };
   let feeds: FeedView[] = sampleFeeds();
   let westock: WestockView = {
     enabled: true,
@@ -803,6 +812,30 @@ function installFakeBridge(): void {
     },
     cancelWecomLogin: () => (wecom.state === "connecting" ? clearWecom() : delay(wecom)),
     disconnectWecom: clearWecom,
+    dingtalk: () => delay(dingtalk),
+    startDingTalkLogin: () => {
+      if (dingtalk.state !== "disconnected") return delay(dingtalk);
+      dingtalk = { state: "connecting", capabilities: [] };
+      dingtalkTimer = setTimeout(() => {
+        dingtalk =
+          failing === "dingtalk"
+            ? { state: "failed", capabilities: [], error: "钉钉授权未完成，请清除连接后重试。" }
+            : {
+                state: "connected",
+                userName: "示例用户",
+                corpName: "示例组织",
+                capabilities: [
+                  { id: "calendar", name: "日程", toolCount: 2 },
+                  { id: "doc", name: "文档", toolCount: 3 },
+                  { id: "chat", name: "群聊", toolCount: 4 },
+                  { id: "minutes", name: "AI 听记", toolCount: 3 },
+                ],
+              };
+      }, 4000);
+      return delay(dingtalk);
+    },
+    cancelDingTalkLogin: clearDingTalk,
+    disconnectDingTalk: clearDingTalk,
     pet: () => delay(pet),
     petSay: (text, paths = []) => {
       if (!pet.connected)

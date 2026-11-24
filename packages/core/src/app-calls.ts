@@ -62,8 +62,10 @@ function isReadOnly(hints: AppHints | undefined): boolean {
   );
 }
 
-function isWeCom(call: AppCall): boolean {
-  return call.toolkit === "builtin:wecom";
+function officeProvider(call: AppCall): string | undefined {
+  if (call.toolkit === "builtin:wecom") return "WeCom";
+  if (call.toolkit === "builtin:dingtalk") return "DingTalk";
+  return undefined;
 }
 
 function itemForCall(base: Item, call: AppCall): Item {
@@ -80,6 +82,21 @@ function itemForCall(base: Item, call: AppCall): Item {
   };
 }
 
+/** Apply the owner's explicit deny before a built-in office preflight can contact the provider. */
+export function blockDeniedOfficePreflight(ctx: HerdContext, taskId: string, call: AppCall): void {
+  const provider = officeProvider(call);
+  if (provider === undefined) return;
+  const hit = matchRules(ctx.store.listRules(), itemFor(ctx, taskId, [call]), ctx.opts.userHome);
+  if (hit?.action !== "deny") return;
+  ctx.store.audit("app.call.preflight", {
+    taskId,
+    slug: call.slug,
+    action: "deny",
+    ruleId: hit.rule.id,
+  });
+  throw new Error(`${provider} call blocked by rule ${hit.rule.id}`);
+}
+
 /** The pipeline's answer for one call, as if it came alone. */
 function decideOne(ctx: HerdContext, base: Item, call: AppCall): PipelineResult {
   const item = itemForCall(base, call);
@@ -91,22 +108,27 @@ function decideOne(ctx: HerdContext, base: Item, call: AppCall): PipelineResult 
     protectedLocationFiles: ctx.opts.protectedLocationFiles,
     ...turnPermits(ctx, base.sessionId),
   };
-  const wecom = isWeCom(call);
-  if (wecom && policy.mode === "observe") {
-    // Observe normally only suggests rules. A WeCom deny still wins, even for an outbound step.
+  const provider = officeProvider(call);
+  if (provider !== undefined && policy.mode === "observe") {
+    // Observe normally only suggests rules. A built-in office deny still wins.
     const enforced = decide(item, { ...policy, mode: "assist" });
     if (enforced.apply && enforced.decision.action === "deny") return enforced;
   }
 
   const result = decide(item, policy);
-  if (wecom && !isReadOnly(call.hints) && result.apply && result.decision.action === "allow") {
+  if (
+    provider !== undefined &&
+    !isReadOnly(call.hints) &&
+    result.apply &&
+    result.decision.action === "allow"
+  ) {
     return {
       decision: {
         ...result.decision,
         action: "escalate",
         confidence: 0,
         risk: "medium",
-        reason: "WeCom tool is not read-only; needs your confirmation",
+        reason: `${provider} tool is not read-only; needs your confirmation`,
       },
       apply: false,
     };
@@ -159,7 +181,7 @@ export async function approveAppCalls(
     return allowed;
   }
 
-  const wecomCalls = calls.filter(isWeCom);
+  const officeCalls = calls.filter((call) => officeProvider(call) !== undefined);
   ctx.registry.set(taskId, "waiting-approval");
   const allowed = await new Promise<boolean>((resolve) => {
     let done = false;
@@ -176,33 +198,41 @@ export async function approveAppCalls(
       },
       decision.reason,
       ctx.following.get(taskId)?.task.title,
-      wecomCalls.length > 0,
+      officeCalls.some((call) => call.toolkit === "builtin:dingtalk")
+        ? "separate-card"
+        : officeCalls.length > 0,
     );
   });
   if (!allowed) return false;
 
-  if (wecomCalls.length === 0) return true;
+  if (officeCalls.length === 0) return true;
 
   // Rules can change while the owner is deciding. Only a current deny overrides their answer;
   // outbound checks and task permits cannot mask it. Keep this separate from the owner's decision.
-  let denied: { slug: string; ruleId: string } | undefined;
+  let denied: { call: AppCall; ruleId: string } | undefined;
   try {
     const rules = store.listRules();
-    for (const call of wecomCalls) {
+    for (const call of officeCalls) {
       const hit = matchRules(rules, itemForCall(item, call), ctx.opts.userHome);
       if (hit?.action !== "deny") continue;
-      denied = { slug: call.slug, ruleId: hit.rule.id };
+      denied = { call, ruleId: hit.rule.id };
       break;
     }
   } catch {
     store.audit("app.call.recheck", { taskId, itemId: item.id, action: "error" });
-    throw new Error("could not verify current rules for WeCom");
+    throw new Error("could not verify current rules for the office connector");
   }
   if (denied !== undefined) {
-    const { slug, ruleId } = denied;
-    store.audit("app.call.recheck", { taskId, itemId: item.id, action: "deny", slug, ruleId });
+    const { call, ruleId } = denied;
+    store.audit("app.call.recheck", {
+      taskId,
+      itemId: item.id,
+      action: "deny",
+      slug: call.slug,
+      ruleId,
+    });
     // Throw so the gateway reports a rule block, not that the owner refused the call.
-    throw new Error(`WeCom call blocked by rule ${ruleId}`);
+    throw new Error(`${officeProvider(call)} call blocked by rule ${ruleId}`);
   }
   return true;
 }

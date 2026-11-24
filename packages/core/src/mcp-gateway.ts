@@ -141,7 +141,7 @@ export interface AppToolPreflight {
   /** Safe to persist and show to the owner; not necessarily the execution arguments. */
   approvalArguments: unknown;
   /** Runs with the exact arguments validated during preflight. */
-  execute: () => Promise<unknown>;
+  execute: (beforeDispatch?: () => void) => Promise<unknown>;
 }
 
 /** The owner's connected apps, as the gateway uses them. */
@@ -161,6 +161,8 @@ export interface AppTools {
 export interface GatewayOptions {
   /** The connected apps now, if any. */
   apps?: () => AppTools | undefined;
+  /** Throws if an explicit deny must prevent a provider preflight from running. */
+  checkPreflight?: (taskId: string, call: AppCall) => void;
   /** Whether the calls may run (the approval pipeline, maybe the owner). */
   approve?: (taskId: string, calls: AppCall[]) => Promise<boolean>;
   /** Tool error text for calls the owner did not allow. */
@@ -316,27 +318,36 @@ export class McpGateway {
     }
     try {
       let prepared: AppToolPreflight | undefined;
+      let beforeDispatch: (() => void) | undefined;
       if (!DIRECT_META.has(name)) {
         const slugs = slugsOf(name, args);
         if (typeof slugs === "string") return toolText(slugs, true);
-        // Built-in WeCom slugs have one separator, unlike plugin namespaces (`WECOM__`).
-        const hasWeComSlug = slugs.some((slug) => /^WECOM_[A-Z0-9]/.test(slug));
-        if (name === MULTI_EXECUTE && hasWeComSlug) {
-          return toolText("WeCom tools must be called directly.", true);
+        // Built-in office slugs have one separator, unlike plugin namespaces (`WECOM__`).
+        const reserved = slugs.some((slug) => /^dingtalk_[a-z0-9]/i.test(slug))
+          ? { label: "DingTalk", toolkit: "builtin:dingtalk" }
+          : slugs.some((slug) => /^WECOM_[A-Z0-9]/.test(slug))
+            ? { label: "WeCom", toolkit: "builtin:wecom" }
+            : undefined;
+        if (name === MULTI_EXECUTE && reserved !== undefined) {
+          return toolText(`${reserved.label} tools must be called directly.`, true);
         }
-        if (name !== MULTI_EXECUTE) prepared = await apps.preflight?.(name, args);
-        if (prepared === undefined && hasWeComSlug) {
-          return toolText("WeCom CLI tool is unavailable.", true);
+        if (name !== MULTI_EXECUTE && apps.preflight !== undefined) {
+          if (reserved !== undefined) {
+            this.opts.checkPreflight?.(taskId, {
+              slug: name,
+              title: reserved.label,
+              toolkit: reserved.toolkit,
+              arguments: undefined,
+            });
+          }
+          prepared = await apps.preflight(name, args);
+        }
+        if (prepared === undefined && reserved !== undefined) {
+          return toolText(`${reserved.label} CLI tool is unavailable.`, true);
         }
         const known = await apps.describe(slugs);
-        if (
-          prepared === undefined &&
-          slugs.some((slug) => known.get(slug)?.toolkit === "builtin:wecom")
-        ) {
-          return toolText("WeCom CLI tool is unavailable.", true);
-        }
-        if (hasWeComSlug && known.get(name)?.toolkit !== "builtin:wecom") {
-          return toolText("WeCom CLI tool is unavailable.", true);
+        if (reserved !== undefined && known.get(name)?.toolkit !== reserved.toolkit) {
+          return toolText(`${reserved.label} CLI tool is unavailable.`, true);
         }
         const calls: AppCall[] = slugs.map((slug, i) => {
           const info = known.get(slug);
@@ -349,13 +360,28 @@ export class McpGateway {
               prepared === undefined ? argumentsOf(name, args, i) : prepared.approvalArguments,
           };
         });
+        if (prepared === undefined) {
+          for (const slug of slugs) {
+            const toolkit = known.get(slug)?.toolkit;
+            if (toolkit === "builtin:wecom")
+              return toolText("WeCom CLI tool is unavailable.", true);
+            if (toolkit === "builtin:dingtalk")
+              return toolText("DingTalk CLI tool is unavailable.", true);
+          }
+        }
         const approve = this.opts.approve ?? (async () => false);
         if (!(await approve(taskId, calls))) {
           const title = calls.map((c) => c.title).join(", ");
           return toolText(this.opts.denied?.(title) ?? `The owner did not allow ${title}.`, true);
         }
+        const call = calls[0];
+        if (reserved?.toolkit === "builtin:dingtalk" && call !== undefined) {
+          beforeDispatch = () => this.opts.checkPreflight?.(taskId, call);
+        }
       }
-      return prepared === undefined ? await apps.call(name, args) : await prepared.execute();
+      return prepared === undefined
+        ? await apps.call(name, args)
+        : await prepared.execute(beforeDispatch);
     } catch (error) {
       return toolText(`app call failed: ${(error as Error).message}`, true);
     }

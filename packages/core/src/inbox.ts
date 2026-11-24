@@ -50,6 +50,7 @@ interface Entry {
   reason: string;
   taskLabel?: string;
   channelApproval: boolean;
+  separateCard: boolean;
   card?: Card;
   timers: Timer[];
   closing: boolean;
@@ -212,11 +213,19 @@ export class Inbox {
     target: Answerable,
     reason: string,
     taskLabel?: string,
-    channelApproval = false,
+    approval: boolean | "separate-card" = false,
   ): Promise<void> {
     const queue = this.queues.get(item.sessionId) ?? [];
     this.queues.set(item.sessionId, queue);
-    const entry: Entry = { item, target, reason, channelApproval, timers: [], closing: false };
+    const entry: Entry = {
+      item,
+      target,
+      reason,
+      channelApproval: approval !== false,
+      separateCard: approval === "separate-card",
+      timers: [],
+      closing: false,
+    };
     if (taskLabel !== undefined) entry.taskLabel = taskLabel;
     queue.push(entry);
     if (queue.length === 1) await this.show(entry);
@@ -320,7 +329,7 @@ export class Inbox {
   private async show(entry: Entry): Promise<void> {
     const { channel, store } = this.opts;
     const open = this.card;
-    if (open?.entries.some((e) => !e.closing)) {
+    if (!entry.separateCard && open?.entries.some((e) => !e.closing)) {
       const card = open;
       card.entries.push(entry);
       entry.card = card;
@@ -336,8 +345,21 @@ export class Inbox {
       updating: Promise.resolve(),
     };
     entry.card = card;
-    this.card = card;
-    const ref = await channel.send(this.cardView(card));
+    if (!entry.separateCard) this.card = card;
+    let ref: MessageRef;
+    try {
+      ref = await channel.send(this.cardView(card));
+    } catch (error) {
+      if (!entry.separateCard) throw error;
+      store.audit("channel.error", { op: "send", itemId: entry.item.id });
+      if (!entry.closing) {
+        entry.closing = true;
+        entry.target.answer("deny");
+        await this.finish(entry, "expired", this.texts.expired("approval card could not be sent"));
+        await this.next(entry.item.sessionId);
+      }
+      return;
+    }
     card.ref = ref;
     for (const e of card.entries) store.updateItem(e.item.id, { messageRef: ref });
     store.audit("item.sent", { itemId: entry.item.id });

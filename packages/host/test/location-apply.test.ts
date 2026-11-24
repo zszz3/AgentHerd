@@ -334,6 +334,62 @@ describe.runIf(supported)("applyLocationRequest", () => {
     expect(readdirSync(target)).toEqual(["wecom-cli"]);
   }, 20_000);
 
+  it.each([
+    "dingtalk-dws",
+    "dingtalk-dws/config",
+    "dingtalk-dws/config/.data.lock",
+    "dingtalk-dws/credentials",
+    "dingtalk-dws/reset-pending",
+  ])(
+    "does not give ordinary data the fixed DingTalk meaning %s",
+    async (key) => {
+      const parts = key.split("/");
+      const alias = [...parts.slice(0, -1), parts.at(-1)?.toUpperCase() ?? ""];
+      // For a directory, put an ordinary file inside the uppercase directory.
+      const suffix =
+        key === "dingtalk-dws/reset-pending" || key.endsWith(".lock") ? [] : ["note.txt"];
+      const ordinary = join(old, ...alias, ...suffix);
+      const selection = JSON.stringify({ version: 1, active: old, retained: [] });
+      mkdirSync(join(old, ...[...alias, ...suffix].slice(0, -1)), { recursive: true });
+      writeFileSync(ordinary, "ordinary text fixture");
+      writeFileSync(record(), selection, { mode: 0o600 });
+      // Simulate only the two name-lookup results on mixed-sensitivity volumes.
+      sourceMissing.add(join(old, key));
+      destinationAliases.set(join(target, key), join(target, ...alias));
+      writeLocationRequest(ctx, { version: 1, parent, mode: "copy" });
+
+      expect(await apply()).toEqual({ kind: "failed", code: "copy-failed" });
+      expect(readFileSync(ordinary, "utf8")).toBe("ordinary text fixture");
+      expect(readFileSync(record(), "utf8")).toBe(selection);
+      expect(resolveLocation(ctx)).toMatchObject({ source: "saved", home: old });
+    },
+    20_000,
+  );
+
+  it("keeps the DingTalk sign-in and pending reset, skips its lock, leaves external data", async () => {
+    const external = join(ctx.base, ".dws");
+    mkdirSync(external, { recursive: true });
+    writeFileSync(join(external, "external.txt"), "external text fixture");
+    const state = join(old, "dingtalk-dws");
+    const kept = ["config/profiles.json", "credentials/fake-token", "reset-pending"];
+    mkdirSync(join(state, "config"), { recursive: true });
+    mkdirSync(join(state, "credentials"));
+    for (const name of kept) writeFileSync(join(state, name), `inert fixture: ${name}`);
+    writeFileSync(join(state, "config", ".data.lock"), "");
+    writeLocationRequest(ctx, { version: 1, parent, mode: "copy" });
+
+    expect(await apply()).toMatchObject({ kind: "applied" });
+    for (const name of kept) {
+      expect(readFileSync(join(target, "dingtalk-dws", name), "utf8")).toBe(
+        `inert fixture: ${name}`,
+      );
+      expect(readFileSync(join(state, name), "utf8")).toBe(`inert fixture: ${name}`);
+    }
+    expect(existsSync(join(target, "dingtalk-dws", "config", ".data.lock"))).toBe(false);
+    expect(readFileSync(join(external, "external.txt"), "utf8")).toBe("external text fixture");
+    expect(readdirSync(target)).toEqual(["dingtalk-dws"]);
+  }, 20_000);
+
   it.runIf(xhsAsset() !== undefined).each(["", ".part"])(
     "refuses an ordinary file that aliases the fixed Xiaohongshu path (suffix %j)",
     async (suffix) => {

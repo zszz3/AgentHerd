@@ -11,6 +11,7 @@
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "brand": "node scripts/brand-dev-electron.ts",
     "fetch-agents": "node scripts/fetch-agents.ts",
+    "fetch-dws": "node scripts/fetch-dws.ts",
     "package:mac": "node scripts/package-mac.ts"
   },
   "dependencies": {
