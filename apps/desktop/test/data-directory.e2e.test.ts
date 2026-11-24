@@ -48,6 +48,17 @@ test.skipIf(process.platform !== "win32" && process.platform !== "darwin")(
           delete env[key];
       }
       env.AGENTHERD_HOST_ENTRY = join(repo, "packages/host/bin/host.ts");
+      const cliStatus = () =>
+        spawnSync(process.execPath, [join(repo, "packages/cli/bin/agentherd.ts"), "status"], {
+          env,
+          input: "",
+          encoding: "utf8",
+          timeout: 10_000,
+        });
+      // The host opens herd.db only once a channel is bound. The CLI creates it, as an owner's
+      // earlier use would, so the copy has a database to carry.
+      const seeded = cliStatus();
+      expect(seeded.status, seeded.stderr).toBe(0);
       await build({ root: desktop, mode: "production", logLevel: "error" });
       const electron: string =
         process.env.AGENTHERD_TEST_ELECTRON ?? createRequire(import.meta.url)("electron");
@@ -92,11 +103,7 @@ test.skipIf(process.platform !== "win32" && process.platform !== "darwin")(
       } finally {
         db.close();
       }
-      const cli = spawnSync(
-        process.execPath,
-        [join(repo, "packages/cli/bin/agentherd.ts"), "status"],
-        { env, input: "", encoding: "utf8", timeout: 10_000 },
-      );
+      const cli = cliStatus();
       expect(cli.status, cli.stderr).toBe(0);
       expect(cli.stdout).toContain(marker);
       expect(readFileSync(join(home, "herd.db"))).toEqual(before);
