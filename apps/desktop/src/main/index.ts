@@ -13,27 +13,14 @@ import type {
   TasksView,
 } from "@agentherd/host/api";
 import { HOST_METHODS } from "@agentherd/host/api";
-import {
-  acquireLocationLease,
-  type LocationLease,
-  locationContext,
-  resolveLocation,
-} from "@agentherd/host/data-location";
+import { locationContext } from "@agentherd/host/data-location";
 import { connectHost, type HostClient, socketPath } from "@agentherd/host/server";
-import {
-  app,
-  BrowserWindow,
-  dialog,
-  ipcMain,
-  Menu,
-  nativeTheme,
-  powerSaveBlocker,
-  shell,
-} from "electron";
+import { app, BrowserWindow, ipcMain, Menu, nativeTheme, powerSaveBlocker, shell } from "electron";
 import type { Notice, NoticeTab } from "../shared/pet-notify.ts";
 import { ApproveKey, type PetArm, shortcutLabel } from "../shared/pet-shortcuts.ts";
 import { isTheme, type Theme, themeFrom, themeText } from "../shared/theme.ts";
-import { ensureHost, ownsHost, stopOwnedHost } from "./host-process.ts";
+import { setupDataDirectory } from "./data-directory-electron.ts";
+import { ensureHost, stopOwnedHost } from "./host-process.ts";
 import { MenuBar } from "./menu-bar.ts";
 import { Notifier } from "./notifier.ts";
 import { PetWindow } from "./pet-window.ts";
@@ -46,29 +33,16 @@ app.setAboutPanelOptions({ applicationName: "AgentHerd", copyright: "MIT License
 const APP_ICON = join(import.meta.dirname, "../../resources/icon.png");
 /** Black on clear, so macOS tints it for a light or dark menu bar (ADR 0079). */
 const MENU_BAR_ICON = join(import.meta.dirname, "../../resources/trayTemplate.png");
-/**
- * Takes the shared location lease before anything touches the data directory and resolves it
- * the same way the host and the CLI do. The lease is held until the owned host has stopped.
- */
-function openDataLocation(): { home: string; lease: LocationLease } {
-  const ctx = locationContext();
-  let lease: LocationLease | undefined;
-  try {
-    lease = acquireLocationLease(ctx.base, "shared");
-    return { home: resolveLocation(ctx).home, lease };
-  } catch (error) {
-    lease?.release();
-    // Recovery from a corrupt or missing location comes with the data directory settings.
-    dialog.showErrorBox("AgentHerd cannot open its data directory", (error as Error).message);
-    process.exit(1);
-  }
-}
-
-const dataLocation = openDataLocation();
-const home = dataLocation.home;
-const sock = socketPath(home);
-
 let win: BrowserWindow | undefined;
+const dataLocation = setupDataDirectory(
+  locationContext(),
+  () => win,
+  (home) => {
+    if (!quitting) void connect(home);
+  },
+);
+let startup: Promise<void> | undefined;
+let drained = false;
 /** The menu bar icon on macOS, the tray icon on Windows (ADR 0079). */
 let menuBar: MenuBar | undefined;
 let client: HostClient | undefined;
@@ -157,17 +131,23 @@ function onHostEvent(event: HostEvent): void {
   send("host:event", event);
 }
 
-async function connect(): Promise<void> {
+async function connect(home: string): Promise<void> {
+  const sock = socketPath(home);
   while (!quitting) {
     try {
-      await ensureHost(home, sock);
+      await ensureHost(home, sock, () => quitting);
+      if (quitting) return;
       const c = await connectHost(sock);
+      if (quitting) {
+        c.close();
+        return;
+      }
       client = c;
       c.onEvent(onHostEvent);
       c.onClose(() => {
         if (client === c) client = undefined;
         setConnected(false);
-        if (!quitting) setTimeout(() => void connect(), 1000);
+        if (!quitting) setTimeout(() => void connect(home), 1000);
       });
       setConnected(true);
       const status = await c.host.status();
@@ -348,7 +328,7 @@ function createWindow(): void {
     minHeight: 560,
     title: "AgentHerd",
     icon: APP_ICON,
-    show: process.env.AGENTHERD_CAPTURE === undefined,
+    show: startup !== undefined && process.env.AGENTHERD_CAPTURE === undefined,
     // The sidebar is translucent on macOS; the renderer keeps the page card opaque.
     ...(process.platform === "darwin"
       ? {
@@ -402,6 +382,17 @@ function createWindow(): void {
     return { action: "deny" };
   });
   created.webContents.on("will-navigate", (event) => event.preventDefault());
+  if (startup === undefined) {
+    const start = () => {
+      if (!quitting && startup === undefined) startup = dataLocation.start();
+    };
+    // The hidden window has rendered its initial moving view before we begin copying.
+    created.once("ready-to-show", () => {
+      if (!quitting && process.env.AGENTHERD_CAPTURE === undefined) created.show();
+      start();
+    });
+    created.webContents.once("did-fail-load", start);
+  }
   const devUrl = process.env.ELECTRON_RENDERER_URL;
   if (devUrl !== undefined) void created.loadURL(devUrl);
   else void created.loadFile(join(import.meta.dirname, "../renderer/index.html"));
@@ -447,7 +438,7 @@ app.whenReady().then(() => {
   });
   createWindow();
   createMenuBar();
-  void connect();
+
   // The pet counts as a window; the dock icon brings back the main one.
   app.on("activate", () => showWindow());
 });
@@ -464,16 +455,20 @@ app.on("window-all-closed", () => {
 // before-quit has already waited for the owned host to stop.
 app.on("will-quit", () => {
   shortcuts.dispose();
-  dataLocation.lease.release();
+  dataLocation.close();
 });
 
 app.on("before-quit", (event) => {
+  if (drained) return;
+  event.preventDefault();
+  if (quitting) return;
   quitting = true;
   menuBar?.destroy();
   menuBar = undefined;
   client?.close();
-  if (!ownsHost()) return;
-  // Let the host stop its tasks and tell the owner first; quit again once it is gone.
-  event.preventDefault();
-  void stopOwnedHost().finally(() => app.quit());
+  // Repeated quit requests cannot release the lease before the last log write.
+  void Promise.allSettled([startup, stopOwnedHost()]).then(() => {
+    drained = true;
+    app.quit();
+  });
 });

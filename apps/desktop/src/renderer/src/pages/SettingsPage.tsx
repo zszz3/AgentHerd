@@ -30,6 +30,7 @@ import { type KeyboardEvent, type ReactNode, useEffect, useState } from "react";
 import { isQuiet, quietLine, snoozeUntil } from "../../../shared/pet-notify";
 import { type ShortcutState, shortcutLabel, shortcutOf } from "../../../shared/pet-shortcuts";
 import { THEMES, type Theme } from "../../../shared/theme";
+import { DataDirectorySettings } from "../components/DataDirectory";
 import { FeishuSection } from "../components/FeishuSection";
 import { FigurePicker } from "../components/FigurePicker";
 import {
@@ -242,14 +243,7 @@ export function SettingsPage() {
               </IconTile>
             }
             title="数据目录"
-            trailing={
-              <span
-                className="selectable block max-w-[420px] truncate font-mono text-ink-muted text-sm"
-                title={status.home}
-              >
-                {status.home}
-              </span>
-            }
+            trailing={<DataDirectorySettings home={status.home} />}
           />
           <Row
             icon={

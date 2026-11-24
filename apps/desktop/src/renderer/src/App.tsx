@@ -14,6 +14,7 @@ import {
   WifiOff,
 } from "lucide-react";
 import { useEffect } from "react";
+import { DataDirectoryGate } from "./components/DataDirectory";
 import { Logo } from "./components/Logo";
 import { SidebarStatus } from "./components/SidebarStatus";
 import { Dot, Toasts } from "./components/ui";
@@ -167,6 +168,14 @@ function PageBody({ page }: { page: Page }) {
 }
 
 export function App() {
+  return (
+    <DataDirectoryGate>
+      <HostApp />
+    </DataDirectoryGate>
+  );
+}
+
+function HostApp() {
   const mac = isMac();
   const page = useApp((s) => s.page);
   const firstRun = useApp((s) => s.firstRun);

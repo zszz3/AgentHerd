@@ -8,7 +8,7 @@ import { hostDataPaths } from "@agentherd/host/data-home-paths";
 import { isHostRunning } from "@agentherd/host/server";
 import { app, type UtilityProcess, utilityProcess } from "electron";
 
-let child: UtilityProcess | undefined;
+let child: { process: UtilityProcess; detachLog(): void } | undefined;
 
 /**
  * The host's sources: in the packaged app under Resources/host/packages (scripts/package-mac.ts,
@@ -33,8 +33,12 @@ export function agentsDir(): string | undefined {
   return existsSync(dir) ? dir : undefined;
 }
 
-export async function ensureHost(home: string, sock: string): Promise<void> {
-  if (await isHostRunning(sock)) return;
+export async function ensureHost(
+  home: string,
+  sock: string,
+  quitting: () => boolean,
+): Promise<void> {
+  if ((await isHostRunning(sock)) || quitting()) return;
   const logFile = join(home, hostDataPaths.hostLog.relative);
   if (child === undefined) {
     const logDir = join(home, hostDataPaths.logs.relative);
@@ -55,11 +59,16 @@ export async function ensureHost(home: string, sock: string): Promise<void> {
     };
     p.stdout?.on("data", log);
     p.stderr?.on("data", log);
+    const detachLog = () => {
+      p.stdout?.off("data", log);
+      p.stderr?.off("data", log);
+    };
     p.on("exit", (code) => {
+      detachLog();
       console.error(`[desktop] host exited with code ${code}`);
-      if (child === p) child = undefined;
+      if (child?.process === p) child = undefined;
     });
-    child = p;
+    child = { process: p, detachLog };
   }
   for (let i = 0; i < 100; i++) {
     if (await isHostRunning(sock)) return;
@@ -81,11 +90,13 @@ export function ownsHost(): boolean {
  * is the only way the host gets to clean up.
  */
 export function stopOwnedHost(timeoutMs = HOST_STOP_MS): Promise<void> {
-  const p = child;
+  const owned = child;
   child = undefined;
-  if (p === undefined) return Promise.resolve();
+  if (owned === undefined) return Promise.resolve();
+  const { process: p, detachLog } = owned;
   return new Promise((done) => {
     const timer = setTimeout(() => {
+      detachLog();
       p.kill();
       done();
     }, timeoutMs);
@@ -97,6 +108,7 @@ export function stopOwnedHost(timeoutMs = HOST_STOP_MS): Promise<void> {
       p.postMessage({ type: "stop" });
     } catch {
       clearTimeout(timer);
+      detachLog();
       p.kill();
       done();
     }

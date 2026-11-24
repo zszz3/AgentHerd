@@ -1480,6 +1480,12 @@ function installFakeBridge(): void {
   };
 
   const fakeBridge: Bridge = {
+    dataDirectory: {
+      status: async () => ({ state: "ready", home: status.home, canCopy: true }),
+      change: async () => ({ ok: true, state: "cancelled" }),
+      recover: async () => ({ ok: false, code: "not-unavailable" }),
+      onProgress: () => () => {},
+    },
     host: fake,
     // The pet window's own calls do nothing here, but pictures (ADR 0075) are drawn: a made-up
     // code for any png path, and nothing for a path with "missing" in it.

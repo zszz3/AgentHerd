@@ -9,15 +9,18 @@ import {
   constants,
   fstatSync,
   fsyncSync,
+  lstatSync,
   opendirSync,
   openSync,
   readSync,
+  realpathSync,
   renameSync,
   unlinkSync,
   writeSync,
 } from "node:fs";
 import { homedir } from "node:os";
 import { isAbsolute, join, normalize, resolve } from "node:path";
+import { coreDataPaths } from "@agentherd/core/data-home-paths";
 import {
   acquireLocationLease,
   gateFile,
@@ -156,7 +159,8 @@ function writeJson(path: string, value: unknown): void {
   }
 }
 
-function canListDirectory(path: string): boolean {
+/** Checks availability without writing to the selected directory. */
+export function canListDirectory(path: string): boolean {
   try {
     if (process.platform !== "win32") accessSync(path, constants.X_OK);
     const dir = opendirSync(path);
@@ -166,6 +170,19 @@ function canListDirectory(path: string): boolean {
     } finally {
       dir.closeSync();
     }
+  } catch {
+    return false;
+  }
+}
+
+/** An existing directory, named by its real path, that already holds an AgentHerd database. */
+export function isAgentHerdHome(path: string): boolean {
+  try {
+    return (
+      realpathSync.native(path) === path &&
+      canListDirectory(path) &&
+      lstatSync(join(path, coreDataPaths.database.relative)).isFile()
+    );
   } catch {
     return false;
   }
