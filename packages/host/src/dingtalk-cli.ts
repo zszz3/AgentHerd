@@ -1,7 +1,15 @@
 import { spawn } from "node:child_process";
 import { mkdir, rm, stat, writeFile } from "node:fs/promises";
 import { isAbsolute, join } from "node:path";
-import { dingTalkStateFiles } from "./data-home-paths.ts";
+
+// The DingTalk Workspace CLI keeps its sign-in under these names inside its state directory.
+// Kept here, with only Node built-ins imported, so `scripts/dws-windows-write-smoke.mjs` runs
+// this module on a runner without `pnpm install`.
+export const dingTalkStateFiles = {
+  config: "config",
+  credentials: "credentials",
+  resetPending: "reset-pending",
+} as const;
 
 export type DingTalkIdentity = Readonly<{
   corpId: string;

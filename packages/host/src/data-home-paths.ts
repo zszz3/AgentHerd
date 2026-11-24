@@ -1,4 +1,5 @@
 import { coreDataPaths, type DataHomePath } from "@agentherd/core/data-home-paths";
+import { dingTalkStateFiles } from "./dingtalk-cli.ts";
 
 export const westockDataPaths = {
   win32: { relative: "bin/westock.exe", kind: "persistent" },
@@ -38,13 +39,6 @@ export const wecomConfigFiles = {
 } as const;
 
 const dingTalkDws = { relative: "dingtalk-dws", kind: "persistent" } as const;
-
-// The DingTalk Workspace CLI keeps its sign-in under these names inside `dingTalkDws`.
-export const dingTalkStateFiles = {
-  config: "config",
-  credentials: "credentials",
-  resetPending: "reset-pending",
-} as const;
 
 export const hostDataPaths = {
   wecomCli,
