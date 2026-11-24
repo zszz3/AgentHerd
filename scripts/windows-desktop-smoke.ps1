@@ -80,6 +80,10 @@ try {
             Write-Host "--- $($_.FullName)"
             Get-Content -LiteralPath $_.FullName -Tail 50
         }
+    # The location gate checks the profile: show what it saw.
+    $acl = Get-Acl -LiteralPath $HOME
+    Write-Host "--- profile $HOME owner $($acl.Owner) protected $($acl.AreAccessRulesProtected)"
+    $acl.Access | Format-Table IdentityReference, AccessControlType, FileSystemRights, IsInherited -AutoSize | Out-String | Write-Host
     throw "Desktop did not become ready within 240 s: $lastProbe"
 } finally {
     if ($null -ne $app -and !$app.HasExited) {

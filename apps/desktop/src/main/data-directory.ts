@@ -60,6 +60,12 @@ export function changeConfirmation(
 }
 const cancelled = { ok: true, state: "cancelled" } as const;
 
+/** The window only says the location is unavailable; the log says why. */
+function logUnavailable(error: unknown): void {
+  const reason = error instanceof Error ? error.message : String(error);
+  console.error(`[desktop] data location unavailable: ${reason}`);
+}
+
 export class DataDirectory {
   private view: DataDirectoryView = { state: "starting", canCopy: false };
   private lease?: LocationLease;
@@ -85,8 +91,9 @@ export class DataDirectory {
       // Only a pending request is shown as a move; a normal start stays neutral.
       if (hasLocationRequest(this.ctx)) this.view = { state: "moving", canCopy: false };
       result = await this.ports.apply((files) => this.ports.changed(files), this.stopping.signal);
-    } catch {
+    } catch (error) {
       // Whatever failed, offer the recovery the saved record allows.
+      logUnavailable(error);
       this.unavailable();
       return;
     }
@@ -138,7 +145,8 @@ export class DataDirectory {
       };
       this.ports.ready(home);
       return true;
-    } catch {
+    } catch (error) {
+      logUnavailable(error);
       this.lease?.release();
       this.lease = undefined;
       this.unavailable();
