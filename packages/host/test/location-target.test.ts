@@ -199,7 +199,8 @@ describe("checkTargetParent", () => {
           Buffer.byteLength(path(join(tmp, name, TARGET_NAME)), "utf8"),
         ),
       );
-    const fits = "p".repeat(limit - bytes(""));
+    // A name of n bytes adds n plus its separator to the path without it.
+    const fits = "p".repeat(limit - bytes("") - 1);
     expect(fits.length).toBeGreaterThan(0);
     expect(bytes(fits)).toBe(limit);
 
