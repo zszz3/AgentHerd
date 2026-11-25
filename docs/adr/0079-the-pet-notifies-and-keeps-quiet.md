@@ -40,7 +40,7 @@
    it only counts it on the figure's badge, and a small moon shows by the figure. Nothing is
    lost: the panel, the cards and Feishu keep everything. Feishu itself is not silenced — its
    own do-not-disturb is the phone's.
-5. **Menu bar icon** on macOS (a template sheep, tinted by the system) and the tray on Windows,
+5. **Menu bar icon** on macOS (a template image of the app icon's figure, tinted by the system) and the tray on Windows,
    also when the pet is off: the count of what waits next to the icon; a menu with how AgentHerd
    is doing (「2 个任务在跑」, 「还没连上飞书」, 「AgentHerd 服务未连接」), the quiet line, 「N 件等你
    处理…」 and 「看在跑的任务…」 (the pet's pages), 和主管说话…, 显示桌宠, 打开 AgentHerd, the 免打扰

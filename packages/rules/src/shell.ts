@@ -12,6 +12,26 @@ export class UnparsedCommandError extends Error {
 
 export type JoinOperator = "&&" | "||" | ";" | "|" | "&" | "\n";
 
+export interface Token {
+  /** Unquoted text of the word. */
+  value: string;
+  /** Character offsets of unquoted `,` separators inside `value`. */
+  unquotedCommas: readonly number[];
+  /** Character offsets of unquoted `(` or `)` inside `value`. */
+  unquotedParens: readonly number[];
+  /** Inclusive start offset in the input string. */
+  start: number;
+  /** Exclusive end offset in the input string. */
+  end: number;
+}
+
+export interface RichSegment {
+  /** Operator that joins this segment to the previous one; `null` for the first. */
+  joinedBy: JoinOperator | null;
+  /** Tokens with unquoted comma positions and source offsets preserved. */
+  tokens: Token[];
+}
+
 export interface Segment {
   /** Operator that joins this segment to the previous one; `null` for the first. */
   joinedBy: JoinOperator | null;
@@ -39,31 +59,56 @@ const POSIX_ESCAPE_CHARS = new Set([
 const CMD_BOUNDARY_CHARS = new Set([" ", "\t", "&", "|", ";", "<", ">"]);
 
 function isWindowsPathWord(word: string): boolean {
-  return word.includes("\\") || /^[A-Za-z]:$/.test(word) || word === "." || word === "..";
+  return (
+    word.includes("\\") ||
+    /^[A-Za-z]:$/.test(word) ||
+    word === "." ||
+    word === ".." ||
+    /^(?:cd|chdir)$/i.test(word)
+  );
 }
 
-/** Split a command line into segments joined by control operators. */
-export function splitCommand(input: string): Segment[] {
-  const segments: Segment[] = [];
-  let words: string[] = [];
+/** Split a command line into segments while preserving unquoted comma positions and token offsets. */
+export function splitCommandRich(input: string): RichSegment[] {
+  const segments: RichSegment[] = [];
+  let tokens: Token[] = [];
+  let unquotedCommas: number[] = [];
+  let unquotedParens: number[] = [];
   let word = "";
   let inWord = false;
+  let wordStart = 0;
+  let wordEnd = 0;
   let joinedBy: JoinOperator | null = null;
   let i = 0;
 
+  const appendText = (text: string, quoted: boolean, at: number, endAt: number): void => {
+    if (!inWord) {
+      wordStart = at;
+      inWord = true;
+    }
+    wordEnd = endAt;
+    if (!quoted && text === ",") unquotedCommas.push(word.length);
+    if (!quoted && (text === "(" || text === ")")) unquotedParens.push(word.length);
+    word += text;
+  };
+
   const endWord = (): void => {
-    if (inWord) words.push(word);
+    if (inWord) {
+      tokens.push({ value: word, unquotedCommas, unquotedParens, start: wordStart, end: wordEnd });
+    }
+    unquotedCommas = [];
+    unquotedParens = [];
     word = "";
     inWord = false;
   };
   const endSegment = (op: JoinOperator): void => {
     endWord();
-    if (words.length === 0) {
+    if (tokens.length === 0) {
       if (op === "\n" || op === ";") return; // blank line or trailing `;`
       throw new UnparsedCommandError(`empty command before ${JSON.stringify(op)}`);
     }
-    segments.push({ joinedBy, words });
-    words = [];
+    segments.push({ joinedBy, tokens });
+    tokens = [];
     joinedBy = op;
   };
 
@@ -82,14 +127,13 @@ export function splitCommand(input: string): Segment[] {
       }
       // Start of a UNC path (`\\server\share`) rather than a POSIX escape.
       if (!inWord && next === "\\") {
-        word = "\\\\";
-        inWord = true;
+        appendText("\\\\", false, i, i + 2);
         i += 2;
         continue;
       }
       if (next === undefined) {
         if (inWord && isWindowsPathWord(word)) {
-          word += "\\";
+          appendText("\\", false, i, i + 1);
           i += 1;
           continue;
         }
@@ -97,39 +141,37 @@ export function splitCommand(input: string): Segment[] {
       }
       // Trailing backslash on a Windows path before a space or command operator (`rd C:\foo\ /s`).
       if (inWord && isWindowsPathWord(word) && CMD_BOUNDARY_CHARS.has(next)) {
-        word += "\\";
+        appendText("\\", false, i, i + 1);
         i += 1;
         continue;
       }
       if (next === "\\") {
-        word += "\\";
-        inWord = true;
+        appendText("\\", false, i, i + 2);
         i += 2;
         continue;
       }
       if (POSIX_ESCAPE_CHARS.has(next) && !(inWord && isWindowsPathWord(word))) {
-        word += next;
-        inWord = true;
+        appendText(next, false, i, i + 2);
         i += 2;
         continue;
       }
       // Preserve backslashes inside Windows paths (`C:\Users\me\.ssh`, `\\server\share\file`).
-      word += `\\${next}`;
-      inWord = true;
+      appendText(`\\${next}`, false, i, i + 2);
       i += 2;
       continue;
     }
     if (c === "'") {
       const end = input.indexOf("'", i + 1);
       if (end === -1) throw new UnparsedCommandError("unbalanced single quote");
-      word += input.slice(i + 1, end);
-      inWord = true;
+      appendText(input.slice(i + 1, end), true, i, end + 1);
       i = end + 1;
       continue;
     }
     if (c === '"') {
+      const quoteStart = i;
       i += 1;
       let closed = false;
+      let quotedText = "";
       while (i < input.length) {
         const d = input[i] as string;
         if (d === '"') {
@@ -157,19 +199,19 @@ export function splitCommand(input: string): Segment[] {
             escNext === "`" ||
             (escNext === "\\" && input[i + 2] === '"')
           ) {
-            word += escNext;
+            quotedText += escNext;
             i += 2;
             continue;
           }
-          word += d;
+          quotedText += d;
           i += 1;
           continue;
         }
-        word += d;
+        quotedText += d;
         i += 1;
       }
       if (!closed) throw new UnparsedCommandError("unbalanced double quote");
-      inWord = true;
+      appendText(quotedText, true, quoteStart, i);
       continue;
     }
     if (c === "`" || (c === "$" && next === "(")) {
@@ -196,8 +238,11 @@ export function splitCommand(input: string): Segment[] {
     }
     if (c === ">" || c === "<") {
       // Redirections become their own words: `2>` `>>` `>` `<` `&>`.
+      const opStart = inWord && /^\d+$/.test(word) ? wordStart : i;
       const fd = inWord && /^\d+$/.test(word) ? word : "";
       if (fd !== "") {
+        unquotedCommas = [];
+        unquotedParens = [];
         word = "";
         inWord = false;
       } else {
@@ -213,14 +258,16 @@ export function splitCommand(input: string): Segment[] {
         op += "&";
         i += 1;
       }
-      words.push(op);
+      tokens.push({ value: op, unquotedCommas: [], unquotedParens: [], start: opStart, end: i });
       continue;
     }
     if (c === "&" && next === ">") {
       endWord();
+      const opStart = i;
       const append = input[i + 2] === ">";
-      words.push(append ? "&>>" : "&>");
+      const op = append ? "&>>" : "&>";
       i += append ? 3 : 2;
+      tokens.push({ value: op, unquotedCommas: [], unquotedParens: [], start: opStart, end: i });
       continue;
     }
     if ((OPERATORS as readonly string[]).includes(c)) {
@@ -228,17 +275,24 @@ export function splitCommand(input: string): Segment[] {
       i += 1;
       continue;
     }
-    word += c;
-    inWord = true;
+    appendText(c, false, i, i + 1);
     i += 1;
   }
 
   endWord();
-  if (words.length > 0) segments.push({ joinedBy, words });
+  if (tokens.length > 0) segments.push({ joinedBy, tokens });
   else if (joinedBy !== null && joinedBy !== ";" && joinedBy !== "&" && joinedBy !== "\n") {
     throw new UnparsedCommandError(`missing command after ${JSON.stringify(joinedBy)}`);
   }
   return segments;
+}
+
+/** Split a command line into segments joined by control operators. */
+export function splitCommand(input: string): Segment[] {
+  return splitCommandRich(input).map((s) => ({
+    joinedBy: s.joinedBy,
+    words: s.tokens.map((t) => t.value),
+  }));
 }
 
 const WRAPPERS = new Set([

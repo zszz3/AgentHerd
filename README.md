@@ -30,7 +30,7 @@ Click the pet in the corner of your screen to tell the Herder what you want. The
 
 - **Click her to talk.** 大肥鱼, Claude 娘 or one of 16 anime figures sits in a corner of your screen. A click opens the conversation with the Herder, with task cards and approvals right there. Drop a file on her to hand it over.
 - **See what she is doing.** She reads a book while she thinks and hops when a reply arrives; a small dot above her for each running task shows which one waits for you.
-- **Out of sight, still in the loop.** System notifications, a sheep in the menu bar for status, and quiet hours at night.
+- **Out of sight, still in the loop.** System notifications, an icon in the menu bar for status, and quiet hours at night.
 - **Shortcuts.** ⇧⌘Space talks to her from any app; ⇧⌘Y twice allows the oldest approval.
 
 ### Hand out work and follow it

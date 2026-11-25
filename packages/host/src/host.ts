@@ -40,6 +40,7 @@ import {
   activityTurns,
   agentForModel,
   builtinProviders,
+  dreamModels,
   fallbackOrder,
   herderFromSettings,
   LOGIN_FIELD,
@@ -61,9 +62,11 @@ import {
   TIERS,
   type TierPlacement,
   testModel,
+  validateDreamReply,
 } from "@agentherd/herder";
 import type { AgentProfile, Channel, Locale, Mode, SetupUI } from "@agentherd/protocol";
 import { DEFAULT_LOCALE } from "@agentherd/protocol";
+import { redact } from "@agentherd/rules";
 import QRCode from "qrcode";
 import { Agents } from "./agents.ts";
 import { writeAntigravitySettings } from "./antigravity-home.ts";
@@ -189,7 +192,7 @@ export const AGENT_DOWN_MS = 30 * 60_000;
 
 export interface HostOptions {
   home: string;
-  /** Run background memory jobs (task cases, reviews) with a cheap model. Off in tests. */
+  /** Run background memory jobs. Off in tests. */
   memoryJobs?: boolean;
   userHome?: string;
   /** Model keys (and anything else under account names). */
@@ -1053,10 +1056,19 @@ export class Host implements HostApi {
     return this.embedder;
   }
 
+  private readonly logMemoryModel = (line: string): void => {
+    this.log(this.herd?.store.memory.redact(line) ?? redact(line));
+  };
+
   /** Memory jobs try the cheap models in turn, then the Herder's (ADR 0090). */
   private readonly memoryChain = new MemoryModelChain(
     () => memoryModels(this.settings(), this.opts.secrets, this.placement(), this.opts.env),
-    (line) => this.log(line),
+    this.logMemoryModel,
+  );
+
+  private readonly dreamChain = new MemoryModelChain(
+    () => dreamModels(this.settings(), this.opts.secrets, this.placement(), this.opts.env),
+    this.logMemoryModel,
   );
 
   private memoryComplete(system: string, user: string, signal: AbortSignal): Promise<string> {
@@ -1070,6 +1082,21 @@ export class Host implements HostApi {
       transcript: (taskId) => herd.store.transcript(taskId),
       herderTurnsAfter: (afterId, limit) => herd.store.herderTurnsAfter(afterId, limit),
       complete: (system, user, signal) => this.memoryComplete(system, user, signal),
+      dreamComplete: (system, user, signal) =>
+        this.dreamChain.complete(system, user, signal, validateDreamReply),
+      recentTurns: (limit) => herd.store.herderTurns(limit),
+      recentTasks: (limit) =>
+        herd.store.tasks(limit).map(({ task, failed, endedWhy }) => ({
+          id: task.id,
+          title: task.title,
+          project: task.project,
+          stage: task.stage,
+          failed,
+          ...(endedWhy === undefined ? {} : { endedWhy }),
+          lastReport: task.lastReport,
+          updatedAt: task.updatedAt,
+        })),
+      isQuietTime: () => inDreamQuietHours(petSettings(this.config()).quietHours, new Date()),
       embedder: this.memoryEmbedder(),
       log: (line) => this.log(line),
     });
@@ -1935,6 +1962,14 @@ function writeProfileField(memory: MemoryStore, field: ProfileFieldName, value: 
     return;
   }
   memory.write([{ op: "add", kind: "profile", abstract: `${field}：${value}` }], meta);
+}
+
+export function inDreamQuietHours(hours: string, now: Date): boolean | undefined {
+  if (!QUIET_HOURS.test(hours)) return undefined;
+  const from = hours.slice(0, 5);
+  const to = hours.slice(6);
+  const time = `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
+  return from <= to ? time >= from && time < to : time >= from || time < to;
 }
 
 function petSettings(config: CliConfig): PetSettings {

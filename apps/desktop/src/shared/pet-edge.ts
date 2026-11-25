@@ -39,6 +39,22 @@ export function tuckedX(edge: Edge, stage: Rect, area: Rect): number {
   return area.x + TUCK_SHOW - stage.x - stage.width;
 }
 
+/**
+ * The pet's bottom-right corner pulled onto its screen. After a screen is plugged in, unplugged
+ * or rearranged the corner can sit past the screen's right or bottom edge, and the pet grew its
+ * conversation off the screen. `min` keeps that much of the window on the screen at the left
+ * and top.
+ */
+export function fitCorner<C extends { right: number; bottom: number }>(
+  corner: C,
+  area: Rect,
+  min: number,
+): C {
+  const right = Math.min(Math.max(corner.right, area.x + min), area.x + area.width);
+  const bottom = Math.min(Math.max(corner.bottom, area.y + min), area.y + area.height);
+  return right === corner.right && bottom === corner.bottom ? corner : { ...corner, right, bottom };
+}
+
 /** Keeps a dragged pet inside the work area of the screen under the pointer, on every system. */
 export function fitDrag(window: Rect, area: Rect) {
   return {

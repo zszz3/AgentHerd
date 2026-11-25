@@ -35,6 +35,8 @@ export const MAX_OPS = 5;
 /** Memory found for one turn: at most this many entries and characters (OpenViking: 6, 4000). */
 export const RECALL_MAX_HITS = 6;
 export const RECALL_MAX_CHARS = 4000;
+export const TOP_RULES_MAX_CHARS = 1000;
+export const TOP_RULE_KINDS: readonly MemoryKind[] = ["owner", "decision"];
 /**
  * Kinds looked up for a turn; the profile card is small and always comes along (ADR 0101).
  */
@@ -75,6 +77,10 @@ const SETTLED_RE =
   /不做|不搞|不要做|别做|不支持|不用了|定了|就这么定|决定|一律|统一|直接推|直接合|直接 ?push|直接 ?merge|别提|不提|不再|don't|do not|we won't|settled|decided/i;
 const QUESTION_RE = /[?？]\s*$|[吗呢么]\s*$|^(是不是|能不能|要不要|可不可以|会不会)/;
 const HYPOTHETICAL_RE = /如果|假如|要是|假设|万一|\bif\b|\bsuppose\b/i;
+
+export function isOwnerStatement(words: string): boolean {
+  return !QUESTION_RE.test(words) && !HYPOTHETICAL_RE.test(words);
+}
 const TEMP_PATH_RE = /(^|[\s"'`(（])\/(tmp|private\/tmp|var\/folders|private\/var\/folders)(\/|\b)/;
 const WIN_TEMP_PATH_RE =
   /(?:^|[\s"'`(（:：])(?:(?:[A-Za-z]:[^\r\n"'`)）]*?[\\/])?AppData[\\/]Local[\\/]Temp|[A-Za-z]:[\\/]Windows[\\/]Temp|%TE?MP%)(?=$|[\\/\s"'`)）」，。；;,!?！？])/i;
@@ -136,7 +142,7 @@ export function opProblem(op: ToolOp, turn: TurnContext, old?: MemoryRow): strin
     if (evidence === "") {
       return `${kind} entries need evidence: the owner's own words from this message`;
     }
-    if (QUESTION_RE.test(evidence) || HYPOTHETICAL_RE.test(evidence)) {
+    if (!isOwnerStatement(evidence)) {
       return "a question or an if is not something the owner said is true";
     }
   }
@@ -321,7 +327,7 @@ const MEMORY_DATA_NOTE =
 
 /**
  * The memory for one turn, added to the end of that turn's input and never saved with it (ADR
- * 0101): the owner's profile card (ADR 0091), then the entries that fit what the turn is about —
+ * 0101): the owner's profile card (ADR 0091), the top rules, then entries that fit the turn —
  * what the owner asked for or decided, people, projects, notes, cases and lessons — at most
  * {@link RECALL_MAX_HITS} and {@link RECALL_MAX_CHARS}. `query` is what the turn is about: the
  * owner's words, a timer's job, the letters, a task's result. Empty when there is nothing.
@@ -332,28 +338,50 @@ export async function turnMemory(
   embedder?: Embedder,
 ): Promise<string> {
   const card = memory.list({ kinds: ["profile"] }).reverse(); // oldest first
+  const topIds = new Set<string>();
+  const topRuleLines: string[] = [];
+  let used = 0;
+  const rules = memory
+    .list({ kinds: TOP_RULE_KINDS })
+    .sort(
+      (left, right) =>
+        right.accessCount - left.accessCount || right.updatedAt.localeCompare(left.updatedAt),
+    );
+  for (const rule of rules) {
+    const line = `${entryLine(rule)} · ${KIND_NAMES[rule.kind]}`;
+    const cost = line.length + (topRuleLines.length > 0 ? 1 : 0);
+    if (used + cost > TOP_RULES_MAX_CHARS) continue;
+    used += cost;
+    topRuleLines.push(line);
+    topIds.add(rule.id);
+  }
   const q = query.trim().slice(0, RECALL_QUERY_CHARS);
   const hits =
     q === ""
       ? []
       : await memory.searchHybrid(q, embedder, {
           kinds: RECALL_KINDS,
-          limit: RECALL_MAX_HITS,
+          limit: RECALL_MAX_HITS + topIds.size,
           minScore: RECALL_MIN_SCORE,
         });
-  const lines: string[] = [];
-  let size = 0;
-  for (const h of hits) {
-    const line = `${entryLine(h)} · ${KIND_NAMES[h.kind]}`;
-    if (size + line.length > RECALL_MAX_CHARS) break;
-    lines.push(line);
-    size += line.length;
+  const recalledIds: string[] = [];
+  const recalledLines: string[] = [];
+  for (const hit of hits) {
+    if (topIds.has(hit.id)) continue;
+    const line = `${entryLine(hit)} · ${KIND_NAMES[hit.kind]}`;
+    const cost = line.length + (recalledLines.length > 0 ? 1 : 0);
+    if (used + cost > RECALL_MAX_CHARS) continue;
+    used += cost;
+    recalledIds.push(hit.id);
+    recalledLines.push(line);
+    if (recalledIds.length === RECALL_MAX_HITS) break;
   }
-  if (card.length === 0 && lines.length === 0) return "";
-  memory.touch(hits.slice(0, lines.length).map((h) => h.id));
+  if (card.length === 0 && topIds.size === 0 && recalledIds.length === 0) return "";
+  if (recalledIds.length > 0) memory.touch(recalledIds);
   const parts = [`${TURN_MEMORY_HEADING} · 只在这一轮带着；${MEMORY_DATA_NOTE}]`];
   if (card.length > 0) parts.push(`主人画像：\n${card.map(entryLine).join("\n")}`);
-  if (lines.length > 0) parts.push(`跟这一轮有关的：\n${lines.join("\n")}`);
+  if (topRuleLines.length > 0) parts.push(`长期要求与定了的事：\n${topRuleLines.join("\n")}`);
+  if (recalledLines.length > 0) parts.push(`跟这一轮有关的：\n${recalledLines.join("\n")}`);
   return parts.join("\n");
 }
 

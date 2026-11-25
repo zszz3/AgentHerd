@@ -163,6 +163,7 @@ export {
   CASE_JOB,
   type Completer,
   cosine,
+  DREAM_JOB,
   type Embedder,
   JOB_RETRY_MS,
   LESSON_JOB,

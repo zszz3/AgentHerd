@@ -101,6 +101,12 @@
    the whole screen: measured against the whole screen, a pet standing low grew taller than the
    room above it, main moved the window down to keep it on screen, and the figure jumped a few
    pixels each time the conversation opened or closed (owner, 2026-11-19: 「pet一点就跳一下」).
+   Changed 2026-11-25: plugging in a second screen moved the coordinates under the pet, and the
+   saved corner was left 432 px past the right edge of its screen, so the conversation opened
+   half off the screen (owner: 「接入扩展显示屏，莫名其妙变成这样了」). Main now pulls the corner
+   onto the nearest screen whenever it measures, and places the pet again when a screen is
+   plugged in, unplugged or rearranged. The pet also draws its own thin scrollbar; the system's
+   showed a white strip in dark mode.
 6. **Settings.** 设置 → 桌宠: 显示桌宠 (on by default) and 形象 (大肥鱼 default, Claude 娘; ADR 0092 adds sixteen anime figures and a grid picker), saved
    in `config.json` as `pet: {on, figure}`. The figure credit is shown under the choice.
 7. **License of the art.** The two strips are not under AgentHerd's MIT license:

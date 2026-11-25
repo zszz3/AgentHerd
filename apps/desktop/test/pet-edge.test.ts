@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   EDGE_GAP,
   edgeOf,
+  fitCorner,
   fitDrag,
   peekRight,
   pushedEdge,
@@ -55,4 +56,26 @@ it("tucks a drop at the edge the pointer kept pushing past by a third of the fig
   expect(pushedEdge(-40, 111)).toBe("left");
   expect(pushedEdge(30, 111)).toBeUndefined();
   expect(pushedEdge(0, 111)).toBeUndefined();
+});
+
+describe("the pet after a screen change (ADR 0070)", () => {
+  // Seen live: a second screen became the main one (0–1920 wide) and the corner stayed at
+  // right 2352, so the conversation opened 432 px past the screen's right edge.
+  const main = { x: 0, y: 25, width: 1920, height: 1025 };
+
+  it("pulls a corner past the right or bottom edge back onto the screen", () => {
+    expect(fitCorner({ right: 2352, bottom: 833 }, main, 40)).toEqual({ right: 1920, bottom: 833 });
+    expect(fitCorner({ right: 900, bottom: 1300 }, main, 40)).toEqual({ right: 900, bottom: 1050 });
+    expect(fitCorner({ right: -300, bottom: 0 }, main, 40)).toEqual({ right: 40, bottom: 65 });
+  });
+
+  it("leaves a corner on the screen as it is, tuck and all", () => {
+    const corner = { right: 1228, bottom: 850, edge: "right" as const };
+    expect(fitCorner(corner, main, 40)).toBe(corner);
+    expect(fitCorner({ right: 2352, bottom: 833, edge: "right" as const }, main, 40)).toEqual({
+      right: 1920,
+      bottom: 833,
+      edge: "right",
+    });
+  });
 });

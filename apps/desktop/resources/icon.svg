@@ -1,19 +1,31 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 32 32">
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
   <title>AgentHerd</title>
-  <!-- macOS icon grid: the tile is inset to 824/1024 with a 185px corner. -->
-  <g transform="translate(3.125 3.125) scale(0.8047)">
-    <rect width="32" height="32" rx="7.2" fill="#1c1c1e"/>
-    <g fill="#ffffff">
-      <circle cx="13" cy="13.5" r="4.6"/>
-      <circle cx="18.5" cy="11.8" r="4.8"/>
-      <circle cx="23" cy="15.2" r="4.2"/>
-      <circle cx="19.5" cy="18.4" r="4.6"/>
-      <circle cx="14" cy="18.6" r="4.2"/>
-    </g>
-    <g stroke="#ffffff" stroke-width="2.2" stroke-linecap="round">
-      <path d="M14.2 22v3.6M20.6 22v3.6"/>
-    </g>
-    <ellipse cx="9.2" cy="15.6" rx="3.1" ry="3.8" fill="#1c1c1e" stroke="#ffffff" stroke-width="1.6"/>
-    <circle cx="8.4" cy="15" r="0.9" fill="#ffffff"/>
+  <!-- A small white figure with two eyes, standing at the bottom of a dark tile, like the pet in
+       its corner of the screen. macOS icon grid: the tile is inset to 824/1024 with a 185 px corner. -->
+  <defs>
+    <filter id="shadow" x="-15%" y="-15%" width="130%" height="135%">
+      <feDropShadow dx="0" dy="12" stdDeviation="14" flood-color="#000" flood-opacity="0.25"/>
+    </filter>
+    <clipPath id="tile"><rect x="100" y="100" width="824" height="824" rx="185"/></clipPath>
+    <linearGradient id="dark" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#2E2E33"/>
+      <stop offset="1" stop-color="#0D0D0F"/>
+    </linearGradient>
+    <linearGradient id="light" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FFFFFF"/>
+      <stop offset="1" stop-color="#E4E4E7"/>
+    </linearGradient>
+    <linearGradient id="sheen" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FFFFFF" stop-opacity="0.10"/>
+      <stop offset="0.5" stop-color="#FFFFFF" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+  <g filter="url(#shadow)"><rect x="100" y="100" width="824" height="824" rx="185" fill="url(#dark)"/></g>
+  <g clip-path="url(#tile)">
+    <path d="M262 940 L262 652 C262 494 374 392 512 392 C650 392 762 494 762 652 L762 940 Z" fill="url(#light)"/>
   </g>
+  <rect x="102" y="102" width="820" height="820" rx="183" fill="none" stroke="#FFFFFF" stroke-opacity="0.07" stroke-width="4"/>
+  <rect x="100" y="100" width="824" height="824" rx="185" fill="url(#sheen)"/>
+  <rect x="430" y="560" width="46" height="96" rx="23" fill="#111111"/>
+  <rect x="548" y="560" width="46" height="96" rx="23" fill="#111111"/>
 </svg>

@@ -15,7 +15,16 @@ import {
   shell,
 } from "electron";
 import { hitPetRegion, type PetRegion, type PetRoom } from "../shared/bridge.ts";
-import { type Edge, edgeOf, fitDrag, peekRight, pushedEdge, tuckedX } from "../shared/pet-edge.ts";
+import {
+  type Edge,
+  edgeOf,
+  fitCorner,
+  fitDrag,
+  peekRight,
+  pushedEdge,
+  type Rect,
+  tuckedX,
+} from "../shared/pet-edge.ts";
 import { fileToOpen, type PictureDisk, pictureToShow } from "./open-file";
 import { petMenuItems } from "./pet-menu";
 
@@ -122,6 +131,10 @@ export class PetWindow {
 
   constructor(opts: PetWindowOptions) {
     this.opts = opts;
+    // A screen plugged in, unplugged or rearranged: the pet comes back whole onto a screen.
+    screen.on("display-added", () => this.refit());
+    screen.on("display-removed", () => this.refit());
+    screen.on("display-metrics-changed", () => this.refit());
     ipcMain.on("pet:drag-start", (e) => {
       const w = this.own(e);
       if (w === undefined) return;
@@ -381,16 +394,50 @@ export class PetWindow {
    * to keep it on screen: the figure jumped each time the conversation opened or closed.
    */
   private tellRoom(w: BrowserWindow): void {
+    const area = this.cornerArea();
     const anchor = this.anchor;
-    if (anchor === undefined || w.isDestroyed()) return;
-    const area = screen.getDisplayNearestPoint({
-      x: anchor.right - 1,
-      y: anchor.bottom - 1,
-    }).workArea;
+    if (area === undefined || anchor === undefined || w.isDestroyed()) return;
     const room = { width: anchor.right - area.x, height: anchor.bottom - area.y };
     if (this.lastRoom?.width === room.width && this.lastRoom.height === room.height) return;
     this.lastRoom = room;
     w.webContents.send("pet:room", room);
+  }
+
+  /**
+   * The work area of the screen the pet's corner is on, with the corner pulled onto it. After a
+   * screen change the corner could sit past the screen's edge, and the conversation grew off it.
+   */
+  private cornerArea(): Rect | undefined {
+    const anchor = this.anchor;
+    if (anchor === undefined) return undefined;
+    const area = screen.getDisplayNearestPoint({
+      x: anchor.right - 1,
+      y: anchor.bottom - 1,
+    }).workArea;
+    this.anchor = fitCorner(anchor, area, MIN);
+    return area;
+  }
+
+  /**
+   * A screen was plugged in, unplugged or rearranged. If the system moved the window, the corner
+   * moves with it; then the corner is pulled onto the nearest screen and the pet placed again.
+   */
+  private refit(): void {
+    const w = this.win;
+    if (w === undefined || w.isDestroyed() || this.dragFrom !== undefined) return;
+    const anchor = this.anchor;
+    const was = this.lastPlaced;
+    if (anchor !== undefined && was !== undefined) {
+      const b = w.getBounds();
+      this.anchor = {
+        ...anchor,
+        right: anchor.right + b.x - was.x,
+        bottom: anchor.bottom + b.y - was.y,
+      };
+    }
+    this.lastPlaced = undefined;
+    this.place(w);
+    if (this.anchor !== undefined) this.saveCorner(this.anchor);
   }
 
   private boundsFor(
@@ -398,12 +445,9 @@ export class PetWindow {
     size: { width: number; height: number },
   ): { x: number; y: number; width: number; height: number } {
     const b = w.getBounds();
-    const anchor = this.anchor ?? { right: b.x + b.width, bottom: b.y + b.height };
-    this.anchor = anchor;
-    const area = screen.getDisplayNearestPoint({
-      x: anchor.right - 1,
-      y: anchor.bottom - 1,
-    }).workArea;
+    this.anchor ??= { right: b.x + b.width, bottom: b.y + b.height };
+    const area = this.cornerArea() ?? screen.getPrimaryDisplay().workArea;
+    const anchor = this.anchor;
     // Near the top or left edge the window moves in rather than grow off the screen.
     const bounds = {
       x: Math.max(area.x, anchor.right - size.width),
@@ -558,11 +602,8 @@ export class PetWindow {
 
   private applySize(w: BrowserWindow, width: number, height: number): void {
     const b = w.getBounds();
-    const anchor = this.anchor ?? { right: b.x + b.width, bottom: b.y + b.height };
-    const area = screen.getDisplayNearestPoint({
-      x: anchor.right - 1,
-      y: anchor.bottom - 1,
-    }).workArea;
+    this.anchor ??= { right: b.x + b.width, bottom: b.y + b.height };
+    const area = this.cornerArea() ?? screen.getPrimaryDisplay().workArea;
     // As big as the pet asks, up to the screen: the owner sizes the conversation (ADR 0070).
     const next = {
       width: clamp(Math.ceil(width), MIN, area.width),

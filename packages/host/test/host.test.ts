@@ -6,14 +6,16 @@ import {
   type Herd,
   type HerderHost,
   type Inbox,
+  MemoryStore,
   PROFILE_FIELDS,
   type SecretStore,
   Store,
 } from "@agentherd/core";
-import { afterEach, describe, expect, it } from "vitest";
+import * as herderModels from "@agentherd/herder";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { DEFAULT_PET, type HostEvent, PROFILE_FIELD_NAMES } from "../src/api.ts";
 import { readConfig, writeConfig } from "../src/config.ts";
-import { Host } from "../src/host.ts";
+import { Host, inDreamQuietHours } from "../src/host.ts";
 import { connectHost, isHostRunning, serveApi, socketPath } from "../src/server.ts";
 
 function memorySecrets(): SecretStore & { saved: Record<string, string> } {
@@ -42,11 +44,13 @@ function makeHost(bound = false, profileIds: string[] = [], env: Record<string, 
   const secrets = memorySecrets();
   const channels: FakeChannel[] = [];
   const events: HostEvent[] = [];
+  const logs: string[] = [];
   const host = new Host({
     home,
     userHome: home,
     secrets,
     env,
+    log: (line) => logs.push(line),
     profiles: () =>
       profileIds.map((id) => ({ id, name: id, command: [id], env: {}, exporter: null })),
     createChannel: () => {
@@ -57,7 +61,7 @@ function makeHost(bound = false, profileIds: string[] = [], env: Record<string, 
   });
   host.onEvent((e) => events.push(e));
   cleanups.push(() => host.stop());
-  return { home, host, secrets, channels, events };
+  return { home, host, secrets, channels, events, logs };
 }
 
 async function until(check: () => boolean): Promise<void> {
@@ -66,6 +70,53 @@ async function until(check: () => boolean): Promise<void> {
 }
 
 describe("Host", () => {
+  it("redacts both memory model logs before and after the herd starts", async ({
+    onTestFinished,
+  }) => {
+    const { host, logs } = makeHost(true);
+    const marker = "test-marker";
+    const failure = `model failed: Bearer ${marker}`;
+    const failingModel = {
+      ref: "test",
+      complete: async () => {
+        throw new Error(failure);
+      },
+    };
+    onTestFinished(() => {
+      vi.restoreAllMocks();
+    });
+    vi.spyOn(herderModels, "dreamModels").mockReturnValue([failingModel]);
+    vi.spyOn(herderModels, "memoryModels").mockReturnValue([failingModel]);
+    const redact = vi.spyOn(MemoryStore.prototype, "redact");
+    const logFailures = async () => {
+      for (const name of ["memoryChain", "dreamChain"] as const) {
+        await expect(host[name].complete("s", "u", new AbortController().signal)).rejects.toThrow(
+          "model failed",
+        );
+      }
+      expect(logs.slice(-2)).toEqual(
+        Array(2).fill(expect.stringContaining("model failed: Bearer «redacted»")),
+      );
+      expect(logs.join("\n")).not.toContain(marker);
+    };
+    await logFailures();
+    expect(redact).not.toHaveBeenCalled();
+    await host.start();
+    await logFailures();
+    expect(redact).toHaveBeenCalledTimes(2);
+  });
+
+  it("checks configured dream hours in local time, including midnight", () => {
+    const at = (hours: number, minutes: number) => new Date(2026, 10, 25, hours, minutes);
+    expect(inDreamQuietHours("22:30-07:45", at(22, 30))).toBe(true);
+    expect(inDreamQuietHours("22:30-07:45", at(0, 0))).toBe(true);
+    expect(inDreamQuietHours("22:30-07:45", at(7, 45))).toBe(false);
+    expect(inDreamQuietHours("12:00-13:00", at(12, 30))).toBe(true);
+    expect(inDreamQuietHours("12:00-12:00", at(12, 0))).toBe(false);
+    expect(inDreamQuietHours("", at(0, 0))).toBeUndefined();
+    expect(inDreamQuietHours("25:00-07:45", at(0, 0))).toBeUndefined();
+  });
+
   it("starts without a channel and reports why the Herder is off", async () => {
     const t = makeHost();
     await t.host.start();

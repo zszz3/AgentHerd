@@ -547,7 +547,12 @@ Items from different sessions are processed in parallel. The Herder is not on th
 
 From an agent, three things reach the owner
 ([ADR 0056](../adr/0056-leaving-the-mac-asks-and-questions-close.md), which replaced ADR 0029's
-"only a mass delete"): a mass delete (`packages/rules/src/mass-delete.ts`; never anything inside `/tmp` or the
+"only a mass delete"): a mass delete (`packages/rules/src/mass-delete.ts`, unwrapping
+Windows `cmd` / `%COMSPEC%` / `powershell` / `pwsh` invocations — including `-Command` with trailing
+flags and UTF-16LE `-EncodedCommand` — escalating unreadable wrapper invocations such as stdin `-`,
+piped shell commands, malformed `-EncodedCommand`, piped `Remove-Item`, or `{ ... }` blocks
+mentioning a delete, while leaving external `-File` scripts excluded like other script files; never anything
+inside `/tmp` or the
 system's temporary folder, ADR 0029), the owner's
 `extraGuards` entries, and a step that leaves the Mac (`packages/rules/src/outbound.ts`: push,
 pull-request, merge, comment, publish, deploy, send — git push, gh pr create/merge, gh issue

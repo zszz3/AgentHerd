@@ -8,14 +8,17 @@ import {
   type SecretStore,
 } from "@agentherd/core";
 import { afterEach, describe, expect, it } from "vitest";
+import { validateDreamReply } from "../src/memory-jobs.ts";
 import {
   builtinProviders,
   CUSTOM_CONTEXT_WINDOW,
+  dreamModels,
   herderFallbacks,
   herderFromSettings,
   knownInput,
   MEMORY_MODEL_DOWN_MS,
   MemoryModelChain,
+  memoryModels,
   PI_KEY_ENV,
   PI_MODEL_ENV,
   piModelEnv,
@@ -211,6 +214,41 @@ describe("piModelEnv", () => {
 });
 
 describe("memory models fall back (ADR 0090)", () => {
+  it("dreams on the Herder, strong, then fast; skips unavailable services and duplicate refs", () => {
+    const relay: ModelService = {
+      id: "relay",
+      name: "Relay",
+      kind: "openai-compatible",
+      models: ["chief", "strong", "quick", "deepseek-flash"],
+      baseUrl: "https://relay.example/v1",
+    };
+    const settings = chooseModel(
+      putService(putService(emptyModelSettings(), deepseek), relay),
+      "herder",
+      { serviceId: "relay", model: "chief" },
+    );
+    const entries = (...models: string[]) => models.map((model) => ({ model, auto: false }));
+    const tiers = {
+      strong: entries("strong", "deepseek-flash", "chief"),
+      balanced: [],
+      fast: entries("quick", "strong"),
+    };
+    expect(dreamModels(settings, secrets(), tiers, {}).map((model) => model.ref)).toEqual([
+      "relay/chief",
+      "relay/strong",
+      "relay/deepseek-flash",
+      "relay/quick",
+    ]);
+    expect(memoryModels(settings, secrets(), tiers, {}).map((model) => model.ref)).toEqual([
+      "relay/quick",
+      "relay/strong",
+      "relay/chief",
+    ]);
+    expect(dreamModels(settings, secrets(), undefined, {}).map((model) => model.ref)).toEqual([
+      "relay/chief",
+    ]);
+  });
+
   function fake(ref: string, answer: string | Error, seen: string[]) {
     return {
       ref,
@@ -257,6 +295,21 @@ describe("memory models fall back (ADR 0090)", () => {
     );
     await expect(chain.complete("s", "u", signal)).rejects.toThrow("a/x: 401");
     expect(seen).toEqual(["a/x", "b/y", "a/x", "b/y"]);
+  });
+
+  it("falls through malformed dream replies and cools down the models that returned them", async () => {
+    const seen: string[] = [];
+    const valid = '{"operations":[]}';
+    const chain = new MemoryModelChain(() => [
+      fake("herder", "{broken}", seen),
+      fake("strong", '{"summary":"done"}', seen),
+      fake("fast", valid, seen),
+    ]);
+    const signal = new AbortController().signal;
+    expect(await chain.complete("s", "u", signal, validateDreamReply)).toBe(valid);
+    expect(seen).toEqual(["herder", "strong", "fast"]);
+    expect(await chain.complete("s", "u", signal, validateDreamReply)).toBe(valid);
+    expect(seen.slice(3)).toEqual(["fast"]);
   });
 
   it("says so when no model is set up", async () => {

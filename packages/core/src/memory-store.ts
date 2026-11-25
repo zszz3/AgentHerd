@@ -120,6 +120,7 @@ export type MemoryOp =
       op: "replace";
       id: string;
       abstract: string;
+      scope?: string;
       body?: string;
       evidence?: string;
       until?: string;
@@ -127,7 +128,7 @@ export type MemoryOp =
   | { op: "remove"; id: string };
 
 export interface WriteMeta {
-  actor: "herder" | "task" | "review" | "owner";
+  actor: "herder" | "task" | "review" | "dream" | "owner";
   source: MemorySource;
   sourceRef?: string;
 }
@@ -253,6 +254,7 @@ export const CASE_JOB = "case";
 /** A task that went wrong or needed the owner again, looked at for a lesson (ADR 0054). */
 export const LESSON_JOB = "lesson";
 export const REVIEW_JOB = "review";
+export const DREAM_JOB = "dream";
 
 /** Waits before a failed job runs again: 1 min, 10 min, 1 h; then it stays failed. */
 export const JOB_RETRY_MS = [60_000, 600_000, 3_600_000];
@@ -336,6 +338,10 @@ export class MemoryStore {
   get(id: string): MemoryRow | undefined {
     const r = this.db.prepare(`SELECT ${COLUMNS} FROM memories WHERE id = ?`).get(id);
     return r === undefined ? undefined : toRow(r);
+  }
+
+  redact(text: string): string {
+    return redact(text, this.secrets);
   }
 
   /** Entries by kind and status, newest first. Expired entries are marked first. */
@@ -461,7 +467,7 @@ export class MemoryStore {
       {
         id,
         kind: old.kind,
-        scope: old.scope,
+        scope: op.scope ?? old.scope,
         abstract: op.abstract,
         body: op.body ?? old.body,
         ...(evidence === undefined ? {} : { evidence }),
@@ -826,13 +832,13 @@ export class MemoryStore {
   }
 
   /** The oldest pending job that is due, marked running. */
-  claimJob(): MemoryJob | undefined {
+  claimJob(kind?: string): MemoryJob | undefined {
     const at = this.now().toISOString();
     const r = this.db
       .prepare(
-        "SELECT id, kind, payload_json, attempts FROM memory_jobs WHERE state = 'pending' AND next_at <= ? ORDER BY id LIMIT 1",
+        `SELECT id, kind, payload_json, attempts FROM memory_jobs WHERE state = 'pending' AND next_at <= ? ${kind === undefined ? "" : "AND kind = ?"} ORDER BY id LIMIT 1`,
       )
-      .get(at);
+      .get(at, ...(kind === undefined ? [] : [kind]));
     if (r === undefined) return undefined;
     this.db.prepare("UPDATE memory_jobs SET state = 'running' WHERE id = ?").run(r.id as number);
     return {
@@ -880,12 +886,15 @@ export class MemoryStore {
       .run(this.now().toISOString(), id);
   }
 
-  jobs(limit = 50): (MemoryJob & { state: string; error?: string; createdAt: string })[] {
+  jobs(
+    limit = 50,
+    kind?: string,
+  ): (MemoryJob & { state: string; error?: string; createdAt: string })[] {
     return this.db
       .prepare(
-        "SELECT id, kind, payload_json, attempts, state, error, created_at FROM memory_jobs ORDER BY id DESC LIMIT ?",
+        `SELECT id, kind, payload_json, attempts, state, error, created_at FROM memory_jobs ${kind === undefined ? "" : "WHERE kind = ?"} ORDER BY id DESC LIMIT ?`,
       )
-      .all(limit)
+      .all(...(kind === undefined ? [] : [kind]), limit)
       .map((r) => ({
         id: Number(r.id),
         kind: String(r.kind),

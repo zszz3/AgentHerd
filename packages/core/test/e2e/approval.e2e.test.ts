@@ -130,6 +130,24 @@ describe("E2E-APPROVE", () => {
     expect(store.auditRows("item.decided")).toHaveLength(1);
   });
 
+  it("a wrapped Windows shell mass delete (execute + rawInput.command) asks the owner; a scoped one is approved", async () => {
+    const massCmd = 'powershell -NoProfile -Command \\"Remove-Item -Recurse -Force .\\"';
+    const { channel, store, herd } = await setup(ONE_PERMISSION("allow", massCmd));
+    const run = herd.run("mock", dir, "go");
+    const card = await channel.waitFor(isOpenItem);
+    const view = card.view as ItemView;
+    expect(view.reason).toBe("deletes a lot at once; needs your confirmation");
+    await channel.tap(view.itemId, "allow");
+    const result = await run;
+    expect(result.stopReason).toBe("end_turn");
+    expect(store.decisionsFor(view.itemId)[0]).toMatchObject({ action: "allow", source: "human" });
+
+    const safeCmd = 'cmd /c \\"rd /s /q dist\\"';
+    const safe = await setup(ONE_PERMISSION("allow", safeCmd));
+    await safe.herd.run("mock", dir, "go");
+    expect(safe.channel.ofKind("item")).toHaveLength(0);
+  });
+
   it("an owner's deny rule answers without a card", async () => {
     const { channel, store, herd } = await setup(ONE_PERMISSION("deny", "pnpm test"));
     herd.addRule({

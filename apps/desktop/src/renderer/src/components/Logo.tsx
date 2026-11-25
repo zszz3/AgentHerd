@@ -1,4 +1,6 @@
-// The AgentHerd mark: a fluffy sheep on an inverted tile. Drawn inline, no assets.
+// The AgentHerd mark: a small figure with two eyes standing at the bottom of an inverted tile,
+// like the pet in its corner of the screen. Drawn inline, no assets; same shape as
+// resources/icon.svg.
 
 export function Logo({ size = 24 }: { size?: number }) {
   return (
@@ -11,26 +13,12 @@ export function Logo({ size = 24 }: { size?: number }) {
       className="shrink-0"
     >
       <rect width="32" height="32" rx="8" fill="var(--ah-invert)" />
-      <g fill="var(--ah-on-invert)">
-        <circle cx="13" cy="13.5" r="4.6" />
-        <circle cx="18.5" cy="11.8" r="4.8" />
-        <circle cx="23" cy="15.2" r="4.2" />
-        <circle cx="19.5" cy="18.4" r="4.6" />
-        <circle cx="14" cy="18.6" r="4.2" />
-      </g>
-      <g stroke="var(--ah-on-invert)" strokeWidth="2.2" strokeLinecap="round">
-        <path d="M14.2 22v3.6M20.6 22v3.6" />
-      </g>
-      <ellipse
-        cx="9.2"
-        cy="15.6"
-        rx="3.1"
-        ry="3.8"
-        fill="var(--ah-invert)"
-        stroke="var(--ah-on-invert)"
-        strokeWidth="1.6"
+      <path
+        d="M6.3 32V17.9C6.3 12.9 10.3 9.6 16 9.6S25.7 12.9 25.7 17.9V32Z"
+        fill="var(--ah-on-invert)"
       />
-      <circle cx="8.4" cy="15" r="0.9" fill="var(--ah-on-invert)" />
+      <rect x="12.9" y="15.6" width="2" height="4" rx="1" fill="var(--ah-invert)" />
+      <rect x="17.1" y="15.6" width="2" height="4" rx="1" fill="var(--ah-invert)" />
     </svg>
   );
 }
