@@ -7,6 +7,9 @@ import { join, resolve } from "node:path";
 import { isHostRunning } from "@agentherd/host/server";
 import { app, type UtilityProcess, utilityProcess } from "electron";
 
+import { DesktopMijiaTransport } from "./mijia-desktop.ts";
+
+export const desktopMijiaTransport = new DesktopMijiaTransport();
 let child: UtilityProcess | undefined;
 
 /**
@@ -71,6 +74,7 @@ export async function ensureHost(home: string, sock: string): Promise<void> {
       if (child === p) child = undefined;
     });
     child = p;
+    desktopMijiaTransport.attach(p);
   }
   for (let i = 0; i < 100; i++) {
     if (await isHostRunning(sock)) return;
@@ -95,6 +99,7 @@ export function stopOwnedHost(timeoutMs = HOST_STOP_MS): Promise<void> {
   const p = child;
   child = undefined;
   if (p === undefined) return Promise.resolve();
+  desktopMijiaTransport.detach(p);
   return new Promise((done) => {
     const timer = setTimeout(() => {
       p.kill();

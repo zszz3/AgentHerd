@@ -64,6 +64,7 @@ export type {
   HerderRequestRecord,
   HerderSuggestion,
   HerderTurnRole,
+  LiveOwnerTurn,
   OwnerImage,
   VoiceRequest,
 } from "./herder-port.ts";
@@ -129,7 +130,9 @@ export {
   SEEN_KEEP,
 } from "./mailbox-store.ts";
 export type {
+  AppToolAttempt,
   AppToolInfo,
+  AppToolPreflight,
   AppTools,
   GatewayOptions,
   HerdReport,
@@ -141,6 +144,14 @@ export {
   HERD_REPORT_TOOL,
   HIDDEN_META,
   McpGateway,
+  MIJIA_CAPABILITIES,
+  MIJIA_LIST,
+  MIJIA_RUN_ACTION,
+  MIJIA_RUN_SCENE,
+  MIJIA_SCENES,
+  MIJIA_SET_PROPERTY,
+  MIJIA_STATUS,
+  MIJIA_TOOLS,
   MULTI_EXECUTE,
   parseReport,
   REPORT_SUMMARY_MAX,

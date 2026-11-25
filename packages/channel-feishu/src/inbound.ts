@@ -47,6 +47,7 @@ export function parseCardAction(payload: unknown): Inbound | null {
 /** An owner message as Feishu sent it; images are still keys to download. */
 export interface FeishuMessage {
   messageId: string;
+  nativeText?: true;
   text: string;
   from: string;
   replyTo?: { channelId: "feishu"; id: string };
@@ -116,6 +117,7 @@ export function parseFeishuMessage(payload: unknown): FeishuMessage | null {
 
   const messageId = typeof message.message_id === "string" ? message.message_id : "";
   const parsed: FeishuMessage = { messageId, text, from: openId, imageKeys, files };
+  if (message.message_type === "text") parsed.nativeText = true;
   const parentId = typeof message.parent_id === "string" ? message.parent_id : null;
   if (parentId !== null && parentId !== "") parsed.replyTo = { channelId: "feishu", id: parentId };
   return parsed;

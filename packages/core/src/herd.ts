@@ -7,7 +7,7 @@ import { join } from "node:path";
 import type { AgentProfile, Inbound, Item, Mode, Rule } from "@agentherd/protocol";
 import { DEFAULT_LOCALE } from "@agentherd/protocol";
 import type { OutboundStep } from "@agentherd/rules";
-import { approveAppCalls, blockDeniedOfficePreflight } from "./app-calls.ts";
+import { approveAppCalls, approveExactAppCall, blockDeniedOfficePreflight } from "./app-calls.ts";
 import { Board } from "./board.ts";
 import { type Clock, systemClock } from "./clock.ts";
 import { GitHubWatch } from "./github-watch.ts";
@@ -110,6 +110,7 @@ export class Herd {
       ...(opts.remindMinutes === undefined ? {} : { remindMinutes: opts.remindMinutes }),
       ...(opts.timeoutMinutes === undefined ? {} : { timeoutMinutes: opts.timeoutMinutes }),
       ...(opts.secrets === undefined ? {} : { secrets: opts.secrets }),
+      ...(opts.exactApprovalEnv === undefined ? {} : { exactApprovalEnv: opts.exactApprovalEnv }),
       texts: this.texts,
       onAnswered: (item, answer, how) => this.toldApproval(item, answer, how),
     });
@@ -150,6 +151,8 @@ export class Herd {
         {
           ...(opts.apps === undefined ? {} : { apps: opts.apps }),
           approve: (taskId, calls) => approveAppCalls(this.ctx, taskId, calls),
+          approveExact: (taskId, call, preview, expiresAt, signal) =>
+            approveExactAppCall(this.ctx, taskId, call, preview, expiresAt, signal),
           checkPreflight: (taskId, call) => blockDeniedOfficePreflight(this.ctx, taskId, call),
           denied: (title) => this.texts.appDenied(title),
           ack: (taskId, text) => this.runner.ack(taskId, text),
@@ -305,8 +308,8 @@ export class Herd {
           }),
       sources: () => this.ctx.sources.list(),
       checkModel: async (ref) => this.opts.agentModels?.check?.(ref) ?? { ok: true },
-      startTask: async (profileId, cwd, title, prompt, model, images, allowed) => {
-        const { taskId, turn } = await this.startTask(
+      startTask: async (profileId, cwd, title, prompt, model, images, allowed, liveOwnerTurn) => {
+        const { taskId, turn } = await this.runner.startTask(
           profileId,
           cwd,
           title,
@@ -315,6 +318,7 @@ export class Herd {
           images,
           allowed,
           "herder",
+          this.started && this.owner.consumeLiveTurn(liveOwnerTurn),
         );
         turn.catch(() => {});
         return taskId;
@@ -607,6 +611,7 @@ export class Herd {
   }
 
   async stop(): Promise<void> {
+    this.runner.revokeOwnerAttempts();
     await this.herder?.stop();
     this.board.stop();
     this.ctx.watchdog.stop();

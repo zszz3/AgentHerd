@@ -180,11 +180,16 @@ export class Socials {
 }
 
 /** Several tool sources as one; each tool goes to the source that listed it. */
-export function combineApps(parts: (AppTools | undefined)[]): AppTools | undefined {
+export function combineApps(
+  parts: (AppTools | undefined)[],
+  localOwners?: ReadonlyMap<string, AppTools>,
+): AppTools | undefined {
   const sources = parts.filter((p): p is AppTools => p !== undefined);
   if (sources.length <= 1) return sources[0];
   const owners = new Map<string, AppTools>();
   const ownerOf = async (name: string): Promise<AppTools> => {
+    const local = localOwners?.get(name);
+    if (local !== undefined) return local;
     if (!owners.has(name)) {
       for (const s of sources) {
         const tools = await s.list().catch(() => [] as McpTool[]);
@@ -200,7 +205,9 @@ export function combineApps(parts: (AppTools | undefined)[]): AppTools | undefin
       lists.forEach((tools, i) => {
         for (const t of tools) owners.set(t.name, sources[i] as AppTools);
       });
-      return lists.flat();
+      return lists.flatMap((tools, i) =>
+        tools.filter((tool) => (localOwners?.get(tool.name) ?? sources[i]) === sources[i]),
+      );
     },
     describe: async (slugs) => {
       const out = new Map<string, AppToolInfo>();
@@ -211,7 +218,8 @@ export function combineApps(parts: (AppTools | undefined)[]): AppTools | undefin
       }
       return out;
     },
-    preflight: async (name, args) => (await ownerOf(name)).preflight?.(name, args),
+    preflight: async (name, args, attempt) =>
+      (await ownerOf(name)).preflight?.(name, args, attempt),
     call: async (name, args) => (await ownerOf(name)).call(name, args),
   };
 }

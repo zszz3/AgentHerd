@@ -137,14 +137,35 @@ export interface AppToolInfo {
   hints?: AppHints;
 }
 
-export interface AppToolPreflight {
-  /** Safe to persist and show to the owner; not necessarily the execution arguments. */
-  approvalArguments: unknown;
-  /** Runs with the exact arguments validated during preflight. */
-  execute: (beforeDispatch?: () => void) => Promise<unknown>;
+export interface ExactApprovalPreview {
+  readonly text: string;
+  /** Unserialized fields for the redaction check only; never stored or sent. */
+  readonly source: readonly string[];
 }
 
+export type AppToolPreflight = {
+  /** Runs with the exact arguments validated during preflight. */
+  execute: (beforeDispatch?: () => void) => Promise<unknown>;
+} & (
+  | { approvalArguments: unknown; exactApproval?: never }
+  | {
+      approvalArguments?: never;
+      exactApproval: {
+        preview: ExactApprovalPreview;
+        expiresAt: number;
+        cancel(): void;
+        signal?: AbortSignal;
+      };
+    }
+);
+
 /** The owner's connected apps, as the gateway uses them. */
+export interface AppToolAttempt {
+  readonly signal: AbortSignal;
+  /** One opaque identity per actual prompt. */
+  readonly key: object;
+}
+
 export interface AppTools {
   list(): Promise<McpTool[]>;
   /** Titles and hints of app tools by slug; unknown slugs are missing from the map. */
@@ -153,6 +174,7 @@ export interface AppTools {
   preflight?(
     name: string,
     args: unknown,
+    attempt?: AppToolAttempt,
   ): AppToolPreflight | undefined | Promise<AppToolPreflight | undefined>;
   /** Runs one tool; the answer is an MCP tools/call result. */
   call(name: string, args: unknown): Promise<unknown>;
@@ -165,6 +187,13 @@ export interface GatewayOptions {
   checkPreflight?: (taskId: string, call: AppCall) => void;
   /** Whether the calls may run (the approval pipeline, maybe the owner). */
   approve?: (taskId: string, calls: AppCall[]) => Promise<boolean>;
+  approveExact?: (
+    taskId: string,
+    call: AppCall,
+    preview: ExactApprovalPreview,
+    expiresAt: number,
+    signal: AbortSignal,
+  ) => Promise<"allow" | "refused" | "closed">;
   /** Tool error text for calls the owner did not allow. */
   denied?: (title: string) => string;
   /** Sends an agent's `herd_ack` line to the owner; returns why it was not sent. */
@@ -174,6 +203,21 @@ export interface GatewayOptions {
 /** Meta tools that only search or describe tools: no approval. */
 export const DIRECT_META = new Set(["COMPOSIO_SEARCH_TOOLS", "COMPOSIO_GET_TOOL_SCHEMAS"]);
 export const MULTI_EXECUTE = "COMPOSIO_MULTI_EXECUTE_TOOL";
+export const MIJIA_LIST = "mijia_list_devices";
+export const MIJIA_STATUS = "mijia_get_device_status";
+export const MIJIA_CAPABILITIES = "mijia_list_controls";
+export const MIJIA_SCENES = "mijia_list_scenes";
+export const MIJIA_SET_PROPERTY = "mijia_set_property";
+export const MIJIA_RUN_ACTION = "mijia_run_action";
+export const MIJIA_RUN_SCENE = "mijia_run_scene";
+const MIJIA_WRITES = new Set([MIJIA_SET_PROPERTY, MIJIA_RUN_ACTION, MIJIA_RUN_SCENE]);
+export const MIJIA_TOOLS: readonly string[] = Object.freeze([
+  MIJIA_LIST,
+  MIJIA_STATUS,
+  MIJIA_CAPABILITIES,
+  MIJIA_SCENES,
+  ...MIJIA_WRITES,
+]);
 /** Meta tools agents never see: connections are the owner's, and code runs stay local. */
 export const HIDDEN_META = new Set([
   "COMPOSIO_MANAGE_CONNECTIONS",
@@ -206,6 +250,19 @@ function argumentsOf(name: string, args: unknown, index: number): unknown {
 export class McpGateway {
   private readonly tasks = new Map<string, string>();
   private readonly tokens = new Map<string, string>();
+  private readonly ownerAttempts = new Map<string, AbortController>();
+
+  /** TaskRunner calls this only around the actual first ACP prompt. */
+  beginOwnerAttempt(taskId: string, controller: AbortController): () => void {
+    const end = () => {
+      if (this.ownerAttempts.get(taskId) === controller) this.ownerAttempts.delete(taskId);
+      controller.abort();
+    };
+    if (!this.tokens.has(taskId) || controller.signal.aborted) return end;
+    this.ownerAttempts.get(taskId)?.abort();
+    this.ownerAttempts.set(taskId, controller);
+    return end;
+  }
   private readonly onReport: (taskId: string, report: HerdReport) => void;
   private readonly opts: GatewayOptions;
 
@@ -224,6 +281,9 @@ export class McpGateway {
   }
 
   revoke(taskId: string): void {
+    const attempt = this.ownerAttempts.get(taskId);
+    this.ownerAttempts.delete(taskId);
+    attempt?.abort();
     const token = this.tokens.get(taskId);
     if (token === undefined) return;
     this.tokens.delete(taskId);
@@ -311,11 +371,75 @@ export class McpGateway {
     }
   }
 
+  private async callMijiaWrite(
+    taskId: string,
+    apps: AppTools,
+    name: string,
+    args: unknown,
+  ): Promise<unknown> {
+    const controller = this.ownerAttempts.get(taskId);
+    const { approveExact, checkPreflight } = this.opts;
+    const notSent = () => toolText(JSON.stringify({ state: "not-sent", reason: "blocked" }), true);
+    if (controller === undefined || controller.signal.aborted) {
+      return toolText(
+        "Mi Home writes require the first active task prompt from a live owner message.",
+        true,
+      );
+    }
+    if (approveExact === undefined || checkPreflight === undefined) return notSent();
+    const call = {
+      slug: name,
+      title: "Mi Home control",
+      toolkit: "builtin:mijia",
+      arguments: undefined,
+    };
+    const check = () => {
+      if (controller.signal.aborted || this.ownerAttempts.get(taskId) !== controller)
+        throw new Error("Mi Home task prompt is no longer current");
+      checkPreflight(taskId, call);
+    };
+    let exact: AppToolPreflight["exactApproval"];
+    try {
+      check();
+      const prepared = await apps.preflight?.(name, args, {
+        key: controller,
+        signal: controller.signal,
+      });
+      exact = prepared?.exactApproval;
+      if (prepared === undefined || exact === undefined) return notSent();
+      check();
+      if ((await apps.describe([name])).get(name)?.toolkit !== call.toolkit) return notSent();
+      check();
+      const signal =
+        exact.signal === undefined
+          ? controller.signal
+          : AbortSignal.any([controller.signal, exact.signal]);
+      if (signal.aborted) return notSent();
+      const approval = await approveExact(taskId, call, exact.preview, exact.expiresAt, signal);
+      if (approval === "refused")
+        return toolText(
+          this.opts.denied?.(call.title) ?? "The owner did not allow Mi Home control.",
+          true,
+        );
+      if (approval !== "allow" || signal.aborted) return notSent();
+      check();
+      return await prepared.execute(() => {
+        if (signal.aborted) throw new Error("Mi Home approval expired or was cancelled");
+        check();
+      });
+    } catch {
+      return notSent();
+    } finally {
+      exact?.cancel();
+    }
+  }
+
   private async callApp(taskId: string, name: unknown, args: unknown): Promise<unknown> {
     const apps = this.opts.apps?.();
     if (typeof name !== "string" || apps === undefined || HIDDEN_META.has(name)) {
       return toolText(`unknown tool ${String(name)}`, true);
     }
+    if (MIJIA_WRITES.has(name)) return this.callMijiaWrite(taskId, apps, name, args);
     try {
       let prepared: AppToolPreflight | undefined;
       let beforeDispatch: (() => void) | undefined;
@@ -327,7 +451,9 @@ export class McpGateway {
           ? { label: "DingTalk", toolkit: "builtin:dingtalk" }
           : slugs.some((slug) => /^WECOM_[A-Z0-9]/.test(slug))
             ? { label: "WeCom", toolkit: "builtin:wecom" }
-            : undefined;
+            : slugs.some((slug) => MIJIA_TOOLS.includes(slug))
+              ? { label: "Mi Home", toolkit: "builtin:mijia" }
+              : undefined;
         if (name === MULTI_EXECUTE && reserved !== undefined) {
           return toolText(`${reserved.label} tools must be called directly.`, true);
         }
@@ -341,6 +467,10 @@ export class McpGateway {
             });
           }
           prepared = await apps.preflight(name, args);
+          if (prepared?.exactApproval !== undefined) {
+            prepared.exactApproval.cancel();
+            return toolText("Exact approval is unavailable for this call.", true);
+          }
         }
         if (prepared === undefined && reserved !== undefined) {
           return toolText(`${reserved.label} CLI tool is unavailable.`, true);

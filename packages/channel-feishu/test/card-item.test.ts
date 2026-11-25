@@ -8,6 +8,26 @@ describe("renderCard", () => {
     expect(renderCard(allowDenyItem, "en")).toMatchSnapshot();
   });
 
+  it("serializes an exact approval in full, as literal text with only single-item buttons", () => {
+    const preview = Array.from({ length: 32 }, (_, i) => `${i}. **<lamp>** "\\n$50" \`\`\``).join(
+      "\n",
+    );
+    expect(preview.length).toBeGreaterThan(FOLD_CHARS);
+    const card = JSON.parse(
+      JSON.stringify(renderCard({ ...allowDenyItem, exactApproval: preview }, "en")),
+    );
+    const elements = bodyElements(card);
+    expect(elements).toHaveLength(2);
+    expect(elements[0]).toEqual({ tag: "div", text: { tag: "plain_text", content: preview } });
+    const json = JSON.stringify(elements[1]);
+    expect(json).toContain('"value":{"target":"item-1","action":"allow"}');
+    expect(json).toContain('"value":{"target":"item-1","action":"deny"}');
+    expect(json).not.toContain("allow-all");
+    expect(() =>
+      renderCard({ ...allowDenyItem, exactApproval: "灯".repeat(12_001) }, "en"),
+    ).toThrow();
+  });
+
   it("renders a final item card", () => {
     expect(renderCard(finalItem, "en")).toMatchSnapshot();
   });

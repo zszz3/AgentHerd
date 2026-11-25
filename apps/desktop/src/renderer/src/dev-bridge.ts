@@ -839,6 +839,12 @@ function installFakeBridge(): void {
     },
     cancelDingTalkLogin: clearDingTalk,
     disconnectDingTalk: clearDingTalk,
+    mijia: () => delay({ state: "unavailable" }),
+    startMijiaLogin: () => delay({ state: "unavailable" }),
+    pollMijiaLogin: () => delay({ state: "unavailable" }),
+    cancelMijiaLogin: () => delay({ state: "unavailable" }),
+    disconnectMijia: () => delay({ state: "unavailable" }),
+    mijiaDevices: () => delay([]),
     pet: () => delay(pet),
     petSay: (text, paths = []) => {
       if (!pet.connected)

@@ -67,6 +67,8 @@ export interface HerdOptions {
   extraGuards?: ExtraGuard[];
   /** Values to redact everywhere (secrets from env). */
   secrets?: Record<string, string>;
+  /** Additional configured redaction inputs for exact cards only. */
+  exactApprovalEnv?: Record<string, string>;
   /** Use this store instead of `<home>/herd.db` (tests pass `:memory:`). */
   store?: Store;
   /** Words in a report body (ADR 0049); default OWNER_WORDS_MAX. */
@@ -220,6 +222,8 @@ export interface Following {
    * turn's lines reach the owner's phone or only the task board (ADR 0061).
    */
   turnFrom?: PromptFrom;
+  /** Revoked as soon as the first delegated prompt is superseded, even during syncIn. */
+  ownerAttempt?: AbortController;
   /** The current turn is AgentHerd's own check on background work. */
   waking?: boolean;
   /** The turn ended with work still running in the background: checks so far, the next one. */
@@ -254,6 +258,7 @@ export interface Following {
 export type PromptFrom = "owner" | "herder" | "pull-request";
 
 export interface QueuedPrompt {
+  ownerAttempt?: AbortController;
   text: string;
   images: OwnerImage[];
   /** Who sent it; the owner when not set. */

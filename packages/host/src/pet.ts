@@ -1,8 +1,8 @@
 // The desktop pet (ADR 0070): a tee in front of the chat channel. Everything AgentHerd sends to
-// the owner still goes to Feishu; the pet sees the same views, shows the latest one in its bubble
-// with the buttons of whatever waits for the owner, and passes what the owner types or presses
-// there back in as the owner's own message or button press; what the owner typed is quoted on top
-// of the Herder's next chat answer rather than sent alone, so the chat app does not ring for it.
+// the owner still goes to Feishu; the pet sees the same views except exact approvals, which must
+// stay in chat. The pet shows the latest view with the buttons of whatever waits for the owner,
+// and passes what the owner types or presses back in as the owner's own message or button press.
+// What the owner typed is quoted on top of the Herder's next chat answer so chat does not ring for it.
 // The expanded pet shows the Herder's conversation kept in herd.db (`historyOf`), so it reaches
 // back past restarts, with the cards sent to the owner (reports, approvals, questions) kept in
 // herd.db too (ADR 0072). It never writes text of its own and makes no model calls.
@@ -88,6 +88,10 @@ function key(ref: MessageRef): string {
   return `${ref.channelId}:${ref.id}`;
 }
 
+function isExactApproval(view: View): boolean {
+  return view.kind === "item" && view.exactApproval !== undefined;
+}
+
 /**
  * The views the pet shows as cards: reports, approvals, questions, offers with buttons, and
  * Herder replies whose herd-ui offers choices (ADR 0074).
@@ -95,7 +99,7 @@ function key(ref: MessageRef): string {
 export function isCardView(view: View): view is PetCardView {
   return (
     view.kind === "report" ||
-    view.kind === "item" ||
+    (view.kind === "item" && !isExactApproval(view)) ||
     view.kind === "ask" ||
     (view.kind === "text" &&
       view.target !== undefined &&
@@ -562,6 +566,7 @@ export class PetFeed {
 class PetChannel implements Channel {
   readonly id: string;
   readonly capabilities: ChannelCapability[];
+  readonly exactApproval?: true;
   private readonly inner: Channel;
   private readonly feed: PetFeed;
 
@@ -570,6 +575,7 @@ class PetChannel implements Channel {
     this.feed = feed;
     this.id = inner.id;
     this.capabilities = inner.capabilities;
+    if (inner.exactApproval === true) this.exactApproval = true;
   }
 
   setup(ui: SetupUI): Promise<ChannelBinding> {
@@ -596,6 +602,8 @@ class PetChannel implements Channel {
   }
 
   async send(view: View): Promise<MessageRef> {
+    // Exact previews and their controls belong only to the bound chat, not the pet.
+    if (isExactApproval(view)) return this.inner.send(view);
     const lines = this.feed.takeEcho(this.inner, view);
     if (lines === undefined) {
       const ref = await this.inner.send(view);
@@ -617,6 +625,7 @@ class PetChannel implements Channel {
   }
 
   async update(ref: MessageRef, view: View): Promise<void> {
+    if (isExactApproval(view)) return this.inner.update(ref, view);
     const echo = this.feed.echoOf(ref);
     await this.inner.update(ref, echo === undefined ? view : withEcho(view, echo));
     this.feed.updated(ref, view);

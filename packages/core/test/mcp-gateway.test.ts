@@ -1,10 +1,13 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import type { AppCall } from "../src/app-calls.ts";
 import {
   type AppToolInfo,
   type AppTools,
   type HerdReport,
   McpGateway,
+  MIJIA_SET_PROPERTY,
+  MIJIA_TOOLS,
+  MULTI_EXECUTE,
   parseReport,
   UnknownTokenError,
 } from "../src/mcp-gateway.ts";
@@ -14,6 +17,93 @@ function gateway() {
   const g = new McpGateway((taskId, report) => reports.push([taskId, report]));
   return { g, reports, token: g.register("task-1") };
 }
+
+describe("Reserved Mi Home task tools", () => {
+  const writeRequest = () => call(1, "tools/call", { name: MIJIA_SET_PROPERTY, arguments: {} });
+
+  it("does not route a colliding name or mixed batch to a connector", async () => {
+    const remote = vi.fn<AppTools["call"]>();
+    const approve = vi.fn(async () => true);
+    const g = new McpGateway(() => {}, {
+      apps: () => ({
+        list: async () => [],
+        describe: async () =>
+          new Map(MIJIA_TOOLS.map((name) => [name, { title: name, toolkit: "remote" }])),
+        call: remote,
+      }),
+      approve,
+      checkPreflight: () => {},
+      approveExact: async () => "allow",
+    });
+    const token = g.register("task");
+    const end = g.beginOwnerAttempt("task", new AbortController());
+    try {
+      for (const name of MIJIA_TOOLS) {
+        expect(
+          (await g.handle(token, call(1, "tools/call", { name, arguments: {} })))?.result,
+        ).toMatchObject({ isError: true });
+        const mixed = { tools: [{ tool_slug: "REMOTE_TOOL" }, { tool_slug: name }] };
+        expect(
+          (await g.handle(token, call(1, "tools/call", { name: MULTI_EXECUTE, arguments: mixed })))
+            ?.result,
+        ).toMatchObject({ isError: true });
+      }
+      expect(remote).not.toHaveBeenCalled();
+      expect(approve).not.toHaveBeenCalled();
+    } finally {
+      end();
+    }
+  });
+
+  it("rotating a token cancels only that task's outstanding exact approval", async () => {
+    const cancel = vi.fn();
+    const execute = vi.fn();
+    let entered = () => {};
+    const approving = new Promise<void>((resolve) => {
+      entered = resolve;
+    });
+    const g = new McpGateway(() => {}, {
+      apps: () => ({
+        list: async () => [],
+        describe: async () =>
+          new Map([[MIJIA_SET_PROPERTY, { title: "Set", toolkit: "builtin:mijia" }]]),
+        call: vi.fn(),
+        preflight: () => ({
+          exactApproval: {
+            preview: { text: "exact preview", source: ["preview"] },
+            expiresAt: Number.MAX_SAFE_INTEGER,
+            cancel,
+          },
+          execute,
+        }),
+      }),
+      checkPreflight: () => {},
+      approveExact: async (_task, _call, _preview, _expiry, signal) => {
+        entered();
+        await new Promise<void>((resolve) =>
+          signal.addEventListener("abort", () => resolve(), { once: true }),
+        );
+        return "closed";
+      },
+    });
+    const token = g.register("task");
+    const other = g.register("other");
+    const end = g.beginOwnerAttempt("task", new AbortController());
+    try {
+      const pending = g.handle(token, writeRequest());
+      await approving;
+      const next = g.register("task");
+      expect((await pending)?.result).toMatchObject({ isError: true });
+      expect(cancel).toHaveBeenCalledTimes(1);
+      expect(execute).not.toHaveBeenCalled();
+      expect(() => g.handle(token, writeRequest())).toThrow(UnknownTokenError);
+      expect(g.taskOf(other)).toBe("other");
+      expect((await g.handle(next, writeRequest()))?.result).toMatchObject({ isError: true });
+    } finally {
+      end();
+    }
+  });
+});
 
 const call = (id: number, method: string, params?: unknown) => ({
   jsonrpc: "2.0" as const,

@@ -211,6 +211,24 @@ export function renderCard(
   const t = CARD_TEXTS[locale];
   switch (view.kind) {
     case "item": {
+      if (view.exactApproval !== undefined) {
+        // Use literal text with no line limit and no folding. Cap conservatively before sending.
+        if (Buffer.byteLength(view.exactApproval, "utf8") > 12_000 || view.lines !== undefined)
+          throw new Error("Exact approval exceeds Feishu card limits");
+        const elements: Record<string, unknown>[] = [
+          {
+            tag: "div",
+            text: { tag: "plain_text", content: view.exactApproval },
+          },
+        ];
+        if (view.final !== undefined)
+          elements.push({ tag: "div", text: { tag: "plain_text", content: view.final } });
+        else elements.push(buttonRow(view.itemId, view.options));
+        return makeCard(
+          itemHeader(view.title, view.risk, view.final === undefined ? "orange" : "grey", t),
+          elements,
+        );
+      }
       if (view.lines !== undefined) return renderItemLines(view, t);
       const elements: Record<string, unknown>[] = [markdown(`**${view.title}**`)];
       elements.push(markdown(`\`\`\`\n${escapeCodeFence(view.body)}\n\`\`\``));

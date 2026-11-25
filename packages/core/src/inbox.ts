@@ -18,6 +18,7 @@ import type {
 } from "@agentherd/protocol";
 import { redact } from "@agentherd/rules";
 import type { Clock, Timer } from "./clock.ts";
+import type { ExactApprovalPreview } from "./mcp-gateway.ts";
 import type { Store } from "./store.ts";
 import { CORE_TEXTS, type CoreTexts } from "./texts.ts";
 
@@ -75,6 +76,7 @@ export interface InboxOptions {
   remindMinutes?: number;
   timeoutMinutes?: number;
   secrets?: Record<string, string>;
+  exactApprovalEnv?: Record<string, string>;
   /** Called after an item is decided or expired. */
   onClosed?: (item: Item) => void;
   /** Called when an item is answered: by the owner, by 「先不管」 or by the timeout (ADR 0057). */
@@ -185,6 +187,15 @@ export function parseBatchAnswer(
 
 export class Inbox {
   private readonly queues = new Map<string, Entry[]>();
+  private readonly exact = new Map<
+    string,
+    {
+      sessionId: string;
+      ref?: MessageRef;
+      expiresAt: number;
+      close(result: "allow" | "refused" | "closed"): void;
+    }
+  >();
   /** The card new items join while it still has open items. */
   private card: Card | undefined;
   private readonly remindMs: number;
@@ -202,7 +213,7 @@ export class Inbox {
 
   /** Number of items not yet decided, shown or queued. */
   get size(): number {
-    let n = 0;
+    let n = this.exact.size;
     for (const q of this.queues.values()) n += q.length;
     return n;
   }
@@ -231,6 +242,123 @@ export class Inbox {
     if (queue.length === 1) await this.show(entry);
   }
 
+  /** A single literal card, independent of normal batching and session queues. */
+  approveExact(
+    item: Item,
+    preview: ExactApprovalPreview,
+    expiresAt: number,
+    signal: AbortSignal,
+  ): Promise<"allow" | "refused" | "closed"> {
+    const { clock, channel, store, secrets, exactApprovalEnv } = this.opts;
+    const changes = (text: string) =>
+      redact(text, secrets) !== text ||
+      (exactApprovalEnv !== undefined && redact(text, exactApprovalEnv) !== text);
+    if (
+      channel.exactApproval !== true ||
+      signal.aborted ||
+      !Number.isFinite(expiresAt) ||
+      expiresAt <= clock.now().getTime() ||
+      preview.text.length === 0 ||
+      preview.source.some(changes) ||
+      changes(preview.text)
+    )
+      return Promise.resolve("closed");
+    const view: ItemView = {
+      kind: "item",
+      itemId: item.id,
+      title: item.title,
+      body: "",
+      exactApproval: preview.text,
+      risk: item.risk,
+      options: options(this.texts).slice(0, 2),
+    };
+    try {
+      store.insertItem(item);
+    } catch {
+      return Promise.resolve("closed");
+    }
+    return new Promise((resolve) => {
+      const abort = () => entry.close("closed");
+      const timer = clock.after(expiresAt - clock.now().getTime(), abort);
+      const refresh = async (ref: MessageRef) => {
+        try {
+          await channel.update(ref, view);
+        } catch {
+          try {
+            store.audit("channel.error", { op: "exact-update", itemId: item.id });
+          } catch {
+            // A failed best-effort card update must not reopen or change the decision.
+          }
+        }
+      };
+      const entry: typeof this.exact extends Map<string, infer E> ? E : never = {
+        sessionId: item.sessionId,
+        expiresAt,
+        close: (result) => {
+          if (!this.exact.delete(item.id)) return;
+          signal.removeEventListener("abort", abort);
+          timer.cancel();
+          const createdAt = clock.now().toISOString();
+          const closed = result === "closed";
+          try {
+            store.transaction(() => {
+              if (!closed)
+                store.insertDecision(
+                  {
+                    itemId: item.id,
+                    action: result === "allow" ? "allow" : "deny",
+                    confidence: 1,
+                    risk: item.risk,
+                    source: "human",
+                    reason: "owner",
+                    precedents: [],
+                  },
+                  { ownerId: this.opts.binding.ownerId, createdAt },
+                );
+              store.updateItem(item.id, {
+                state: closed ? "expired" : "decided",
+                decidedAt: createdAt,
+              });
+              store.audit("app.exact-approval", {
+                itemId: item.id,
+                operation: item.toolCall?.command,
+                result,
+              });
+            });
+          } catch {
+            result = "closed";
+          }
+          view.final =
+            result === "closed"
+              ? this.texts.expired(this.texts.agentStoppedWaiting)
+              : result === "allow"
+                ? this.texts.allowedByYou
+                : this.texts.deniedByYou;
+          view.options = [];
+          resolve(result);
+          if (entry.ref !== undefined) void refresh(entry.ref);
+        },
+      };
+      this.exact.set(item.id, entry);
+      signal.addEventListener("abort", abort, { once: true });
+      void Promise.resolve()
+        .then(() => (this.exact.has(item.id) ? channel.send({ ...view }) : undefined))
+        .then((ref) => {
+          if (ref === undefined) return;
+          if (!this.exact.has(item.id)) {
+            refresh(ref);
+            return;
+          }
+          if (ref.channelId !== this.opts.binding.channelId || ref.id === "") {
+            entry.close("closed");
+            return;
+          }
+          entry.ref = ref;
+        })
+        .catch(() => entry.close("closed"));
+    });
+  }
+
   async handle(inbound: Inbound, source: OwnerInputSource = "local"): Promise<void> {
     const { store, binding } = this.opts;
     if (inbound.from !== binding.ownerId) {
@@ -244,6 +372,20 @@ export class Inbox {
     if (inbound.kind !== "action") {
       if (!(await this.handleText(inbound.text, source))) {
         store.audit("inbound.ignored", { reason: "not-an-answer", text: inbound.text });
+      }
+      return;
+    }
+    const exact = this.exact.get(inbound.target);
+    if (exact !== undefined) {
+      if (exact.expiresAt <= this.opts.clock.now().getTime()) exact.close("closed");
+      else if (
+        source === "channel" &&
+        exact.ref !== undefined &&
+        exact.ref.id === inbound.cardRef?.id &&
+        exact.ref.channelId === inbound.cardRef.channelId &&
+        (inbound.action === "allow" || inbound.action === "deny")
+      ) {
+        exact.close(inbound.action === "allow" ? "allow" : "refused");
       }
       return;
     }
@@ -299,6 +441,8 @@ export class Inbox {
 
   /** The agent stopped waiting (exit, cancel, end of turn): its open items expire. */
   async expireSession(sessionId: string, why: string): Promise<void> {
+    for (const entry of this.exact.values())
+      if (entry.sessionId === sessionId) entry.close("closed");
     const queue = this.queues.get(sessionId);
     if (queue === undefined) return;
     this.queues.delete(sessionId);
@@ -310,6 +454,7 @@ export class Inbox {
   }
 
   async stop(): Promise<void> {
+    for (const entry of this.exact.values()) entry.close("closed");
     for (const sessionId of [...this.queues.keys()]) {
       await this.expireSession(sessionId, this.texts.agentherdStopped);
     }

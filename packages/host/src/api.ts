@@ -46,6 +46,20 @@ export type {
   MailboxSource,
   ScheduleWhen,
 } from "@agentherd/core";
+export type {
+  ControlInventory,
+  ControlProposal,
+  ControlRequest,
+  DeviceControls,
+  PropertyControl,
+  Scalar,
+} from "./mijia-control-types.ts";
+// Type-only declarations for Electron's separate owned-process transport.
+export type {
+  DesktopControlCall,
+  DesktopControlOutcome,
+  MijiaDesktopBridge,
+} from "./mijia-desktop-bridge.ts";
 
 export const API_VERSION = 1;
 
@@ -1181,6 +1195,12 @@ export interface HostApi {
   startDingTalkLogin(): Promise<DingTalkView>;
   cancelDingTalkLogin(): Promise<DingTalkView>;
   disconnectDingTalk(): Promise<DingTalkView>;
+  mijia(): Promise<MijiaView>;
+  startMijiaLogin(): Promise<MijiaView>;
+  pollMijiaLogin(): Promise<MijiaView>;
+  cancelMijiaLogin(): Promise<MijiaView>;
+  disconnectMijia(): Promise<MijiaView>;
+  mijiaDevices(): Promise<MijiaDevice[]>;
   /** 信箱 (ADR 0099): the sources and the newest letters with what the Herder made of them. */
   mailbox(): MailboxView;
   mailboxAdd(draft: MailboxDraft): Promise<MailboxView>;
@@ -1207,6 +1227,20 @@ export interface DingTalkView {
   userName?: string;
   error?: string;
   capabilities: { id: string; name: string; toolCount: number }[];
+}
+
+export interface MijiaView {
+  state: "unavailable" | "disconnected" | "waiting" | "connected" | "error" | "cleanup-required";
+  qrDataUrl?: string;
+  message?: string;
+}
+
+export interface MijiaDevice {
+  id: string;
+  name: string;
+  home?: string;
+  room?: string;
+  online?: boolean;
 }
 
 export const HOST_METHODS: readonly HostMethod[] = [
@@ -1295,6 +1329,12 @@ export const HOST_METHODS: readonly HostMethod[] = [
   "startDingTalkLogin",
   "cancelDingTalkLogin",
   "disconnectDingTalk",
+  "mijia",
+  "startMijiaLogin",
+  "pollMijiaLogin",
+  "cancelMijiaLogin",
+  "disconnectMijia",
+  "mijiaDevices",
   "mailbox",
   "mailboxAdd",
   "mailboxSet",

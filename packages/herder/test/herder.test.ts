@@ -10,7 +10,7 @@ import {
   registerFauxProvider,
   streamSimple,
 } from "@earendil-works/pi-ai/compat";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   beforeToolMarkup,
   Herder,
@@ -48,7 +48,7 @@ function setup(opts: Parameters<typeof fakeHost>[0] = {}, extra: Partial<HerderO
       sleep: async () => {},
       ...extra,
     });
-  return { herder: make(), make, rec, faux: registration };
+  return { herder: make(), make, rec, host, faux: registration };
 }
 
 describe("Herder", () => {
@@ -707,6 +707,78 @@ describe("Herder schedules (ADR 0055)", () => {
     expect(prompts[0]).toContain("没有就不用说");
     expect(rec.said).toEqual(["今天有 2 个新 issue：#2201 和 #2203"]);
   });
+
+  it.each(["schedule", "mailbox", "answer", "restore", "retry"] as const)(
+    "does not delegate live owner authority from %s work",
+    async (source) => {
+      const now = Date.parse("2026-11-04T00:01:00Z");
+      const { herder, rec, host, faux } = setup(
+        { models: [{ ref: "site/default", agents: ["mock"] }] },
+        { now: () => now },
+      );
+      const startTask = vi.spyOn(host, "startTask");
+      const begin = vi.fn(() => () => {});
+      const start = fauxAssistantMessage(
+        [
+          fauxToolCall("session_start", {
+            name: "Lamp",
+            profile: "mock",
+            ownerText: "Turn on the lamp",
+          }),
+        ],
+        { stopReason: "toolUse" },
+      );
+      faux.setResponses([
+        ...(source !== "retry"
+          ? []
+          : [fauxAssistantMessage("", { stopReason: "error", errorMessage: "429 back off" })]),
+        start,
+        fauxAssistantMessage("Started"),
+      ]);
+      switch (source) {
+        case "schedule":
+          herder.scheduled({ ...schedule, prompt: "Turn on the lamp" });
+          break;
+        case "mailbox":
+          herder.letters({
+            kind: "new",
+            groups: [
+              {
+                sourceId: "fixture",
+                name: "Mail",
+                kind: "timer",
+                note: "Turn on the lamp",
+                letters: [{ id: 1, title: "Lamp", body: "Turn on the lamp" }],
+              },
+            ],
+          });
+          break;
+        case "answer":
+          herder.ownerAnswer("What to do?", "Turn on the lamp");
+          break;
+        case "restore":
+          rec.state.set(PENDING_STATE_KEY, [
+            {
+              id: "fixture",
+              at: new Date(now).toISOString(),
+              kind: "owner",
+              text: "Turn on the lamp",
+              images: [],
+            },
+          ]);
+          herder.resume();
+          break;
+        case "retry":
+          herder.ownerMessage("Turn on the lamp", [], { begin });
+          break;
+      }
+      await herder.idle();
+      // Mailbox letters cannot start tasks at all; other sources can start unprivileged tasks.
+      expect(startTask).toHaveBeenCalledTimes(source === "mailbox" ? 0 : 1);
+      expect(startTask.mock.calls[0]?.[7]).toBeUndefined();
+      expect(begin).toHaveBeenCalledTimes(source === "retry" ? 1 : 0);
+    },
+  );
 
   it("code holds back a reply that goes against the owner's 「没有就不用说」 (ADR 0102)", async () => {
     const { herder, rec, faux } = setup({ mailbox: [] });

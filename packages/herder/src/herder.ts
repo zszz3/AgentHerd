@@ -9,6 +9,7 @@ import type {
   HerderHost,
   HerderPort,
   LetterDelivery,
+  LiveOwnerTurn,
   OwnerImage,
   Schedule,
   VoiceRequest,
@@ -93,7 +94,7 @@ export interface HerderModel {
 }
 
 type Job = (
-  | { kind: "owner"; text: string; images: OwnerImage[] }
+  | { kind: "owner"; text: string; images: OwnerImage[]; liveOwnerTurn?: LiveOwnerTurn }
   | { kind: "answer"; question: string; answer: string; ownerText?: string }
   | { kind: "intake"; text: string; auto: boolean; trial?: boolean }
   | { kind: "scheduled"; schedule: Schedule }
@@ -288,7 +289,7 @@ export class Herder implements HerderPort {
     }
   }
 
-  ownerMessage(text: string, images: OwnerImage[] = []): void {
+  ownerMessage(text: string, images: OwnerImage[] = [], liveOwnerTurn?: LiveOwnerTurn): void {
     if (this.stopped) return;
     const id = this.keep({
       id: randomUUID(),
@@ -297,7 +298,13 @@ export class Herder implements HerderPort {
       text,
       images: images.map(({ mimeType, path }) => ({ mimeType, path })),
     });
-    this.enqueue({ kind: "owner", text, images, pendingId: id });
+    this.enqueue({
+      kind: "owner",
+      text,
+      images,
+      pendingId: id,
+      ...(liveOwnerTurn === undefined ? {} : { liveOwnerTurn }),
+    });
   }
 
   ownerAnswer(question: string, answer: string): void {
@@ -784,7 +791,20 @@ export class Herder implements HerderPort {
    * @returns whether the turn finished.
    */
   private async runWithRetries(job: Job, prompt: string, images: OwnerImage[]): Promise<boolean> {
-    let result = await this.attempt(prompt, images);
+    const live =
+      job.kind === "owner" && job.resumedAt === undefined && !this.stopped
+        ? job.liveOwnerTurn
+        : undefined;
+    if (job.kind === "owner") delete job.liveOwnerTurn;
+    const endLive = live?.begin();
+    if (live !== undefined) this.turn.liveOwnerTurn = live;
+    let result: Attempt;
+    try {
+      result = await this.attempt(prompt, images);
+    } finally {
+      delete this.turn.liveOwnerTurn;
+      endLive?.();
+    }
     // Too long for the model after all (the count is an estimate): fold old turns, try once more.
     if (!result.ok && result.overflow && !result.acted && this.context.foldForOverflow()) {
       this.host.audit("herder.context.overflow", { message: result.message });

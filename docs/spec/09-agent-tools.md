@@ -7,7 +7,9 @@ Applied ADRs: [0019](../adr/0019-relay-verbatim-board-and-reports.md),
 [0060](../adr/0060-pi-tools-through-the-mcp-gateway.md),
 [0076](../adr/0076-westock-market-quotes-and-research-cli.md),
 [0077](../adr/0077-xueqiu-danjuan-fund-holdings.md),
-[0103](../adr/0103-wecom-office-tools-use-the-task-gateway.md).
+[0103](../adr/0103-wecom-office-tools-use-the-task-gateway.md),
+[0107](../adr/0107-mijia-uses-an-external-read-only-worker.md),
+[0108](../adr/0108-mijia-writes-require-exact-owner-confirmation.md).
 
 AgentHerd gives every task one MCP server, `agentherd`. Through it the agent reports progress
 (`herd_report`) and, when the owner has connected apps, uses them (Gmail, Slack, GitHub …)
@@ -314,6 +316,83 @@ with separate config and credential storage. There is no raw CLI, local file tra
 DingTalk control channel or direct Herder tool. For local desktop development, stage the
 binary with `pnpm --filter @agentherd/desktop fetch-dws`; restart the desktop-owned host to
 pick it up. The macOS bundle includes it. An unstaged build displays 不可用.
+
+## 3i. Mi Home connection (local experiment, [ADR 0107](../adr/0107-mijia-uses-an-external-read-only-worker.md))
+
+Install the optional upstream runtime in its own environment; AgentHerd does not ship it:
+
+```sh
+uv venv --python 3.12 .mijia-venv
+uv pip install --python .mijia-venv/bin/python 'mijiaAPI[mcp]==5.0.0'
+```
+
+On Windows use `.mijia-venv/Scripts/python.exe` in the second command. Set
+`AGENTHERD_MIJIA_PYTHON` to the **absolute** path of that interpreter before starting
+an isolated desktop and Host. Without that executable the row is unavailable.
+
+In 应用连接 → 账号 → 米家 choose 连接 and scan with the Mi Home mobile app within two
+minutes. The row can show 不可用 (`unavailable`), 未连接 (`disconnected`), 等待扫码 (`waiting`),
+已连接 (`connected`), 连接失败 (`error`), or 待清理 (`cleanup-required`). The desktop lists
+device names, homes, rooms and online status when known.
+You can cancel the scan or disconnect. The experiment requires a new scan after a Host
+restart. Cancellation, disconnect, expiry, worker failure and normal Host shutdown close
+the worker and remove the temporary login files. If cleanup fails, the desktop offers a
+cleanup retry and blocks new scans. An abrupt stop can leave files in the OS temporary
+directory.
+
+Connected tasks can call `mijia_list_devices` and `mijia_get_device_status` through the
+existing task gateway, subject to its app rules. The status tool accepts an ID from the
+list and one or more supported properties: `on`, `brightness`, `color-temperature`,
+`temperature`, `relative-humidity`, `battery-level`. It reports unavailable properties
+without returning upstream diagnostics. Devices found only in the shared list are listed,
+but upstream 5.0.0 cannot read their properties. Call these tools directly, not through a
+Composio batch. A prepared call cannot read a different session after reconnecting.
+
+### Control is off by default
+
+Neither production entry point prepares or sends writes. The desktop shows account and device
+reads without control buttons. The Herder can delegate reads through the task gateway; it has
+no direct Mi Home write tool. The Host reserves all Mi Home names even when disconnected, so
+another app cannot publish or answer under those names. It does not list or prepare the
+fixture-only control tools: `mijia_list_controls`, `mijia_list_scenes`, `mijia_set_property`,
+`mijia_run_action`, and `mijia_run_scene`.
+
+A descriptor can validate an operation's shape without establishing what it will do. Missing
+or unsupported descriptors, shared-only targets, and unverified effects are not eligible.
+An existing manual scene can affect more than one device; its steps are not shown. A scene
+identifier does not establish eligibility. There is no environment switch to enable writes.
+
+### Confirmation paths exercised with inert fixtures
+
+- **Owned desktop.** A private bridge previews one operation and requires explicit Confirm
+  in the same trusted document; a standalone CLI Host or generic Host socket has no such
+  authority. The `available()` check represents the transport, not permission to write.
+  Closing or replacing the document before Main grants dispatch retires its proposal. After
+  the grant, a lost reply can mean the operation ran; the desktop shows an unknown-outcome
+  warning if it can still present the result. A committed operation cannot be recalled.
+- **Herder-delegated task.** Control tools are called directly, never in a Composio batch.
+  A write can ask only during the first ACP prompt delegated from a live, bound-owner native
+  text message. A startup fallback before the first prompt keeps that attempt; a retry after
+  a prompt does not. Schedules, mailbox turns, and socket input cannot grant write authority.
+  Each operation requires a click on its dedicated exact card by the bound owner. Deny rules
+  still apply; ordinary cards, bulk or text answers, and allow rules cannot approve it.
+
+A proposal is single-use and expires after five minutes. The preview is literal and complete;
+if redaction would change the underlying text or what the owner sees, the approval is blocked
+rather than shortened or masked. Task preview details are not stored. The task card's decision,
+item status, and audit must commit together before dispatch. If that fails, the card closes
+without approval and nothing is sent.
+
+| Outcome | Meaning |
+| --- | --- |
+| `not-sent` | No dispatch; the proposal was `stale`, `expired`, `cancelled`, `blocked`, or `busy`. |
+| `rejected` | The worker received an explicit rejection. |
+| `acknowledged` | The worker got an acknowledgement; the effect is not verified. |
+| `verified` | A property read-back matched the approved value. |
+| `mismatch` | A property read-back differed. The task and desktop do not receive the differing value. |
+| `unknown` | No reliable receipt after dispatch. Check the device before deciding what to do next. |
+
+There is no automatic retry or raw upstream command interface. See [ADR 0108](../adr/0108-mijia-writes-require-exact-owner-confirmation.md) and the [acceptance checklist](07-delivery.md#mi-home-acceptance-checklist).
 
 ## 4. Failure behavior
 

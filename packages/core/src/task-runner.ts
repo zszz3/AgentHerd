@@ -64,6 +64,12 @@ export class TaskRunner {
   private readonly ops: TaskOps;
   /** Turns running now, so stopping can wait for their reports. */
   private readonly turns = new Set<Promise<unknown>>();
+  private stopping = false;
+
+  revokeOwnerAttempts(): void {
+    this.stopping = true;
+    for (const f of this.ctx.following.values()) f.ownerAttempt?.abort();
+  }
 
   constructor(ctx: HerdContext, relay: Relay, ops: TaskOps) {
     this.ctx = ctx;
@@ -84,6 +90,7 @@ export class TaskRunner {
     images: OwnerImage[] = [],
     allowed: readonly OutboundStep[] = [],
     from: PromptFrom = "owner",
+    delegatedByLiveOwner = false,
   ): Promise<{ taskId: string; turn: Promise<RunResult> }> {
     const { ctx } = this;
     const found = ctx.opts.profiles.find((p) => p.id === profileId);
@@ -128,6 +135,7 @@ export class TaskRunner {
       offs: [],
       queue: [],
       busy: false,
+      ...(delegatedByLiveOwner && !this.stopping ? { ownerAttempt: new AbortController() } : {}),
     };
     ctx.following.set(sessionId, f);
     // Pull requests the owner names in the request are followed for this task (ADR 0051).
@@ -146,7 +154,11 @@ export class TaskRunner {
       delete f.connection;
       if (await this.switchModel(f, message)) {
         this.started(f, model);
-        return { taskId: sessionId, turn: this.ops.promptTask(sessionId, prompt, images, from) };
+        // The failed launch never sent a prompt. Use only the original, possibly revoked attempt.
+        return {
+          taskId: sessionId,
+          turn: this.promptTask(sessionId, prompt, images, from, f.ownerAttempt),
+        };
       }
       setReport(ctx, f, ctx.texts.couldNotStart(message));
       ctx.registry.set(sessionId, "error");
@@ -156,7 +168,10 @@ export class TaskRunner {
     }
     this.listen(f, f.connection, f.agentSessionId);
     this.started(f, model);
-    return { taskId: sessionId, turn: this.ops.promptTask(sessionId, prompt, images, from) };
+    return {
+      taskId: sessionId,
+      turn: this.promptTask(sessionId, prompt, images, from, f.ownerAttempt),
+    };
   }
 
   /** Hosts with a model list never launch an agent with its native defaults. */
@@ -327,9 +342,11 @@ export class TaskRunner {
     text: string,
     images: OwnerImage[] = [],
     from: PromptFrom = "owner",
+    ownerAttempt?: AbortController,
   ): Promise<RunResult> {
     const f = this.ctx.following.get(taskId);
     if (f === undefined) return Promise.reject(new Error(`unknown task ${taskId}`));
+    if (ownerAttempt === undefined) f.ownerAttempt?.abort();
     const forOwner = from !== "pull-request";
     const trigger = forOwner ? this.takeOwnerMessage() : undefined;
     if (forOwner) this.ctx.github()?.handed(taskId, text);
@@ -352,6 +369,7 @@ export class TaskRunner {
           resolve,
           reject,
           ...(trigger === undefined ? {} : { trigger }),
+          ...(ownerAttempt === undefined ? {} : { ownerAttempt }),
         };
         // While a turn runs, an agent that takes it reads the message at its next step (ADR 0063).
         if (steerable(f, from)) this.steer(f, entry);
@@ -609,6 +627,7 @@ export class TaskRunner {
   async cancelTurn(taskId: string): Promise<void> {
     const f = this.ctx.following.get(taskId);
     if (f === undefined || f.ended) throw new Error(`task ${taskId} is not open`);
+    f.ownerAttempt?.abort();
     if (f.busy && f.connection !== undefined && f.agentSessionId !== undefined) {
       await f.connection.cancel(f.agentSessionId);
     }
@@ -621,6 +640,7 @@ export class TaskRunner {
     if (f === undefined || f.ended) return;
     const connection = f.connection;
     f.ended = true;
+    f.ownerAttempt?.abort();
     f.endedWhy = why;
     f.endedAt = ctx.clock.now().toISOString();
     f.idleTimer?.cancel();
@@ -774,6 +794,7 @@ export class TaskRunner {
         if (state !== "waiting-approval" && f.busy) ctx.registry.set(sessionId, "working");
       }),
       connection.on("exit", (e) => {
+        f.ownerAttempt?.abort();
         ctx.store.audit("session.exited", { sessionId, code: e.code, signal: e.signal });
         if (f.busy) {
           ctx.watchdog.exited(sessionId, ctx.texts.exited(String(e.code ?? e.signal)));
@@ -818,6 +839,7 @@ export class TaskRunner {
       next.wake === true,
       next.trigger,
       next.from ?? "owner",
+      next.ownerAttempt,
     );
     this.turns.add(turn);
     try {
@@ -1006,6 +1028,7 @@ export class TaskRunner {
     wake = false,
     trigger?: MessageRef,
     from: PromptFrom = "owner",
+    ownerAttempt?: AbortController,
   ): Promise<RunResult> {
     const { ctx } = this;
     const sessionId = f.task.id;
@@ -1052,11 +1075,21 @@ export class TaskRunner {
     ctx.registry.set(sessionId, "working");
     ctx.watchdog.turnStarted(sessionId);
     try {
-      const { stopReason } = await connection.prompt(
-        agentSessionId,
-        prompt,
-        images.map((i) => ({ data: i.data, mimeType: i.mimeType })),
-      );
+      const endAttempt =
+        ownerAttempt === undefined || ownerAttempt.signal.aborted || f.ended
+          ? undefined
+          : ctx.mcp.beginOwnerAttempt(sessionId, ownerAttempt);
+      let stopReason: RunResult["stopReason"];
+      try {
+        ({ stopReason } = await connection.prompt(
+          agentSessionId,
+          prompt,
+          images.map((i) => ({ data: i.data, mimeType: i.mimeType })),
+        ));
+      } finally {
+        endAttempt?.();
+        if (f.ownerAttempt === ownerAttempt) delete f.ownerAttempt;
+      }
       ctx.watchdog.turnEnded(sessionId);
       f.finished = stopReason === "end_turn";
       f.turnsEnded = (f.turnsEnded ?? 0) + 1;

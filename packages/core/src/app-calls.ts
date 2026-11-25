@@ -7,6 +7,7 @@ import type { AppHints, Item } from "@agentherd/protocol";
 import { matchRules } from "@agentherd/rules";
 import { turnPermits } from "./github-watch.ts";
 import type { HerdContext } from "./herd-context.ts";
+import type { ExactApprovalPreview } from "./mcp-gateway.ts";
 import { APP_WRITE, decide, type PipelineResult } from "./pipeline.ts";
 
 /** One app tool an agent wants to run. */
@@ -53,6 +54,20 @@ function itemFor(ctx: HerdContext, taskId: string, calls: readonly AppCall[]): I
   };
 }
 
+export function approveExactAppCall(
+  ctx: HerdContext,
+  taskId: string,
+  call: AppCall,
+  preview: ExactApprovalPreview,
+  expiresAt: number,
+  signal: AbortSignal,
+) {
+  // Store classification only; the preview is never part of the item or its tool call.
+  const item = itemFor(ctx, taskId, [{ ...call, arguments: undefined }]);
+  item.body = "";
+  return ctx.inbox.approveExact(item, preview, expiresAt, signal);
+}
+
 function isReadOnly(hints: AppHints | undefined): boolean {
   return (
     hints?.readOnly === true &&
@@ -84,7 +99,7 @@ function itemForCall(base: Item, call: AppCall): Item {
 
 /** Apply the owner's explicit deny before a built-in office preflight can contact the provider. */
 export function blockDeniedOfficePreflight(ctx: HerdContext, taskId: string, call: AppCall): void {
-  const provider = officeProvider(call);
+  const provider = call.toolkit === "builtin:mijia" ? "Mi Home" : officeProvider(call);
   if (provider === undefined) return;
   const hit = matchRules(ctx.store.listRules(), itemFor(ctx, taskId, [call]), ctx.opts.userHome);
   if (hit?.action !== "deny") return;

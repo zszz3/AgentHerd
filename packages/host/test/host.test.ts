@@ -5,6 +5,7 @@ import { FakeChannel } from "@agentherd/channel-fake";
 import {
   type Herd,
   type HerderHost,
+  type Inbox,
   PROFILE_FIELDS,
   type SecretStore,
   Store,
@@ -34,7 +35,7 @@ afterEach(async () => {
   for (const c of cleanups.splice(0)) await c();
 });
 
-function makeHost(bound = false, profileIds: string[] = []) {
+function makeHost(bound = false, profileIds: string[] = [], env: Record<string, string> = {}) {
   // Short path: Unix socket paths are limited to about 104 bytes on macOS.
   const home = mkdtempSync(join(tmpdir(), "ah-"));
   if (bound) writeConfig(home, { channel: { channelId: "fake", ownerId: "owner", data: {} } });
@@ -45,7 +46,7 @@ function makeHost(bound = false, profileIds: string[] = []) {
     home,
     userHome: home,
     secrets,
-    env: {},
+    env,
     profiles: () =>
       profileIds.map((id) => ({ id, name: id, command: [id], env: {}, exporter: null })),
     createChannel: () => {
@@ -74,6 +75,45 @@ describe("Host", () => {
     expect(s.mode).toBe("assist");
     expect(t.host.tasks()).toEqual({ tasks: [], items: [] });
   });
+
+  it.each(["source", "text"] as const)(
+    "uses the Host's configured redaction policy for exact preview %s",
+    async (field) => {
+      const marker = "fixture-chalkboard";
+      const { host, home, channels } = makeHost(true, [], { FIXTURE_SECRET: marker });
+      await host.start();
+      const { herd } = host as unknown as { herd: { ctx: { inbox: Inbox }; store: Store } };
+      const signal = new AbortController();
+      const item = {
+        id: "fixture-preview-check",
+        sessionId: "fixture-task",
+        profileId: "fixture-profile",
+        cwd: home,
+        kind: "permission",
+        state: "open",
+        createdAt: new Date().toISOString(),
+        title: "Fixture review",
+        body: "",
+        risk: "medium",
+      } as const;
+      const preview = { text: "Fixture preview", source: ["Fixture lamp"] };
+      if (field === "text") preview.text = marker;
+      else preview.source = [marker];
+      try {
+        const pending = herd.ctx.inbox.approveExact(
+          item,
+          preview,
+          Date.now() + 2_000,
+          signal.signal,
+        );
+        expect(await pending).toBe("closed");
+        expect(herd.store.getItem(item.id)).toBeUndefined();
+        expect(channels[0]?.messages.some(({ view }) => view.kind === "item")).toBe(false);
+      } finally {
+        signal.abort();
+      }
+    },
+  );
 
   it("binds the channel through setup and connects", async () => {
     const t = makeHost();

@@ -14,8 +14,34 @@ const host = Object.fromEntries(
   ]),
 ) as unknown as RemoteHost;
 
+let documentTicket: string | undefined;
+const controlListeners = new Set<() => void>();
+ipcRenderer.on("mijia-desktop:document", (_event, value: unknown) => {
+  const next = typeof value === "string" ? value : undefined;
+  if (next === documentTicket) return;
+  documentTicket = next;
+  for (const listener of controlListeners) listener();
+});
+const control = (method: string, args: unknown[] = []) =>
+  ipcRenderer.invoke("mijia-desktop:call", documentTicket, method, args);
+
 const bridge: Bridge = {
   host,
+  mijiaControl: {
+    available: () => control("available"),
+    inventory: () => control("inventory"),
+    capabilities: (homeId, deviceId) => control("capabilities", [homeId, deviceId]),
+    prepare: (input) => control("prepare", [input]),
+    confirm: (id) =>
+      navigator.userActivation.isActive
+        ? control("confirm", [id])
+        : Promise.resolve({ state: "not-sent", reason: "blocked" }),
+    cancel: (id) => control("cancel", [id]),
+  },
+  onMijiaControlChange(listener) {
+    controlListeners.add(listener);
+    return () => controlListeners.delete(listener);
+  },
   onEvent(listener) {
     const handler = (_e: unknown, event: HostEvent) => listener(event);
     ipcRenderer.on("host:event", handler);

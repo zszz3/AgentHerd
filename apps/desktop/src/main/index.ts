@@ -5,6 +5,7 @@
 import { readFileSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
+import { pathToFileURL } from "node:url";
 import type {
   HostEvent,
   HostMethod,
@@ -19,11 +20,14 @@ import { app, BrowserWindow, ipcMain, Menu, nativeTheme, powerSaveBlocker, shell
 import type { Notice, NoticeTab } from "../shared/pet-notify.ts";
 import { ApproveKey, type PetArm, shortcutLabel } from "../shared/pet-shortcuts.ts";
 import { isTheme, type Theme, themeFrom, themeText } from "../shared/theme.ts";
-import { ensureHost, ownsHost, stopOwnedHost } from "./host-process.ts";
+import { desktopMijiaTransport, ensureHost, ownsHost, stopOwnedHost } from "./host-process.ts";
 import { MenuBar } from "./menu-bar.ts";
+import { registerDesktopMijia } from "./mijia-desktop.ts";
 import { Notifier } from "./notifier.ts";
 import { PetWindow } from "./pet-window.ts";
 import { Shortcuts } from "./shortcuts.ts";
+
+const desktopMijia = registerDesktopMijia(desktopMijiaTransport);
 
 app.setName("AgentHerd");
 app.setAppUserModelId("com.agentherd.desktop");
@@ -78,6 +82,7 @@ function send(channel: string, payload: unknown): void {
 
 function setConnected(value: boolean): void {
   connected = value;
+  desktopMijia.connection(value);
   send("host:connection", value);
   menuBar?.update({ connected: value });
 }
@@ -370,8 +375,10 @@ function createWindow(): void {
   });
   created.webContents.on("will-navigate", (event) => event.preventDefault());
   const devUrl = process.env.ELECTRON_RENDERER_URL;
+  const renderer = join(import.meta.dirname, "../renderer/index.html");
+  desktopMijia.watch(created, devUrl === undefined ? pathToFileURL(renderer).href : undefined);
   if (devUrl !== undefined) void created.loadURL(devUrl);
-  else void created.loadFile(join(import.meta.dirname, "../renderer/index.html"));
+  else void created.loadFile(renderer);
   const capture = process.env.AGENTHERD_CAPTURE;
   if (capture !== undefined) void captureAndQuit(capture);
 }
