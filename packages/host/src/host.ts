@@ -20,6 +20,7 @@ import {
   type Mailbox,
   type MailboxKind,
   type MemoryStore,
+  MIJIA_TOOLS,
   type ModelRef,
   type ModelRole,
   type ModelService,
@@ -97,6 +98,8 @@ import type {
   MailboxSourceView,
   MailboxView,
   MemoryView,
+  MijiaDevice,
+  MijiaView,
   ModelProbe,
   ModelsView,
   ModelTest,
@@ -155,6 +158,11 @@ import { foldText, herderContextView, herderMessages } from "./herder-context-vi
 import { Lark } from "./lark.ts";
 import { mailboxCheck, type ScriptRun } from "./mailbox-sources.ts";
 import { mcpServerFor } from "./mcp-socket.ts";
+import { MijiaAccount, type MijiaRuntime } from "./mijia-account.ts";
+import { MijiaControl } from "./mijia-control.ts";
+import { attachMijiaDesktopBridge, type DesktopParentPort } from "./mijia-desktop-bridge.ts";
+import { mijiaRuntime } from "./mijia-runtime.ts";
+import { mijiaTools } from "./mijia-tools.ts";
 import { LoginRun } from "./model-logins.ts";
 import { PET_CARDS_MAX, PET_HISTORY_MAX, PetFeed, petConversation } from "./pet.ts";
 import { droppedFiles } from "./pet-drop.ts";
@@ -214,6 +222,8 @@ export interface HostOptions {
   wecomCli?: WecomCliPort;
   /** DingTalk auth and office commands (tests replace the pinned CLI). */
   dingTalkCli?: DingTalkCliPort;
+  /** Mi Home stdio worker (tests replace the external runtime). */
+  mijiaRuntime?: MijiaRuntime;
   /** Runs `gh` for following pull requests tasks open (tests replace it). */
   gh?: GhRun;
   /** Runs mailbox scripts; tests pass a fake (ADR 0099). */
@@ -290,6 +300,8 @@ export class Host implements HostApi {
   private readonly pluginList: PluginStore;
   private readonly wecomApps: WecomAccount;
   private readonly dingTalkAccount: DingTalkAccount | undefined;
+  private readonly mijiaAccount: MijiaAccount;
+  private readonly mijiaControl: MijiaControl;
   /** The Herder's guess at the owner's next message, and when it came (ADR 0084). */
   private petSuggestion: { text: string; at: string } | undefined;
 
@@ -361,6 +373,17 @@ export class Host implements HostApi {
         ? dingtalkCli({ executable: dws, stateDir: join(opts.home, "dingtalk-dws") })
         : undefined);
     this.dingTalkAccount = cli === undefined ? undefined : new DingTalkAccount(cli);
+    this.mijiaAccount = new MijiaAccount(
+      undefined,
+      opts.mijiaRuntime ??
+        mijiaRuntime(opts.env?.AGENTHERD_MIJIA_PYTHON ?? process.env.AGENTHERD_MIJIA_PYTHON),
+      () => this.mijiaControl.revoke(),
+    );
+    this.mijiaControl = new MijiaControl({
+      current: () => this.mijiaAccount.controlSession(),
+      audit: ({ id, operation, decision, outcome }) =>
+        this.log(`Mi Home control ${id} ${operation} ${decision} ${outcome}`),
+    });
     this.westockCli = new Westock({
       home: opts.home,
       enabled: () => !(this.config().westockOff ?? false),
@@ -598,6 +621,30 @@ export class Host implements HostApi {
     return this.dingTalkView(this.dingTalkAccount?.disconnect());
   }
 
+  async mijia(): Promise<MijiaView> {
+    return this.mijiaAccount.view();
+  }
+
+  startMijiaLogin(): Promise<MijiaView> {
+    return this.mijiaAccount.start();
+  }
+
+  pollMijiaLogin(): Promise<MijiaView> {
+    return this.mijiaAccount.poll();
+  }
+
+  cancelMijiaLogin(): Promise<MijiaView> {
+    return this.mijiaAccount.cancel();
+  }
+
+  disconnectMijia(): Promise<MijiaView> {
+    return this.mijiaAccount.disconnect();
+  }
+
+  mijiaDevices(): Promise<MijiaDevice[]> {
+    return this.mijiaAccount.devices();
+  }
+
   mailbox(): MailboxView {
     return mailboxView(this.herd?.mailbox);
   }
@@ -818,6 +865,7 @@ export class Host implements HostApi {
 
   async stop(): Promise<void> {
     this.stopped = true;
+    this.mijiaControl.stop();
     this.agentList.stop();
     this.socialList.stop();
     this.westockCli.stop();
@@ -825,7 +873,7 @@ export class Host implements HostApi {
     this.pluginList.stopAll();
     this.wecomApps.close();
     this.setupRun++;
-    await this.dingTalkAccount?.stop();
+    await Promise.all([this.dingTalkAccount?.stop(), this.mijiaAccount.disconnect()]);
     await this.stopHerd();
   }
 
@@ -858,6 +906,7 @@ export class Host implements HostApi {
     const herd = new Herd({
       home: this.opts.home,
       userHome: this.opts.userHome ?? homedir(),
+      exactApprovalEnv: this.toolEnv(),
       channel: this.petFeed.wrap(this.opts.createChannel(locale)),
       binding: config.channel,
       mode: config.mode ?? "assist",
@@ -923,19 +972,30 @@ export class Host implements HostApi {
         ? {}
         : {
             mcpServer: (token: string) => mcpServerFor(this.opts.mcpSocket as string, token),
-            apps: () =>
-              combineApps([
-                this.socialList.tools(this.appList.appTools()),
-                this.feedList.tools(),
-                this.westockCli.tools(),
-                this.danjuanCli.tools(),
-                this.pluginList.tools(),
-                this.wecomApps.apps(),
-                this.dingTalkAccount === undefined
-                  ? undefined
-                  : dingtalkTools(this.dingTalkAccount),
-              ]),
-            appNames: () => [...this.appList.connectedNames(), ...this.wecomApps.connectedNames()],
+            apps: () => {
+              // Keep controls off until device and scene effects are verified (ADR 0108).
+              const mijia = mijiaTools(this.mijiaAccount);
+              return combineApps(
+                [
+                  this.socialList.tools(this.appList.appTools()),
+                  this.feedList.tools(),
+                  this.westockCli.tools(),
+                  this.danjuanCli.tools(),
+                  this.pluginList.tools(),
+                  this.wecomApps.apps(),
+                  this.dingTalkAccount === undefined
+                    ? undefined
+                    : dingtalkTools(this.dingTalkAccount),
+                  mijia,
+                ],
+                new Map([...MIJIA_TOOLS.map((name) => [name, mijia] as const)]),
+              );
+            },
+            appNames: () => [
+              ...this.appList.connectedNames(),
+              ...this.wecomApps.connectedNames(),
+              ...(this.mijiaAccount.view().state === "connected" ? ["米家"] : []),
+            ],
           }),
       agentModels: {
         list: () =>
@@ -1451,6 +1511,11 @@ export class Host implements HostApi {
 
   providers(): ProviderView[] {
     return builtinProviders();
+  }
+
+  /** Internal desktop utility transport only; not a HostApi method. */
+  attachDesktopMijia(port: DesktopParentPort): () => void {
+    return attachMijiaDesktopBridge(port, this.mijiaControl, () => this.toolEnv());
   }
 
   /** The environment tools run in: ours, with `<home>/bin` on the path. */

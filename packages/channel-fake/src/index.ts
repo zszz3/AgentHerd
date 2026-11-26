@@ -21,6 +21,7 @@ export interface SentMessage {
 
 export class FakeChannel implements Channel {
   readonly id = "fake";
+  readonly exactApproval = true;
   readonly capabilities: ChannelCapability[] = ["buttons", "free-text", "update-message", "pin"];
   readonly messages: SentMessage[] = [];
   /** References of the messages the test sent to AgentHerd, in order. */
@@ -70,17 +71,34 @@ export class FakeChannel implements Channel {
 
   /** Taps a button on an item card. */
   async tap(target: string, action: string, from = this.ownerId): Promise<void> {
-    await this.deliver({ kind: "action", target, action, from });
+    const cardRef = this.messages.find(
+      ({ view }) =>
+        view.kind === "item" && view.itemId === target && view.exactApproval !== undefined,
+    )?.ref;
+    await this.deliver({
+      kind: "action",
+      target,
+      action,
+      from,
+      ...(cardRef === undefined ? {} : { cardRef }),
+    });
   }
 
   /** Sends a text message to AgentHerd. Its reference is added to `received`. */
   async say(text: string, from = this.ownerId): Promise<void> {
-    await this.deliver({ kind: "message", text, from, ref: this.inboundRef() });
+    await this.deliver({ kind: "message", nativeText: true, text, from, ref: this.inboundRef() });
   }
 
   /** Sends a text message that replies to one AgentHerd sent. */
   async reply(to: MessageRef, text: string, from = this.ownerId): Promise<void> {
-    await this.deliver({ kind: "message", text, from, ref: this.inboundRef(), replyTo: to });
+    await this.deliver({
+      kind: "message",
+      nativeText: true,
+      text,
+      from,
+      ref: this.inboundRef(),
+      replyTo: to,
+    });
   }
 
   private inboundRef(): MessageRef {

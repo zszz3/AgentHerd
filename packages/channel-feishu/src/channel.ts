@@ -85,7 +85,10 @@ class Drawing {
     this.view = view;
     this.locale = locale;
     this.images = images;
-    this.fallback = plainHerdUiView(view, CARD_TEXTS[locale]);
+    this.fallback =
+      view.kind === "item" && view.exactApproval !== undefined
+        ? null
+        : plainHerdUiView(view, CARD_TEXTS[locale]);
     this.plain = plain && this.fallback !== null;
   }
 
@@ -141,6 +144,7 @@ export interface FeishuChannelOptions {
 
 export class FeishuChannel implements Channel {
   readonly id = CHANNEL_ID;
+  readonly exactApproval = true;
   readonly capabilities: ChannelCapability[] = [
     "buttons",
     "free-text",
@@ -329,6 +333,7 @@ export class FeishuChannel implements Channel {
     const text = [m.text, ...notes].filter((t) => t !== "").join("\n");
     return {
       kind: "message",
+      ...(m.nativeText === true ? { nativeText: true } : {}),
       text,
       from: m.from,
       ...(m.messageId === "" ? {} : { ref: { channelId: CHANNEL_ID, id: m.messageId } }),
@@ -352,7 +357,9 @@ export class FeishuChannel implements Channel {
     this.callbacks.set(messageId, pending);
     try {
       // Feishu waits about 3 s for the answer; give the core most of it.
-      await Promise.race([deliver(parseCardAction(payload)), sleep(CALLBACK_WAIT_MS)]);
+      const inbound = parseCardAction(payload);
+      if (inbound?.kind === "action") inbound.cardRef = { channelId: CHANNEL_ID, id: messageId };
+      await Promise.race([deliver(inbound), sleep(CALLBACK_WAIT_MS)]);
     } finally {
       pending.answered = true;
       if (this.callbacks.get(messageId) === pending) this.callbacks.delete(messageId);

@@ -366,6 +366,90 @@ const REPORT: ReportView = {
   automaticDecisions: [],
 };
 
+describe("exact approvals through PetFeed.wrap", () => {
+  it("forwards only an explicit opt-in from the underlying channel", () => {
+    const feed = new PetFeed({ changed: () => {} });
+    const fake = new FakeChannel("owner");
+    expect(feed.wrap(fake).exactApproval).toBe(true);
+    Reflect.deleteProperty(fake, "exactApproval");
+    expect(feed.wrap(fake).exactApproval).toBeUndefined();
+    // Untyped adapters do not opt in with a merely truthy value.
+    Reflect.set(fake, "exactApproval", "true");
+    expect(feed.wrap(fake).exactApproval).toBeUndefined();
+  });
+
+  it.each(["send", "update"] as const)(
+    "passes an exact %s to chat without exposing it to the pet",
+    async (op) => {
+      const store = Store.open(":memory:");
+      try {
+        let changes = 0;
+        const feed = new PetFeed({
+          changed: () => changes++,
+          keep: (ref, view) => store.putOwnerCard(ref, view),
+        });
+        const fake = new FakeChannel("owner");
+        const channel = feed.wrap(fake);
+        const inbound: Inbound[] = [];
+        await channel.start(BINDING, (event) => {
+          inbound.push(event);
+        });
+        const ordinary = await channel.send(REPORT);
+        const last = feed.last;
+        const before = changes;
+        const item: ItemView = {
+          kind: "item",
+          itemId: "exact-1",
+          title: "Confirm an exact operation",
+          body: "",
+          exactApproval: `  <lamp> & **literal**\n${"value ".repeat(120)}end  `,
+          risk: "high",
+          options: [{ action: "allow", label: "Allow" }],
+        };
+        const view = op === "send" ? item : { ...item, title: "Confirm this operation" };
+        const expected = structuredClone(view);
+        // For update, seed the same exact card in chat without taking the wrapper's send path.
+        const ref = op === "send" ? await channel.send(view) : await fake.send(item);
+        if (op === "update") await channel.update(ref, view);
+        expect(fake.ofKind("item")[0]?.ref).toBe(ref);
+        expect(fake.ofKind("item")[0]?.view).toEqual(expected);
+
+        expect(feed.last).toEqual(last);
+        expect(changes).toBe(before);
+        expect(feed.pending()).toEqual([]);
+        expect(feed.isOpen(`fake:${ref.id}`)).toBe(false);
+        await expect(feed.press(item.itemId, "allow")).rejects.toThrow("这件事已经处理过了");
+        expect(inbound).toEqual([]);
+        expect(store.ownerCards().map((card) => card.ref)).toEqual([`fake:${ordinary.id}`]);
+        expect(
+          petConversation(
+            [],
+            store.ownerCards(),
+            () => undefined,
+            (key) => feed.isOpen(key),
+          ).cards.map((card) => card.ref),
+        ).toEqual([`fake:${ordinary.id}`]);
+
+        await fake.tap(item.itemId, "allow");
+        expect(inbound).toEqual([
+          { kind: "action", target: item.itemId, action: "allow", from: "owner", cardRef: ref },
+        ]);
+        const closed = { ...view, options: [], final: "Allowed by you" };
+        await channel.update(ref, closed);
+        expect(fake.ofKind("item")[0]?.view).toEqual({
+          ...expected,
+          options: [],
+          final: "Allowed by you",
+        });
+        expect(store.ownerCards().map((card) => card.ref)).toEqual([`fake:${ordinary.id}`]);
+        expect(changes).toBe(before);
+      } finally {
+        store.close();
+      }
+    },
+  );
+});
+
 describe("cards in the pet (ADR 0072)", () => {
   it("keeps every card in its latest form and knows which still take a press", async () => {
     const kept: [string, View][] = [];
@@ -447,6 +531,12 @@ describe("cards in the pet (ADR 0072)", () => {
       { ref: "f:i", at: at(10), updatedAt: at(10), view: item },
       { ref: "f:q", at: at(11), updatedAt: at(11), taskId: "t2", view: quiet },
       { ref: "f:b", at: at(12), updatedAt: at(12), view: { kind: "board" } as never },
+      {
+        ref: "f:exact",
+        at: at(13),
+        updatedAt: at(13),
+        view: { ...item, exactApproval: "literal" },
+      },
     ];
     const { history, cards: shown } = petConversation(
       turns,
@@ -455,7 +545,7 @@ describe("cards in the pet (ADR 0072)", () => {
       (ref) => ref === "f:a",
     );
     expect(history.map((l) => l.id)).toEqual([1, 3, 5]);
-    // Fewer lines than a full window: older cards stay; the board is never a card.
+    // Older cards stay in a short window; the board and any stored exact approval stay hidden.
     expect(shown.map((c) => [c.ref, c.open])).toEqual([
       ["f:old", false],
       ["f:a", true],

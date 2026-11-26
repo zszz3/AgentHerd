@@ -121,6 +121,9 @@ export interface HerderPlugins {
   skill(name: string): string;
 }
 
+/** In-memory identity issued by Core for one live owner message. Never persisted or modeled. */
+export type LiveOwnerTurn = Readonly<{ begin(): () => void }>;
+
 export interface HerderHost {
   readonly locale: Locale;
   readonly texts: CoreTexts;
@@ -151,6 +154,7 @@ export interface HerderHost {
     images?: OwnerImage[],
     /** Steps leaving the Mac the owner allowed for this task in their request (ADR 0056). */
     allowed?: readonly OutboundStep[],
+    liveOwnerTurn?: LiveOwnerTurn,
   ): Promise<string>;
   promptTask(taskId: string, text: string, images?: OwnerImage[]): void;
   /** A new short name for a task, when its work changed. */
@@ -380,7 +384,7 @@ export function isHerderAlert(view: View): boolean {
 /** Calls return at once; the Herder works through them one at a time. */
 export interface HerderPort {
   /** `text` may be empty when the owner sent only images. */
-  ownerMessage(text: string, images?: OwnerImage[]): void;
+  ownerMessage(text: string, images?: OwnerImage[], liveOwnerTurn?: LiveOwnerTurn): void;
   ownerAnswer(question: string, answer: string): void;
   event(event: HerderEvent): void;
   /**

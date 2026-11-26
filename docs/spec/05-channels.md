@@ -1,6 +1,7 @@
 # 05. Channels
 
-Applied ADRs: [0005](../adr/0005-channel-abstraction-feishu-first.md), [0019](../adr/0019-relay-verbatim-board-and-reports.md).
+Applied ADRs: [0005](../adr/0005-channel-abstraction-feishu-first.md), [0019](../adr/0019-relay-verbatim-board-and-reports.md),
+[0108](../adr/0108-mijia-writes-require-exact-owner-confirmation.md).
 
 A **channel** is the chat app through which AgentHerd reaches the owner. The core does not
 know which chat app is in use. v1 ships one channel: **Feishu** (the same code serves Lark,
@@ -17,6 +18,7 @@ interface Channel {
   start(binding: ChannelBinding, sink: InboundSink): Promise<void>;
   stop(): Promise<void>;
   send(view: View): Promise<MessageRef>;
+  exactApproval?: true;                        // complete literal preview and card-bound actions
   update(ref: MessageRef, view: View): Promise<void>; // in place, no new notification
   pin(ref: MessageRef): Promise<void>;
 }
@@ -24,9 +26,10 @@ interface Channel {
 type View = ItemView | BoardView | ReportView | RelayView | TextView;
 
 type Inbound =
-  | { kind: "action"; target: string; action: string; text?: string; from: string }
+  | { kind: "action"; target: string; action: string; text?: string; from: string; cardRef?: MessageRef }
   | {
       kind: "message";
+      nativeText?: true;           // set by the adapter only for a native text event
       text: string;               // may be empty when the owner sent only images
       from: string;
       replyTo?: MessageRef;
@@ -58,6 +61,15 @@ The core renders channel-neutral views: `ItemView` (title, body, risk, options, 
 message format. A channel without buttons must still work: the user replies with a short code
 (`1` allow, `2` deny, or text). A channel without `pin` or `update-message` sends a new board
 on `status` instead.
+
+An `ItemView` with `exactApproval?: string` is an exception. The channel must opt in with
+`exactApproval: true`, show the entire preview as literal text, and return the originating
+`cardRef` with the owner's action. Exact approvals stay separate from normal item cards: no
+folding, truncation, text reply, bulk answer, or fallback card. If the channel cannot show it
+as specified, the operation is not approved. Feishu opts in; `channel-fake` does so for tests.
+Other adapters do not opt in. The desktop pet forwards the capability only from its wrapped
+channel and does not echo or keep these cards. This is the channel contract for the simulated
+Mi Home task route; production Mi Home control is disabled.
 
 Only messages from the owner are accepted. Every channel binding stores the owner's id;
 inbound messages from anyone else are dropped and logged.

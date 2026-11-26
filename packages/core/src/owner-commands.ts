@@ -15,7 +15,7 @@ import { HERD_UI_TARGET, herdUiChoices, herdUiPlain } from "@agentherd/protocol/
 import type { Timer } from "./clock.ts";
 import { parseCommand } from "./commands.ts";
 import { type HerdContext, openTasks, say, steerable, type TaskOps } from "./herd-context.ts";
-import type { OwnerImage } from "./herder-port.ts";
+import type { LiveOwnerTurn, OwnerImage } from "./herder-port.ts";
 import { HERDER_RETRY_TARGET } from "./herder-port.ts";
 import { DEFAULT_TIMEOUT_MINUTES, type OwnerInputSource } from "./inbox.ts";
 import { MAILBOX_TARGET } from "./mailbox.ts";
@@ -52,6 +52,12 @@ export class OwnerCommands {
     this.ctx = ctx;
     this.relay = relay;
     this.tasks = tasks;
+  }
+
+  private readonly liveTurns = new WeakSet<LiveOwnerTurn>();
+
+  consumeLiveTurn(turn: LiveOwnerTurn | undefined): boolean {
+    return turn !== undefined && this.liveTurns.delete(turn);
   }
 
   /** Owner input from the channel or desktop. Errors are recorded rather than thrown back. */
@@ -102,7 +108,18 @@ export class OwnerCommands {
       // A reply to a task's message goes to that task (ADR 0043).
       const replyTask =
         inbound.replyTo === undefined ? undefined : ctx.store.taskOfMessage(inbound.replyTo.id);
-      await this.onOwnerMessage(text, this.saveImages(inbound.images ?? []), replyTask);
+      await this.onOwnerMessage(
+        text,
+        this.saveImages(inbound.images ?? []),
+        replyTask,
+        source === "channel" &&
+          inbound.nativeText === true &&
+          inbound.replyTo === undefined &&
+          text.trim() !== "" &&
+          text === inbound.text &&
+          (inbound.files?.length ?? 0) === 0 &&
+          (inbound.images?.length ?? 0) === 0,
+      );
     } catch (error) {
       ctx.store.audit("inbound.error", { message: (error as Error).message });
     }
@@ -244,6 +261,7 @@ export class OwnerCommands {
     text: string,
     images: OwnerImage[] = [],
     replyTask?: string,
+    nativeText = false,
   ): Promise<void> {
     const { ctx } = this;
     const command = parseCommand(text);
@@ -287,7 +305,7 @@ export class OwnerCommands {
         void this.tasks.interruptTask(relay.taskId, command.text, images).catch(() => {});
         return;
       case "herder":
-        await this.toHerder(command.text, images);
+        await this.toHerder(command.text, images, nativeText);
         return;
       case "memory":
         await say(ctx, memoryListText(ctx.store.memory, command.query, ctx.texts));
@@ -302,11 +320,13 @@ export class OwnerCommands {
         const taskId =
           replyTask !== undefined && ctx.following.has(replyTask) ? replyTask : relay?.taskId;
         if (taskId === undefined) {
-          await this.toHerder(command.text, images);
+          await this.toHerder(command.text, images, nativeText);
           return;
         }
         const f = ctx.following.get(taskId);
         ctx.store.audit(taskId === relay?.taskId ? "relay.message" : "reply.message", { taskId });
+        // Revoke before sending the notice, which can wait on the channel.
+        f?.ownerAttempt?.abort();
         // An agent that takes it reads the message at its next step; others at the turn's end.
         if (f?.busy === true)
           await say(ctx, steerable(f, "owner") ? ctx.texts.steered : ctx.texts.queued);
@@ -316,7 +336,12 @@ export class OwnerCommands {
     }
   }
 
-  private async toHerder(text: string, images: OwnerImage[] = []): Promise<void> {
+  private async toHerder(
+    text: string,
+    images: OwnerImage[] = [],
+    nativeText = false,
+  ): Promise<void> {
+    const mayDelegate = nativeText && this.asks.size === 0 && text.trim() !== "";
     // The owner wrote instead of tapping: open questions close; the message may be the answer.
     for (const askId of [...this.asks.keys()]) {
       await this.closeAsk(askId, this.ctx.texts.answeredInChat, {
@@ -326,7 +351,20 @@ export class OwnerCommands {
     }
     const herder = this.ctx.herder();
     if (herder === undefined) await say(this.ctx, this.ctx.texts.noHerder);
-    else if (images.length === 0) herder.ownerMessage(text);
+    else if (mayDelegate) {
+      let fresh = true;
+      const turn: LiveOwnerTurn = Object.freeze({
+        begin: () => {
+          if (!fresh || this.ctx.herder() !== herder) return () => {};
+          fresh = false;
+          this.liveTurns.add(turn);
+          return () => {
+            this.liveTurns.delete(turn);
+          };
+        },
+      });
+      herder.ownerMessage(text, images, turn);
+    } else if (images.length === 0) herder.ownerMessage(text);
     else herder.ownerMessage(text, images);
   }
 

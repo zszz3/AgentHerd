@@ -773,7 +773,8 @@ export class Store {
     }
   }
 
-  private transaction(run: () => void): void {
+  /** Commits these synchronous writes as a unit. */
+  transaction(run: () => void): void {
     this.db.exec("BEGIN");
     try {
       run();

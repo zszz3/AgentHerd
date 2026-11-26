@@ -1,7 +1,7 @@
 // The only thing the renderer can reach: `window.agentherd`, set by the preload script.
 // The renderer has no Node access; every call goes main → host over the local API socket.
 
-import type { HostEvent, RemoteHost } from "@agentherd/host/api";
+import type { HostEvent, MijiaDesktopBridge, RemoteHost } from "@agentherd/host/api";
 import type { PetArm, ShortcutState } from "./pet-shortcuts.ts";
 import type { Theme } from "./theme.ts";
 
@@ -91,6 +91,9 @@ export interface PetRoom {
 
 export interface Bridge {
   host: RemoteHost;
+  mijiaControl?: MijiaDesktopBridge;
+  /** A private desktop document or owned Host changed; discard earlier UI state. */
+  onMijiaControlChange?(listener: () => void): () => void;
   pet?: PetBridge;
   /** Host events (status, tasks, models, setup). Returns an unsubscribe function. */
   onEvent(listener: (event: HostEvent) => void): () => void;

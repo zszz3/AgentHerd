@@ -142,6 +142,8 @@ export interface ItemView {
   taskLabel?: string;
   title: string;
   body: string;
+  /** Exact, literal approval text; never send through a generic card formatter. */
+  exactApproval?: string;
   risk: Risk;
   options: ItemOption[];
   reason?: string;
@@ -244,9 +246,18 @@ export interface AskView {
 export type View = ItemView | BoardView | ReportView | RelayView | TextView | AskView;
 
 export type Inbound =
-  | { kind: "action"; target: string; action: string; text?: string; from: string }
+  | {
+      kind: "action";
+      target: string;
+      action: string;
+      text?: string;
+      from: string;
+      cardRef?: MessageRef;
+    }
   | {
       kind: "message";
+      /** Set only by the adapter for a native text event, not reconstructed text. */
+      nativeText?: true;
       /** May be empty when the message is only images. */
       text: string;
       from: string;
@@ -285,6 +296,8 @@ export interface Channel {
   start(binding: ChannelBinding, sink: InboundSink): Promise<void>;
   stop(): Promise<void>;
   send(view: View): Promise<MessageRef>;
+  /** True only when the adapter can send complete literal text and bind the action to that card. */
+  exactApproval?: true;
   /** In place, no new notification. */
   update(ref: MessageRef, view: View): Promise<void>;
   pin(ref: MessageRef): Promise<void>;

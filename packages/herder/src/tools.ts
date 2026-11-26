@@ -7,6 +7,7 @@ import {
   type FeedSource,
   type HerderHost,
   headTail,
+  type LiveOwnerTurn,
   NOTICE_ABOUT,
   NOTICE_KINDS,
   NOTICE_LEVELS,
@@ -47,6 +48,8 @@ export interface TurnContext {
   typedText: string;
   /** The owner's images this turn; tasks started or messaged for the owner get them. */
   images: OwnerImage[];
+  /** This is never a model argument. */
+  liveOwnerTurn?: LiveOwnerTurn;
   asked: boolean;
   notified: boolean;
   /**
@@ -708,7 +711,7 @@ export function herderTools(
           .join("\n\n");
         const prompt = composeTaskPrompt(args.ownerText.trim(), added === "" ? undefined : added);
         const taskId =
-          allowed.length > 0
+          allowed.length > 0 || t.liveOwnerTurn !== undefined
             ? await host.startTask(
                 profile,
                 cwd,
@@ -716,7 +719,8 @@ export function herderTools(
                 prompt,
                 model,
                 t.images.length === 0 ? undefined : t.images,
-                allowed,
+                allowed.length === 0 ? undefined : allowed,
+                t.liveOwnerTurn,
               )
             : t.images.length === 0
               ? await host.startTask(profile, cwd, title, prompt, model)
