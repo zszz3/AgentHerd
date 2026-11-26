@@ -22,6 +22,7 @@ import {
   acquireLocationLease,
   checkWindowsProfile,
   type LocationMode,
+  windowsPowerShellEnv,
 } from "../src/location-gate.ts";
 
 vi.mock("node:child_process", async (importOriginal) => {
@@ -208,6 +209,37 @@ function expectGateFailure(root = base): void {
     /location gate(?!.*in use)/i,
   );
 }
+
+describe("systemPowerShell", () => {
+  it("finds SYSTEMROOT in a case-sensitive worker environment", async () => {
+    const worker = new Worker(
+      `import(${JSON.stringify(new URL("../src/location-gate.ts", import.meta.url).href)}).then((gate) =>
+        require("node:worker_threads").parentPort.postMessage(gate.systemPowerShell() ?? null))`,
+      { eval: true, env: { SYSTEMROOT: "C:\\Windows" } },
+    );
+    const found = await new Promise((resolve, reject) => {
+      worker.once("message", resolve);
+      worker.once("error", reject);
+    });
+    await worker.terminate();
+    expect(found).toBe("C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe");
+  });
+});
+
+describe("windowsPowerShellEnv", () => {
+  it("drops PowerShell 7 module paths so Windows PowerShell loads its own Get-Acl", () => {
+    vi.stubEnv("PSModulePath", "C:\\Program Files\\PowerShell\\7\\Modules");
+    vi.stubEnv("AGENTHERD_TEST_KEEP", "kept");
+    try {
+      const env = windowsPowerShellEnv({ AGENTHERD_GATE_PATHS: "[]" });
+      expect(Object.keys(env).filter((key) => key.toLowerCase() === "psmodulepath")).toEqual([]);
+      expect(env.AGENTHERD_TEST_KEEP).toBe("kept");
+      expect(env.AGENTHERD_GATE_PATHS).toBe("[]");
+    } finally {
+      vi.unstubAllEnvs();
+    }
+  });
+});
 
 describe("location gate", () => {
   it(

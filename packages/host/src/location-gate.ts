@@ -148,7 +148,11 @@ foreach ($path in $paths) {
 
 /** The system Windows PowerShell, never one found on PATH; undefined without a sane SystemRoot. */
 export function systemPowerShell(): string | undefined {
-  const systemRoot = process.env.SystemRoot;
+  // A worker thread's process.env is a case-sensitive copy, and launchers such as MSYS
+  // pass SYSTEMROOT in upper case, so match the name the way Windows does.
+  const systemRoot = Object.entries(process.env).find(
+    ([key]) => key.toLowerCase() === "systemroot",
+  )?.[1];
   if (!systemRoot || !win32.isAbsolute(systemRoot)) return undefined;
   return win32.join(systemRoot, "System32", "WindowsPowerShell", "v1.0", "powershell.exe");
 }

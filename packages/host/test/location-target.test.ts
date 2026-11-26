@@ -21,6 +21,7 @@ import {
   TARGET_NAME,
   verifyPrivateFolder,
 } from "../src/location-target.ts";
+import { systemPowerShell, windowsPowerShellEnv } from "../src/location-gate.ts";
 import { mcpSocketPath } from "../src/mcp-socket.ts";
 import { socketPath } from "../src/server.ts";
 
@@ -94,13 +95,7 @@ $acl = Get-Acl -LiteralPath $env:TEST_ACL_PATH
   })
 } | ConvertTo-Json -Compress -Depth 3`;
   const out = execFileSync(
-    win32.join(
-      process.env.SystemRoot ?? "C:\\Windows",
-      "System32",
-      "WindowsPowerShell",
-      "v1.0",
-      "powershell.exe",
-    ),
+    systemPowerShell() ?? "powershell.exe",
     [
       "-NoProfile",
       "-NonInteractive",
@@ -109,7 +104,7 @@ $acl = Get-Acl -LiteralPath $env:TEST_ACL_PATH
     ],
     {
       encoding: "utf8",
-      env: { ...process.env, TEST_ACL_PATH: path },
+      env: windowsPowerShellEnv({ TEST_ACL_PATH: path }),
       stdio: ["ignore", "pipe", "ignore"],
     },
   );
@@ -260,7 +255,7 @@ $sid = [Security.Principal.SecurityIdentifier]::new('S-1-5-11')
 $acl.AddAccessRule([Security.AccessControl.FileSystemAccessRule]::new($sid, 'DeleteSubdirectoriesAndFiles', 'Deny'))
 Set-Acl -LiteralPath $path -AclObject $acl`;
       execFileSync(
-        "powershell.exe",
+        systemPowerShell() ?? "powershell.exe",
         [
           "-NoProfile",
           "-NonInteractive",
@@ -268,7 +263,7 @@ Set-Acl -LiteralPath $path -AclObject $acl`;
           Buffer.from(script, "utf16le").toString("base64"),
         ],
         {
-          env: { ...process.env, TEST_ACL_PATH: parent },
+          env: windowsPowerShellEnv({ TEST_ACL_PATH: parent }),
           stdio: "ignore",
         },
       );
