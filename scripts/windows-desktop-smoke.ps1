@@ -83,7 +83,13 @@ try {
     # The location gate checks the profile: show what it saw.
     $acl = Get-Acl -LiteralPath $HOME
     Write-Host "--- profile $HOME owner $($acl.Owner) protected $($acl.AreAccessRulesProtected)"
-    $acl.Access | Format-Table IdentityReference, AccessControlType, FileSystemRights, IsInherited -AutoSize | Out-String | Write-Host
+    $acl.Access | ForEach-Object {
+        Write-Host "$($_.IdentityReference) $($_.AccessControlType) $($_.FileSystemRights) ($([int]$_.FileSystemRights)) inherited=$($_.IsInherited) $($_.InheritanceFlags)/$($_.PropagationFlags)"
+    }
+    $gateProbe = "import { acquireLocationLease } from './packages/host/src/location-gate.ts';" +
+        "const t = Date.now(); try { acquireLocationLease(process.env.USERPROFILE, 'shared').release(); console.log('gate ok', Date.now() - t, 'ms') }" +
+        " catch (e) { console.log('gate failed after', Date.now() - t, 'ms:', e.message) }"
+    node --input-type=module -e $gateProbe | Write-Host
     throw "Desktop did not become ready within 240 s: $lastProbe"
 } finally {
     if ($null -ne $app -and !$app.HasExited) {

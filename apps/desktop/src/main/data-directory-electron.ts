@@ -20,12 +20,14 @@ function apply(
     signal.addEventListener("abort", () => void worker.terminate(), { once: true });
     worker.on(
       "message",
-      (message: { files: number } | { result: ApplyResult } | { error: string }) => {
+      (
+        message: { files: number } | { result: ApplyResult } | { error: string; message: string },
+      ) => {
         if ("files" in message) progress(message.files);
         else if ("result" in message) resolve(message.result);
         else if (message.error === "record-corrupt" || message.error === "location-unavailable") {
-          reject(new LocationError(message.error, "Data directory unavailable"));
-        } else reject(new Error("Data directory startup failed"));
+          reject(new LocationError(message.error, message.message));
+        } else reject(new Error(`Data directory startup failed: ${message.message}`));
       },
     );
     worker.once("error", reject);

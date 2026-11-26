@@ -9,5 +9,9 @@ try {
   const result = await applyLocationRequest(ctx, (files) => port.postMessage({ files }));
   port.postMessage({ result });
 } catch (error) {
-  port.postMessage({ error: error instanceof LocationError ? error.code : "location-error" });
+  port.postMessage({
+    error: error instanceof LocationError ? error.code : "location-error",
+    // Gate and filesystem messages name only local paths and the failed check.
+    message: error instanceof Error ? error.message : String(error),
+  });
 }

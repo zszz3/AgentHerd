@@ -186,9 +186,12 @@ export function checkWindowsProfile(root: string, paths: string[]): void {
         timeout: 5_000,
       },
     );
-  } catch {
+  } catch (error) {
+    // Tell a refused profile apart from a check that never finished.
+    const status = (error as { status?: unknown }).status;
+    const detail = typeof status === "number" ? `check exited ${status}` : "check did not finish";
     throw gateFailure(
-      "use a protected user profile on a local fixed NTFS volume. Check the profile and gate ACLs.",
+      `use a protected user profile on a local fixed NTFS volume. Check the profile and gate ACLs (${detail}).`,
     );
   }
 }
