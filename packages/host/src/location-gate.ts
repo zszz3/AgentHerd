@@ -114,6 +114,7 @@ function checkMacAcl(path: string, isRollbackJournal = false): boolean {
 // Use a fixed system executable and pass literal paths as data, not PowerShell code.
 const windowsProfileCheck = `
 $ErrorActionPreference = 'Stop'
+$ProgressPreference = 'SilentlyContinue'
 $paths = $env:AGENTHERD_GATE_PATHS | ConvertFrom-Json
 $sidType = [System.Security.Principal.SecurityIdentifier]
 $sid = [System.Security.Principal.WindowsIdentity]::GetCurrent().User.Value

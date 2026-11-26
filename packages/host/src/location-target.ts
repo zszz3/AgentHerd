@@ -50,6 +50,7 @@ const windowsTrusted = ["S-1-5-18", "S-1-5-32-544"];
 // to the source would be missing at run time. Paths go in as environment data, never as code.
 const windowsScript = `
 $ErrorActionPreference = 'Stop'
+$ProgressPreference = 'SilentlyContinue'
 $sidType = [System.Security.Principal.SecurityIdentifier]
 $user = [System.Security.Principal.WindowsIdentity]::GetCurrent().User
 $path = $env:AGENTHERD_TARGET_PATH
