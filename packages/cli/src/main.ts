@@ -6,19 +6,24 @@ import { join, resolve } from "node:path";
 import { parseArgs } from "node:util";
 import { FeishuChannel } from "@agentherd/channel-feishu";
 import { Herd, Store } from "@agentherd/core";
+import { coreDataPaths } from "@agentherd/core/data-home-paths";
 import {
-  agentherdHome,
   applySystemProxy,
   feishuSecrets,
   findAgent,
+  LocationError,
+  type LocationSnapshot,
+  locationContext,
   RuntimeStore,
   readConfig,
   resolveProfile,
   runHost,
   secretFile,
   secretsPath,
+  withLocation,
   writeConfig,
 } from "@agentherd/host";
+import { hostDataPaths } from "@agentherd/host/data-home-paths";
 import type { Locale, Mode } from "@agentherd/protocol";
 import QRCode from "qrcode";
 import { MODEL_USAGE, modelCommand } from "./models.ts";
@@ -38,20 +43,22 @@ Commands:
   status                       Show recent sessions, open items and decisions
 
 Environment:
-  AGENTHERD_HOME               Default: ~/.agentherd
+  AGENTHERD_HOME               Default: the directory chosen in the app, else ~/.agentherd
   DEEPSEEK_API_KEY, ...        A provider's key, if none is saved in secrets.json
 `;
 
 type Out = (line: string) => void;
+type LocationGuards = Pick<LocationSnapshot, "protectedPaths" | "protectedLocationFiles">;
 
 export async function main(argv: string[], out: Out = console.log): Promise<number> {
   const [command, ...rest] = argv;
-  const home = agentherdHome();
   switch (command) {
     case "setup":
       if (rest[0] === "feishu") {
-        applySystemProxy();
-        return setupFeishu(home, out);
+        return inLocation((home) => {
+          applySystemProxy();
+          return setupFeishu(home, out);
+        });
       }
       out(USAGE);
       return 2;
@@ -60,16 +67,22 @@ export async function main(argv: string[], out: Out = console.log): Promise<numb
         out(MODEL_USAGE);
         return rest[0] === undefined ? 2 : 0;
       }
-      applySystemProxy();
-      return modelCommand(home, rest, out, { secrets: secretFile(home), readKey });
+      return inLocation((home) => {
+        applySystemProxy();
+        return modelCommand(home, rest, out, { secrets: secretFile(home), readKey });
+      });
     case "run":
-      applySystemProxy();
-      return run(home, rest, out);
+      return inLocation((home, location) => {
+        applySystemProxy();
+        return run(home, rest, out, location);
+      });
     case "start":
-      applySystemProxy();
-      return start(home, rest, out);
+      return inLocation((home, location) => {
+        applySystemProxy();
+        return start(home, rest, out, location);
+      });
     case "status":
-      return status(home, out);
+      return inLocation((home) => status(home, out));
     case undefined:
     case "help":
     case "--help":
@@ -83,6 +96,24 @@ export async function main(argv: string[], out: Out = console.log): Promise<numb
   }
 }
 
+/**
+ * Runs a command on the resolved data home under a shared lease, held until the command settles,
+ * so a data location change never runs while it writes.
+ */
+async function inLocation(
+  command: (home: string, location: LocationGuards) => number | Promise<number>,
+): Promise<number> {
+  try {
+    return await withLocation(locationContext(), ({ home, source: _source, ...guards }) =>
+      command(home, guards),
+    );
+  } catch (error) {
+    if (!(error instanceof LocationError)) throw error;
+    console.error(`agentherd: ${error.message} Open AgentHerd to recover.`);
+    return 1;
+  }
+}
+
 function feishuChannel(home: string, locale?: Locale): FeishuChannel {
   return new FeishuChannel({
     ...(locale === undefined ? {} : { locale }),
@@ -92,15 +123,17 @@ function feishuChannel(home: string, locale?: Locale): FeishuChannel {
 }
 
 async function setupFeishu(home: string, out: Out): Promise<number> {
-  const runDir = join(home, "run");
+  const runDir = join(home, hostDataPaths.run.relative);
   mkdirSync(runDir, { recursive: true, mode: 0o700 });
-  const qrPng = join(runDir, "qr.png");
-  let qrWrite: Promise<void> | undefined;
-  const binding = await feishuChannel(home).setup({
+  const qrPng = join(home, hostDataPaths.feishuQr.relative);
+  // Every QR write settles before the lease is released, also when the setup fails.
+  const qrWrites: Promise<void>[] = [];
+  const setup = feishuChannel(home).setup({
     showQrCode(url, expiresInSeconds) {
-      qrWrite = QRCode.toFile(qrPng, url, { width: 360 }).catch((error: Error) => {
+      const qrWrite = QRCode.toFile(qrPng, url, { width: 360 }).catch((error: Error) => {
         out(`[setup] could not write ${qrPng}: ${error.message}`);
       });
+      qrWrites.push(qrWrite);
       void QRCode.toString(url, { type: "terminal", small: true }).then((qr) => {
         out(qr);
         out(
@@ -114,7 +147,12 @@ async function setupFeishu(home: string, out: Out): Promise<number> {
       out(`[setup] ${state}`);
     },
   });
-  await qrWrite;
+  let binding: Awaited<typeof setup>;
+  try {
+    binding = await setup;
+  } finally {
+    await Promise.all(qrWrites);
+  }
   const config = readConfig(home);
   writeConfig(home, { ...config, channel: binding });
   out(`Bound to Feishu app ${binding.data.appId}. The App Secret is in ${secretsPath(home)}.`);
@@ -132,7 +170,12 @@ async function readKey(prompt: string): Promise<string> {
   return readStdin();
 }
 
-async function run(home: string, args: string[], out: Out): Promise<number> {
+async function run(
+  home: string,
+  args: string[],
+  out: Out,
+  location: LocationGuards,
+): Promise<number> {
   const { values, positionals } = parseArgs({
     args,
     allowPositionals: true,
@@ -169,11 +212,12 @@ async function run(home: string, args: string[], out: Out): Promise<number> {
       (process.env.AGENTHERD_AGENTS
         ? new RuntimeStore(process.env.AGENTHERD_AGENTS).installed(id)?.path
         : undefined) ??
-      new RuntimeStore(join(home, "runtimes")).installed(id)?.path ??
+      new RuntimeStore(join(home, hostDataPaths.runtimes.relative)).installed(id)?.path ??
       findAgent(id),
   });
 
   const herd = new Herd({
+    ...location,
     home,
     userHome: homedir(),
     channel: feishuChannel(home, config.locale),
@@ -204,7 +248,12 @@ async function run(home: string, args: string[], out: Out): Promise<number> {
   }
 }
 
-async function start(home: string, args: string[], out: Out): Promise<number> {
+async function start(
+  home: string,
+  args: string[],
+  out: Out,
+  location: LocationGuards,
+): Promise<number> {
   const { values } = parseArgs({
     args,
     options: { script: { type: "string" }, mode: { type: "string" } },
@@ -218,6 +267,7 @@ async function start(home: string, args: string[], out: Out): Promise<number> {
     return 2;
   }
   const running = await runHost({
+    ...location,
     home,
     ...(values.script === undefined ? {} : { script: resolve(values.script) }),
     log: out,
@@ -248,7 +298,7 @@ async function start(home: string, args: string[], out: Out): Promise<number> {
 }
 
 function status(home: string, out: Out): number {
-  const store = Store.open(join(home, "herd.db"));
+  const store = Store.open(join(home, coreDataPaths.database.relative));
   try {
     out("Sessions:");
     for (const s of store.recentSessions(10))

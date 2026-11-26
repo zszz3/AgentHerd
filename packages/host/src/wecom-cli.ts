@@ -5,6 +5,7 @@ import { createRequire } from "node:module";
 import { homedir, tmpdir } from "node:os";
 import { dirname, join, resolve, sep } from "node:path";
 import { setTimeout as sleep } from "node:timers/promises";
+import { wecomConfigFiles } from "./data-home-paths.ts";
 
 interface WecomCliOptions {
   executable?: () => string;
@@ -20,8 +21,6 @@ interface WecomCliOptions {
   maxQrBytes?: number;
 }
 
-const CREDENTIAL_FILES = ["credentials.enc", "bot.enc", "token.enc", ".encryption_key"];
-const DISCONNECT_MARKER = "disconnect-pending";
 export class WecomDisconnectPendingError extends Error {
   constructor() {
     super("WeCom CLI local disconnect is incomplete.");
@@ -218,13 +217,13 @@ export class WecomCli {
     const config = await this.ownedConfig(false);
     if (!config) return;
     // v1.3.4 has no logout command. Block restoration before touching credentials.
-    const marker = join(config, DISCONNECT_MARKER);
+    const marker = join(config, wecomConfigFiles.disconnectPending);
     try {
       await writeFile(marker, "", { flag: "wx", mode: 0o600 }).catch((error: unknown) => {
         if (error instanceof Error && "code" in error && error.code === "EEXIST") return;
         throw error;
       });
-      for (const name of CREDENTIAL_FILES) {
+      for (const name of wecomConfigFiles.credentials) {
         await unlink(join(config, name)).catch((error: unknown) => {
           if (!missing(error)) throw error;
         });
@@ -247,9 +246,9 @@ export class WecomCli {
       if ((await statIfPresent(external)) && samePath(path, await realpath(external)))
         throw new Error();
       if (create) {
-        if (await statIfPresent(join(path, DISCONNECT_MARKER)))
+        if (await statIfPresent(join(path, wecomConfigFiles.disconnectPending)))
           throw new WecomDisconnectPendingError();
-        for (const name of [...CREDENTIAL_FILES, "config.json"]) {
+        for (const name of [...wecomConfigFiles.credentials, wecomConfigFiles.config]) {
           const file = await statIfPresent(join(path, name));
           if (file && !file.isFile()) throw new Error();
         }

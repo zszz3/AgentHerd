@@ -4,10 +4,11 @@
 
 import { appendFileSync, existsSync, mkdirSync } from "node:fs";
 import { join, resolve } from "node:path";
+import { hostDataPaths } from "@agentherd/host/data-home-paths";
 import { isHostRunning } from "@agentherd/host/server";
 import { app, type UtilityProcess, utilityProcess } from "electron";
 
-let child: UtilityProcess | undefined;
+let child: { process: UtilityProcess; detachLog(): void } | undefined;
 
 /**
  * The host's sources: in the packaged app under Resources/host/packages (scripts/package-mac.ts,
@@ -40,12 +41,16 @@ function dwsPath(): string | undefined {
   return existsSync(executable) ? executable : undefined;
 }
 
-export async function ensureHost(home: string, sock: string): Promise<void> {
-  if (await isHostRunning(sock)) return;
+export async function ensureHost(
+  home: string,
+  sock: string,
+  quitting: () => boolean,
+): Promise<void> {
+  if ((await isHostRunning(sock)) || quitting()) return;
+  const logFile = join(home, hostDataPaths.hostLog.relative);
   if (child === undefined) {
-    const logDir = join(home, "logs");
+    const logDir = join(home, hostDataPaths.logs.relative);
     mkdirSync(logDir, { recursive: true, mode: 0o700 });
-    const logFile = join(logDir, "host.log");
     const agents = agentsDir();
     const dws = dwsPath();
     const env = { ...process.env };
@@ -53,9 +58,9 @@ export async function ensureHost(home: string, sock: string): Promise<void> {
     const p = utilityProcess.fork(hostEntry(), [], {
       serviceName: "AgentHerd host",
       stdio: "pipe",
+      // The host resolves the data location itself, under its own lease.
       env: {
         ...env,
-        AGENTHERD_HOME: home,
         ...(agents === undefined ? {} : { AGENTHERD_AGENTS: agents }),
         ...(dws === undefined ? {} : { AGENTHERD_DWS: dws }),
       },
@@ -66,21 +71,28 @@ export async function ensureHost(home: string, sock: string): Promise<void> {
     };
     p.stdout?.on("data", log);
     p.stderr?.on("data", log);
+    const detachLog = () => {
+      p.stdout?.off("data", log);
+      p.stderr?.off("data", log);
+    };
     p.on("exit", (code) => {
+      detachLog();
       console.error(`[desktop] host exited with code ${code}`);
-      if (child === p) child = undefined;
+      if (child?.process === p) child = undefined;
     });
-    child = p;
+    child = { process: p, detachLog };
   }
   for (let i = 0; i < 100; i++) {
     if (await isHostRunning(sock)) return;
     await new Promise((r) => setTimeout(r, 150));
   }
-  throw new Error(`the host did not start within 15 s; see ${join(home, "logs", "host.log")}`);
+  throw new Error(`the host did not start within 15 s; see ${logFile}`);
 }
 
 /** How long the host gets to stop by itself before it is killed. */
 export const HOST_STOP_MS = 8000;
+/** How long a killed host gets to exit before quit goes on without it. */
+const HOST_KILL_MS = 2000;
 
 export function ownsHost(): boolean {
   return child !== undefined;
@@ -88,28 +100,33 @@ export function ownsHost(): boolean {
 
 /**
  * Asks the host to stop (it ends its tasks and tells the owner), then kills it if it is still
- * running after `HOST_STOP_MS`. On Windows `kill()` ends the process at once, so the message
+ * running after `HOST_STOP_MS` and waits up to `HOST_KILL_MS` for it to exit. On Windows `kill()` ends the process at once, so the message
  * is the only way the host gets to clean up.
  */
 export function stopOwnedHost(timeoutMs = HOST_STOP_MS): Promise<void> {
-  const p = child;
+  const owned = child;
   child = undefined;
-  if (p === undefined) return Promise.resolve();
+  if (owned === undefined) return Promise.resolve();
+  const { process: p, detachLog } = owned;
   return new Promise((done) => {
-    const timer = setTimeout(() => {
+    let killTimer: ReturnType<typeof setTimeout> | undefined;
+    // Until it has exited the host holds its shared lease, which a relaunch would see as busy.
+    const kill = () => {
+      detachLog();
       p.kill();
-      done();
-    }, timeoutMs);
+      killTimer = setTimeout(done, HOST_KILL_MS);
+    };
+    const timer = setTimeout(kill, timeoutMs);
     p.once("exit", () => {
       clearTimeout(timer);
+      clearTimeout(killTimer);
       done();
     });
     try {
       p.postMessage({ type: "stop" });
     } catch {
       clearTimeout(timer);
-      p.kill();
-      done();
+      kill();
     }
   });
 }

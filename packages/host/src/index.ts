@@ -2,6 +2,7 @@ export * from "./agents.ts";
 export * from "./api.ts";
 export * from "./catalog.ts";
 export * from "./config.ts";
+export * from "./data-location.ts";
 export { HOST_VERSION, Host, type HostOptions } from "./host.ts";
 export * from "./profiles.ts";
 export * from "./proxy.ts";

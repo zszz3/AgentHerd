@@ -19,6 +19,7 @@ import {
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { basename, dirname, join, relative } from "node:path";
+import { coreDataPaths } from "./data-home-paths.ts";
 
 /**
  * - `copy`: a git worktree of the project, synced every turn.
@@ -127,7 +128,8 @@ export class Workspaces {
   ): Promise<TaskWorkspace> {
     const { previous } = options;
     if (previous?.kind === "scratch" || (dir === undefined && previous === undefined)) {
-      const cwd = previous?.cwd ?? join(this.home, "tasks", taskId.slice(0, 8));
+      const cwd =
+        previous?.cwd ?? join(this.home, coreDataPaths.tasks.relative, taskId.slice(0, 8));
       mkdirSync(cwd, { recursive: true });
       return { kind: "scratch", cwd };
     }
@@ -164,7 +166,12 @@ export class Workspaces {
   /** The copy's folder: the same every time, so an agent can load its session again. */
   rootFor(top: string, taskId: string): string {
     const hash = createHash("sha1").update(top.toLowerCase()).digest("hex").slice(0, 6);
-    return join(this.home, "worktrees", `${safe(basename(top))}-${hash}`, taskId.slice(0, 8));
+    return join(
+      this.home,
+      coreDataPaths.worktrees.relative,
+      `${safe(basename(top))}-${hash}`,
+      taskId.slice(0, 8),
+    );
   }
 
   /** Before a turn: what the owner changed since the last sync goes into the copy. */

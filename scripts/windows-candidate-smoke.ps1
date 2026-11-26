@@ -87,15 +87,25 @@ try {
     if ((& $iconOf $exe) -eq (& $iconOf $electronExe)) { throw "AgentHerd.exe still has Electron's icon" }
 
     # Chromium can resolve its default user data via Windows known folders rather than APPDATA.
-    $app = Start-Process -FilePath $exe -ArgumentList "--user-data-dir=`"$roaming\chromium`"" -Environment $envOverrides -WorkingDirectory $install -PassThru
+    $appOut = Join-Path $tmp 'desktop.out.log'
+    $appErr = Join-Path $tmp 'desktop.err.log'
+    $app = Start-Process -FilePath $exe -ArgumentList "--user-data-dir=`"$roaming\chromium`"" -Environment $envOverrides -WorkingDirectory $install -RedirectStandardOutput $appOut -RedirectStandardError $appErr -PassThru
     $clock = [Diagnostics.Stopwatch]::StartNew()
+    $lastProbe = 'No visible AgentHerd main window'
     do {
         if ($app.HasExited) { throw "Installed desktop exited early (code $($app.ExitCode))" }
         if ([CandidateWindow]::Ready($app.Id)) {
-            & node (Join-Path $PSScriptRoot 'windows-desktop-probe.mjs') $herd *> $null
+            $lastProbe = & node (Join-Path $PSScriptRoot 'windows-desktop-probe.mjs') $herd 2>&1 | Out-String
             if ($LASTEXITCODE -eq 0) { break }
         }
-        if ($clock.Elapsed.TotalSeconds -ge 120) { throw 'Installed main window or matching host.status() did not become ready' }
+        if ($clock.Elapsed.TotalSeconds -ge 120) {
+            # The installed app logs only to its streams and the host log; show both.
+            foreach ($log in @($appOut, $appErr) + @(Get-ChildItem -LiteralPath $tmp -Recurse -Filter 'host*.log' -ErrorAction SilentlyContinue | ForEach-Object FullName)) {
+                if (Test-Path -LiteralPath $log) { Write-Host "--- $log"; Get-Content -LiteralPath $log -Tail 40 | Write-Host }
+            }
+            Get-ChildItem -Force -LiteralPath $HOME -Filter '.agentherd-location*' | ForEach-Object { Write-Host "profile file $($_.Name) $($_.Length)" }
+            throw "Installed main window or matching host.status() did not become ready: $lastProbe"
+        }
         Start-Sleep -Milliseconds 750
     } while ($true)
     Write-Host 'Visible installed main window and matching host.status() observed'

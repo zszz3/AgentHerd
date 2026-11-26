@@ -20,21 +20,16 @@ import type {
   SocialSource,
 } from "@agentherd/core";
 import { type McpHttpClient, mcpHttpClient } from "./composio.ts";
+import { hostDataPaths, XHS_VERSION, xhsDownload } from "./data-home-paths.ts";
 import { renameWithRetry } from "./runtimes.ts";
 
-export const XHS_VERSION = "v2.7.4";
-const XHS_ASSETS: Record<string, string> = {
-  "darwin-arm64": "xiaohongshu-mcp-darwin-arm64",
-  "win32-x64": "xiaohongshu-mcp-windows-amd64.exe",
-  "win32-arm64": "xiaohongshu-mcp-windows-amd64.exe",
-  "linux-x64": "xiaohongshu-mcp-linux-amd64",
-};
+export { XHS_VERSION };
 
 export function xhsAsset(
   plat: NodeJS.Platform = platform(),
   cpu: string = arch(),
 ): string | undefined {
-  return XHS_ASSETS[`${plat}-${cpu}`];
+  return xhsDownload(plat, cpu)?.asset;
 }
 /** Agent tools are named XIAOHONGSHU_<TOOL> so approvals and the owner see where they go. */
 export const XHS_PREFIX = "XIAOHONGSHU_";
@@ -155,7 +150,7 @@ export class Xiaohongshu implements SocialSource {
   }
 
   private dir(): string {
-    return join(this.opts.home, "xiaohongshu");
+    return join(this.opts.home, hostDataPaths.xiaohongshu.relative);
   }
 
   /** The pinned server binary, downloaded once. */
@@ -163,20 +158,20 @@ export class Xiaohongshu implements SocialSource {
     if (this.opts.binary !== undefined) return this.opts.binary();
     const plat = this.opts.platform ?? platform();
     const cpu = this.opts.arch ?? arch();
-    const asset = xhsAsset(plat, cpu);
-    if (asset === undefined) {
+    const download = xhsDownload(plat, cpu);
+    if (download === undefined) {
       throw new Error(`小红书 does not support ${plat}-${cpu} yet`);
     }
+    const { asset, paths } = download;
     const url = `https://github.com/xpzouying/xiaohongshu-mcp/releases/download/${XHS_VERSION}/${asset}`;
-    const ext = plat === "win32" ? ".exe" : "";
-    const dir = join(this.opts.home, "bin");
-    const bin = join(dir, `xiaohongshu-mcp-${XHS_VERSION}${ext}`);
+    const dir = join(this.opts.home, hostDataPaths.bin.relative);
+    const bin = join(this.opts.home, paths.xiaohongshuBinary.relative);
     if (existsSync(bin)) return bin;
     mkdirSync(dir, { recursive: true, mode: 0o700 });
     this.opts.log?.(`[xiaohongshu] downloading ${url}`);
     const res = await this.fetchFn(url);
     if (!res.ok) throw new Error(`could not download xiaohongshu-mcp: HTTP ${res.status}`);
-    const part = `${bin}.part`;
+    const part = join(this.opts.home, paths.xiaohongshuPartial.relative);
     writeFileSync(part, Buffer.from(await res.arrayBuffer()));
     if (plat !== "win32") chmodSync(part, 0o755);
     await renameWithRetry(part, bin);
@@ -202,7 +197,7 @@ export class Xiaohongshu implements SocialSource {
       const env = {
         ...process.env,
         AUTH_TOKEN: this.token,
-        COOKIES_PATH: join(this.dir(), "cookies.json"),
+        COOKIES_PATH: join(this.opts.home, hostDataPaths.xiaohongshuCookies.relative),
         XHS_FP_SEED: String(this.opts.seed),
         // 小红书 is a service in China. Through a proxy or VPN with an overseas exit it sends the
         // browser to RedNote (rednote.com), whose page loads too slowly for the server's
@@ -308,7 +303,7 @@ export class Xiaohongshu implements SocialSource {
   private watchLogin(): void {
     if (this.loginTimer !== undefined) clearTimeout(this.loginTimer);
     const until = Date.now() + LOGIN_WAIT_MS;
-    const cookies = join(this.dir(), "cookies.json");
+    const cookies = join(this.opts.home, hostDataPaths.xiaohongshuCookies.relative);
     const stamp = () => (existsSync(cookies) ? statSync(cookies).mtimeMs : 0);
     const before = stamp();
     let ticks = 0;

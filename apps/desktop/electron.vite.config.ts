@@ -11,7 +11,15 @@ export default defineConfig({
   main: {
     plugins: [externalizeDepsPlugin({ exclude: bundled })],
     build: {
-      rollupOptions: { input: { index: resolve(import.meta.dirname, "src/main/index.ts") } },
+      rollupOptions: {
+        input: {
+          index: resolve(import.meta.dirname, "src/main/index.ts"),
+          "data-directory-worker": resolve(
+            import.meta.dirname,
+            "src/main/data-directory-worker.ts",
+          ),
+        },
+      },
     },
   },
   preload: {

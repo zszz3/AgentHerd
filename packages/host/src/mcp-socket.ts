@@ -10,6 +10,7 @@ import { StringDecoder } from "node:string_decoder";
 import { fileURLToPath } from "node:url";
 import type { StdioMcpServer } from "@agentherd/acp-client";
 import { type JsonRpcMessage, UnknownTokenError } from "@agentherd/core";
+import { hostDataPaths } from "./data-home-paths.ts";
 import { nodeEnv } from "./runtimes.ts";
 
 export const MCP_RELAY_BIN = fileURLToPath(new URL("../bin/agentherd-mcp.ts", import.meta.url));
@@ -25,7 +26,7 @@ export function mcpSocketPath(home: string, platform: NodeJS.Platform = process.
       .slice(0, 16);
     return `\\\\.\\pipe\\agentherd-mcp-${id}`;
   }
-  return join(home, "run", "mcp.sock");
+  return join(home, hostDataPaths.mcpSocket.relative);
 }
 
 /** The stdio server an agent starts: the relay, run by the host's Node, with socket and token. */

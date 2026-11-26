@@ -274,6 +274,8 @@ credentials for the office services; no Bot Secret or per-service MCP URL is nee
 host runs the [official WeCom CLI](https://github.com/WecomTeam/wecom-cli) in a dedicated
 local profile. Cancel hides the QR and stops the pending login. Disconnect clears the local
 login and blocks calls from older tasks; revoke WeCom grants separately if needed.
+Copying the AgentHerd data directory preserves this profile, including any pending disconnect.
+A standalone WeCom CLI profile is not moved.
 
 The tool list covers supported calendars, meetings and minutes, to-dos, documents,
 mail, WeDrive metadata, contacts and eligible bot messaging. Listed
@@ -310,7 +312,10 @@ still wins. Changing or disconnecting the account invalidates waiting calls. A c
 uncertain write is not retried; check the destination before trying again.
 
 The host runs the pinned [DingTalk Workspace CLI](https://github.com/DingTalk-Real-AI/dingtalk-workspace-cli)
-with separate config and credential storage. There is no raw CLI, local file transfer,
+with separate config and credential storage under `dingtalk-dws` in the data directory.
+Copying the AgentHerd data directory preserves this sign-in, including any pending reset; the
+CLI's own lock file is not copied, and DingTalk data outside the data directory is not moved.
+There is no raw CLI, local file transfer,
 DingTalk control channel or direct Herder tool. For local desktop development, stage the
 binary with `pnpm --filter @agentherd/desktop fetch-dws`; restart the desktop-owned host to
 pick it up. The macOS bundle includes it. An unstaged build displays 不可用.

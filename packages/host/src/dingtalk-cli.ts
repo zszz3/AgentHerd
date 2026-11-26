@@ -2,6 +2,15 @@ import { spawn } from "node:child_process";
 import { mkdir, rm, stat, writeFile } from "node:fs/promises";
 import { isAbsolute, join } from "node:path";
 
+// The DingTalk Workspace CLI keeps its sign-in under these names inside its state directory.
+// Kept here, with only Node built-ins imported, so `scripts/dws-windows-write-smoke.mjs` runs
+// this module on a runner without `pnpm install`.
+export const dingTalkStateFiles = {
+  config: "config",
+  credentials: "credentials",
+  resetPending: "reset-pending",
+} as const;
+
 export type DingTalkIdentity = Readonly<{
   corpId: string;
   userId: string;
@@ -105,8 +114,8 @@ export async function runDws(
   const env = Object.fromEntries(
     Object.entries(process.env).filter(([key]) => PLATFORM_ENV.has(key.toUpperCase())),
   );
-  env.DWS_CONFIG_DIR = join(stateDir, "config");
-  env.DWS_KEYCHAIN_DIR = join(stateDir, "credentials");
+  env.DWS_CONFIG_DIR = join(stateDir, dingTalkStateFiles.config);
+  env.DWS_KEYCHAIN_DIR = join(stateDir, dingTalkStateFiles.credentials);
 
   beforeDispatch?.();
   return new Promise((resolve, reject) => {
@@ -213,7 +222,7 @@ export function dingtalkCli(options: Options): DingTalkCliPort {
       json,
       beforeDispatch,
     );
-  const resetMarker = join(options.stateDir, "reset-pending");
+  const resetMarker = join(options.stateDir, dingTalkStateFiles.resetPending);
   const markResetPending = async () => {
     if (!isAbsolute(options.stateDir)) throw new DingTalkCliError("unavailable");
     await mkdir(options.stateDir, { recursive: true, mode: 0o700 });

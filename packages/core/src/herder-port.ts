@@ -125,6 +125,8 @@ export interface HerderHost {
   readonly locale: Locale;
   readonly texts: CoreTexts;
   readonly userHome: string;
+  readonly protectedPaths?: readonly string[] | undefined;
+  readonly protectedLocationFiles?: readonly string[] | undefined;
   /** ownModels: the agent brings its own sign-in and models (ADR 0104). */
   profiles(): { id: string; name: string; ownModels?: boolean }[];
   tasks(): Task[];

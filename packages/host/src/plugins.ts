@@ -28,6 +28,7 @@ import type {
   PluginView,
 } from "./api.ts";
 import type { CliConfig, PluginEntry } from "./config.ts";
+import { hostDataPaths } from "./data-home-paths.ts";
 import {
   entrySource,
   fillVars,
@@ -136,7 +137,7 @@ export class PluginStore {
   }
 
   private get dir(): string {
-    return join(this.opts.home, "plugins");
+    return join(this.opts.home, hostDataPaths.plugins.relative);
   }
 
   private now(): Date {
@@ -157,7 +158,7 @@ export class PluginStore {
     const cached = this.catalogCache;
     if (cached !== undefined && this.now().getTime() - cached.at < CATALOG_MS)
       return cached.entries;
-    const file = join(this.dir, "catalog.json");
+    const file = join(this.opts.home, hostDataPaths.pluginCatalog.relative);
     try {
       const res = await this.fetch(CATALOG_URL, { signal: AbortSignal.timeout(30_000) });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -262,7 +263,11 @@ export class PluginStore {
     const { key, github } = await this.resolve(source);
     let staged = this.staged.get(key);
     if (staged === undefined) {
-      const dir = join(this.dir, ".staging", randomBytes(6).toString("hex"));
+      const dir = join(
+        this.opts.home,
+        hostDataPaths.pluginStaging.relative,
+        randomBytes(6).toString("hex"),
+      );
       try {
         const root = await this.download(github, dir);
         const name = github.path?.split("/").pop() ?? github.repo;

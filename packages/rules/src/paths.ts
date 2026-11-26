@@ -1,8 +1,11 @@
+import { lstatSync, statSync } from "node:fs";
 import path from "node:path";
 
 export interface PathContext {
   cwd: string;
   home: string;
+  protectedPaths?: readonly string[] | undefined;
+  protectedLocationFiles?: readonly string[] | undefined;
 }
 
 /** True when `s` uses Windows drive, UNC, or backslash syntax. */
@@ -52,6 +55,83 @@ export function isInside(target: string, dir: string): boolean {
   }
   const rel = p.relative(p.resolve(dir), p.resolve(target));
   return rel === "" || (rel !== ".." && !rel.startsWith("../") && !p.isAbsolute(rel));
+}
+
+/** Compare declared data paths using native identity, not spelling alone. */
+export function protectedPathMatch(
+  target: string,
+  root: string,
+  locationFile = false,
+): "match" | "unrelated" | "uncertain" {
+  const p = pathModFor(target, root);
+  if (!p.isAbsolute(target) || !p.isAbsolute(root)) return "unrelated";
+  const resolvedRoot = p.resolve(stripExtendedPrefix(root));
+  let ancestor = p.resolve(stripExtendedPrefix(target));
+  const depth = (value: string) =>
+    value.slice(p.parse(value).root.length).split(p.sep).filter(Boolean).length;
+  for (let count = depth(ancestor) - depth(resolvedRoot); count > 0; count--)
+    ancestor = p.dirname(ancestor);
+  if (depth(ancestor) !== depth(resolvedRoot)) return "unrelated";
+  if (ancestor === resolvedRoot) return "match";
+  if (p !== path) return "unrelated";
+
+  const parent = p.dirname(resolvedRoot);
+  const candidateParent = p.dirname(ancestor);
+  const known = inspectPath(resolvedRoot);
+  if (known === undefined) {
+    // Only absent location metadata gets a name-based fallback.
+    if (
+      !locationFile ||
+      p.basename(ancestor).toLowerCase() !== p.basename(resolvedRoot).toLowerCase()
+    )
+      return "unrelated";
+    if (candidateParent === parent) return "match";
+    const a = inspectPath(parent, true);
+    const b = inspectPath(candidateParent, true);
+    if (a === unreadable || b === unreadable) return "uncertain";
+    return a !== undefined && b !== undefined && sameIdentity(a, b) ? "match" : "unrelated";
+  }
+  const candidate = inspectPath(ancestor);
+  if (candidate === undefined) return "unrelated";
+  if (known !== unreadable && candidate !== unreadable)
+    return sameIdentity(known, candidate) ? "match" : "unrelated";
+  // A known regular file cannot be another name for an unreadable directory.
+  if (!locationFile && candidate !== unreadable && candidate.isFile()) return "unrelated";
+
+  // Distinct actual parents rule out another name for a directory entry. Follow parent
+  // aliases before comparing; do not assume name spelling or apply this to hard-linked files.
+  if (!locationFile && candidate !== unreadable && candidateParent !== parent) {
+    if (candidate.isDirectory()) {
+      const a = inspectPath(parent, true);
+      const b = inspectPath(candidateParent, true);
+      if (
+        a !== undefined &&
+        b !== undefined &&
+        a !== unreadable &&
+        b !== unreadable &&
+        !sameIdentity(a, b)
+      )
+        return "unrelated";
+    }
+  }
+  return "uncertain";
+}
+
+const unreadable = Symbol("unreadable path identity");
+
+function inspectPath(path: string, follow = false) {
+  try {
+    return (follow ? statSync : lstatSync)(path, { bigint: true, throwIfNoEntry: false });
+  } catch (error) {
+    if (error instanceof Error && "code" in error) {
+      if (error.code === "ENOENT" || error.code === "ENOTDIR") return undefined;
+    }
+    return unreadable;
+  }
+}
+
+function sameIdentity(a: { dev: bigint; ino: bigint }, b: { dev: bigint; ino: bigint }): boolean {
+  return a.dev === b.dev && a.ino === b.ino;
 }
 
 /** True when two paths resolve to the same location (case-insensitive for Windows paths). */

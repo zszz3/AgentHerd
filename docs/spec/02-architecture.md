@@ -119,7 +119,15 @@ Rules:
 
 ## 5. Storage
 
-All state is under `~/.agentherd/` (overridable by `AGENTHERD_HOME`):
+AgentHerd data is under `<home>`. The desktop, host and CLI prefer `AGENTHERD_HOME`,
+then the per-user saved location, then `~/.agentherd` if no record exists ([ADR 0107](../adr/0107-one-shared-data-location.md)).
+They hold a shared lease while accessing data. The record, pending request and gate are outside
+`<home>`, in the user profile. Settings → About changes the location at restart, before the host
+starts. The owner can start empty or copy supported data without removing the old directory.
+A failed apply leaves the selection unchanged. An unavailable selection opens recovery without
+starting the host or falling back to the default. A folder picked in recovery must already hold
+`herd.db` and pass the path checks of a new parent: a local disk, no links, not replaceable or
+writable by other users, and (on macOS) host sockets that fit.
 
 | Path | Content |
 | --- | --- |

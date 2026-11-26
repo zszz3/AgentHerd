@@ -6,6 +6,10 @@
   "exports": {
     ".": "./src/index.ts",
     "./api": "./src/api.ts",
+    "./data-home-paths": "./src/data-home-paths.ts",
+    "./data-location": "./src/data-location.ts",
+    "./location-apply": "./src/location-apply.ts",
+    "./location-target": "./src/location-target.ts",
     "./server": "./src/server.ts"
   },
   "bin": {

@@ -104,6 +104,8 @@ function decideOne(ctx: HerdContext, base: Item, call: AppCall): PipelineResult 
     mode: ctx.mode(),
     rules: ctx.store.listRules(),
     home: ctx.opts.userHome,
+    protectedPaths: ctx.opts.protectedPaths,
+    protectedLocationFiles: ctx.opts.protectedLocationFiles,
     ...turnPermits(ctx, base.sessionId),
   };
   const provider = officeProvider(call);

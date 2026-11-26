@@ -10,6 +10,7 @@ import {
   type PathContext,
   pathCandidates,
   pathModFor,
+  protectedPathMatch,
   resolveWord,
 } from "./paths.ts";
 import {
@@ -98,28 +99,66 @@ export function guardCheck(
   call: ToolCallInfo,
   ctx: PathContext,
   extraGuards: readonly ExtraGuard[] = [],
+  scope: "all" | "configured" = "all",
 ): GuardResult {
+  const configuredOnly = scope === "configured";
+  const resolvedPaths = call.paths.map((p) => resolveWord(p, ctx));
+  const callPaths = call.paths.map((p, i) => resolvedPaths[i] ?? p);
+  const hasPathGuards = Boolean(
+    ctx.protectedPaths?.length ||
+      ctx.protectedLocationFiles?.length ||
+      extraGuards.some((guard) => guard.pathPrefix !== undefined),
+  );
+  const declared = checkDeclaredPaths(callPaths, ctx);
+  if (declared.hit) return declared;
+  if (
+    configuredOnly &&
+    !ctx.protectedPaths?.length &&
+    !ctx.protectedLocationFiles?.length &&
+    extraGuards.length === 0
+  )
+    return { hit: false };
+
   let segments: Segment[] = [];
   if (call.command !== undefined && call.command.trim() !== "") {
     try {
       segments = splitCommand(call.command);
     } catch (error) {
-      if (error instanceof UnparsedCommandError) return hit("unparsed", error.message);
-      throw error;
+      if (!(error instanceof UnparsedCommandError)) throw error;
+      const explicit = checkExtra(extraGuards, [], callPaths, ctx);
+      if (explicit.hit) return explicit;
+      return !configuredOnly || hasPathGuards ? hit("unparsed", error.message) : { hit: false };
     }
   }
 
+  // The splitter removes quotes. Check the original spelling for just this one display form.
+  // Keep the parsed words intact for command guards; omit only the display operand from paths.
+  const fixedDisplay =
+    segments.length === 1 &&
+    segments[0]?.words.length === 2 &&
+    /^[ \t]*echo[ \t]+'\$[A-Za-z_][A-Za-z0-9_]*'[ \t]*$/.test(call.command ?? "");
   const commandPaths: string[] = [];
+  let unresolved = resolvedPaths.some((p) => p === null);
   for (const segment of segments) {
-    for (const word of segment.words) {
+    for (const [index, word] of segment.words.entries()) {
+      if (fixedDisplay && index === 1) continue;
       for (const candidate of pathCandidates(word)) {
         const resolved = resolveWord(candidate, ctx);
-        if (resolved !== null) commandPaths.push(resolved);
+        if (resolved === null) unresolved = true;
+        else commandPaths.push(resolved);
       }
     }
   }
-  const callPaths = call.paths.map((p) => resolveWord(p, ctx) ?? p);
   const allPaths = [...callPaths, ...commandPaths];
+  const commandGuard = checkDeclaredPaths(commandPaths, ctx);
+  if (commandGuard.hit) return commandGuard;
+  const extra = checkExtra(extraGuards, segments, allPaths, ctx);
+  if (unresolved && hasPathGuards) {
+    return extra.hit
+      ? extra
+      : hit("unparsed", "A target could not be resolved against configured path guards");
+  }
+  if (configuredOnly) return extra;
 
   const results: GuardResult[] = [
     checkRm(call, segments, callPaths, ctx),
@@ -128,9 +167,31 @@ export function guardCheck(
     checkSecrets(segments, allPaths, ctx),
     checkSelfConfig(allPaths, ctx),
     checkSudo(segments),
-    checkExtra(extraGuards, segments, allPaths, ctx),
+    extra,
   ];
   return results.find((r) => r.hit) ?? { hit: false };
+}
+
+function checkDeclaredPaths(paths: readonly string[], ctx: PathContext): GuardResult {
+  let uncertain = false;
+  for (const [roots, locationFile] of [
+    [ctx.protectedLocationFiles, true],
+    [ctx.protectedPaths, false],
+  ] as const) {
+    for (const root of roots ?? []) {
+      for (const target of paths) {
+        const comparison = protectedPathMatch(target, root, locationFile);
+        if (comparison === "match") return hit("self-config");
+        if (comparison === "uncertain") uncertain = true;
+      }
+    }
+  }
+  return uncertain
+    ? hit(
+        "self-config",
+        "A protected data path may match, but its filesystem identity could not be checked",
+      )
+    : { hit: false };
 }
 
 function isRecursiveFlag(word: string, allowCmdSwitch = false): boolean {

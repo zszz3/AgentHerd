@@ -16,6 +16,16 @@ const host = Object.fromEntries(
 
 const bridge: Bridge = {
   host,
+  dataDirectory: {
+    status: () => ipcRenderer.invoke("app:data-directory"),
+    change: () => ipcRenderer.invoke("app:change-data-directory"),
+    recover: (choice) => ipcRenderer.invoke("app:recover-data-directory", choice),
+    onProgress(listener) {
+      const handler = (_event: unknown, files: number) => listener(files);
+      ipcRenderer.on("app:data-directory-progress", handler);
+      return () => ipcRenderer.removeListener("app:data-directory-progress", handler);
+    },
+  },
   onEvent(listener) {
     const handler = (_e: unknown, event: HostEvent) => listener(event);
     ipcRenderer.on("host:event", handler);

@@ -19,11 +19,14 @@ a mistake with the user's shell. This spec lists the rules that keep that power 
 ## 2. Secrets
 
 - App Secret, model keys and the owner's Composio API key (`composio`, 09-agent-tools §3) live in
-  `<home>/secrets.json`, mode 600 inside the mode 700 `~/.agentherd` (on Windows, user-profile
-  NTFS ACLs), held by the host process;
+  `<home>/secrets.json`, mode 600 inside the mode 700 data directory (on Windows, private NTFS
+  ACLs), held by the host process;
   the UI can replace or remove a key but never read it back. The Composio key goes only to
   Composio: never to an agent, the Herder, a card or the audit log. The guard list already blocks
-  agents from reading `~/.agentherd`.
+  agents from reading the active, default and retained data roots and the location metadata.
+- Switching locations needs an exclusive lease. The app creates and verifies a new private
+  directory before selecting it; it never cleans up the source. Only the main window's main frame
+  can invoke data directory IPC; paths come from the native picker, not the renderer (ADR 0107).
 - Logs, `herd.db`, cards and model prompts are passed through a redaction step: known secret
   formats (API keys, tokens, private keys) and values of variables whose names contain
   `KEY`, `TOKEN`, `SECRET` or `PASSWORD` are replaced with `«redacted»`.

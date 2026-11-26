@@ -110,3 +110,4 @@ Format and rules: [ADR 0001](0001-record-architecture-decisions.md).
 | [0104](0104-antigravity-the-owners-own-agy.md) | Antigravity is a built-in agent: the owner's own `agy acp`, started with settings of AgentHerd's own that make every edit and command ask; it signs in and picks models itself (the model the owner names is set in the session), and runs only when the owner names it | Accepted |
 | [0105](0105-dingtalk-office-tools-use-dws.md) | Use the pinned DingTalk Workspace CLI for curated task tools; confirm every write in Feishu | Accepted |
 | [0106](0106-dsh-the-owners-own-desktop-app.md) | DeepSeek Harness is a built-in agent again: the owner's own DSH desktop app (`dsh acp` from the installed app, before `PATH`), read-only so writes ask; it has its own models (a named model is matched to its model ids), and runs only when the owner names it | Accepted |
+| [0107](0107-one-shared-data-location.md) | Use one shared data location | Accepted |

@@ -1,8 +1,161 @@
+import { existsSync, mkdirSync, mkdtempSync, realpathSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import type { ToolCallInfo } from "@agentherd/protocol";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { type ExtraGuard, guardCheck } from "../src/guard.ts";
 
+const denied = vi.hoisted(() => new Set<string>());
+vi.mock("node:fs", async (load) => {
+  const fs = await load<typeof import("node:fs")>();
+  return {
+    ...fs,
+    lstatSync: ((...args: Parameters<typeof fs.lstatSync>) => {
+      if (typeof args[0] === "string" && denied.has(args[0])) {
+        throw Object.assign(new Error("Fixture metadata unavailable"), { code: "EACCES" });
+      }
+      return fs.lstatSync(...args);
+    }) as typeof fs.lstatSync,
+  };
+});
+
 const ctx = { cwd: "/work/proj", home: "/Users/me" };
+
+it("keeps configured path decisions when command parsing fails", () => {
+  const extra = [{ id: "fixture-path", reason: "Fixture path", pathPrefix: "/fixture" }];
+  const malformed = cmd("fixture '", ["/fixture/note"]);
+  for (const scope of ["configured", "all"] as const) {
+    expect(guardCheck(malformed, ctx, extra, scope)).toMatchObject({ id: "fixture-path" });
+  }
+  expect(guardCheck(malformed, ctx, [], "configured")).toEqual({ hit: false });
+  expect(
+    guardCheck(cmd("fixture '"), { ...ctx, protectedPaths: ["/fixture"] }, [], "configured"),
+  ).toMatchObject({ id: "unparsed" });
+});
+
+it("asks about unresolved targets only in the presence of configured path guards", () => {
+  const unresolved = cmd("fixture $FIXTURE_PATH");
+  expect(guardCheck(unresolved, ctx, [], "configured")).toEqual({ hit: false });
+  expect(
+    guardCheck(unresolved, { ...ctx, protectedPaths: ["/fixture"] }, [], "configured"),
+  ).toMatchObject({ id: "unparsed" });
+  expect(
+    guardCheck(cmd("fixture note"), { ...ctx, protectedPaths: ["/fixture"] }, [], "configured"),
+  ).toEqual({ hit: false });
+});
+
+describe("configured path guards distinguish fixed display text from operands", () => {
+  function withProtectedRoot(test: (where: typeof ctx & { protectedPaths: string[] }) => void) {
+    const home = mkdtempSync(join(realpathSync(tmpdir()), "herd-guard-"));
+    try {
+      const retained = join(home, "retained");
+      mkdirSync(retained);
+      test({ cwd: home, home, protectedPaths: [retained] });
+    } finally {
+      rmSync(home, { recursive: true });
+    }
+  }
+
+  it("does not ask for a standalone fixed display operand", () => {
+    withProtectedRoot((where) => {
+      expect(guardCheck(cmd("echo '$PRICE'"), where, [], "configured").hit).toBe(false);
+    });
+  });
+
+  it.each([
+    'cat "$FILE"',
+    'echo "$PRICE"',
+    "echo '$PRICE'suffix",
+    "echo '$PRICE tag'",
+    "echo '$PRICE' tag",
+    "echo '$PRICE' > note",
+    "echo note > '$PRICE'",
+    "echo '$PRICE'; echo note",
+    "echo '$PRICE'\n",
+    "env echo '$PRICE'",
+    "'echo' '$PRICE'",
+  ])("keeps asking about unresolved operands in %j", (command) => {
+    withProtectedRoot((where) => {
+      expect(guardCheck(cmd(command), where, [], "configured")).toMatchObject({ id: "unparsed" });
+    });
+  });
+
+  it("checks protected paths and extra guards independently of the display operand", () => {
+    withProtectedRoot((where) => {
+      const path = join(where.cwd, "retained", "note");
+      for (const call of [
+        cmd("echo '$PRICE'", [path]),
+        cmd("echo '$PRICE", [path]),
+        cmd(`echo '$PRICE' > "${path}"`),
+        cmd(`echo '$PRICE'; echo "${path}"`),
+      ]) {
+        expect(guardCheck(call, where, [], "configured")).toMatchObject({ id: "self-config" });
+      }
+      const display = "echo '$PRICE'";
+      const commandGuard = { id: "display", reason: "Fixture command", command: "echo *" };
+      const pathGuard = {
+        id: "notes",
+        reason: "Fixture path",
+        pathPrefix: join(where.cwd, "notes"),
+      };
+      expect(guardCheck(cmd(display), where, [commandGuard], "configured")).toMatchObject({
+        id: "display",
+      });
+      expect(
+        guardCheck(
+          cmd(display, [join(where.cwd, "notes", "note")]),
+          where,
+          [pathGuard],
+          "configured",
+        ),
+      ).toMatchObject({ id: "notes" });
+      expect(guardCheck(cmd(display, ["$FILE"]), where, [], "configured")).toMatchObject({
+        id: "unparsed",
+      });
+    });
+  });
+});
+
+it("asks only if an unreadable retained directory might still match", () => {
+  const home = mkdtempSync(join(realpathSync(tmpdir()), "herd-guard-"));
+  const parent = join(home, "previous");
+  const retained = join(parent, "retained");
+  denied.add(retained);
+  try {
+    const sameParent = join(parent, "sibling");
+    const otherParent = join(home, "other");
+    const unrelated = join(otherParent, "sibling");
+    mkdirSync(sameParent, { recursive: true });
+    mkdirSync(unrelated, { recursive: true });
+    const file = join(parent, "note.txt");
+    writeFileSync(file, "fixture");
+    const where = { cwd: home, home, protectedPaths: [retained] };
+    for (const scope of ["configured", "all"] as const) {
+      for (const target of [file, join(file, "new")]) {
+        expect(guardCheck(cmd("fixture", [target]), where, [], scope).hit).toBe(false);
+      }
+      expect(guardCheck(cmd("fixture", [join(retained, "new")]), where, [], scope)).toMatchObject({
+        id: "self-config",
+        reason: "Changes AgentHerd's or an agent's permission configuration",
+      });
+      const location = { cwd: home, home, protectedLocationFiles: [retained] };
+      expect(guardCheck(cmd("fixture", [file]), location, [], scope)).toMatchObject({
+        id: "self-config",
+        reason: expect.stringContaining("could not be checked"),
+      });
+      expect(guardCheck(cmd("fixture", [join(sameParent, "new")]), where, [], scope)).toMatchObject(
+        { id: "self-config", reason: expect.stringContaining("could not be checked") },
+      );
+      expect(guardCheck(cmd("fixture", [join(home, "missing", "new")]), where, [], scope).hit).toBe(
+        false,
+      );
+      expect(guardCheck(cmd("fixture", [unrelated]), where, [], scope).hit).toBe(false);
+    }
+  } finally {
+    denied.delete(retained);
+    rmSync(home, { recursive: true });
+  }
+});
 
 function cmd(command: string, paths: string[] = []): ToolCallInfo {
   return { kind: "execute", title: command, command, paths };
@@ -12,6 +165,81 @@ function hitId(call: ToolCallInfo, extra: ExtraGuard[] = []): string | null {
   const r = guardCheck(call, ctx, extra);
   return r.hit ? r.id : null;
 }
+
+it("guards custom, retained and location file paths without matching a sibling prefix", () => {
+  const where = {
+    cwd: "C:\\work",
+    home: "C:\\Users\\me",
+    protectedPaths: ["D:\\Custom", "E:\\Retained", "C:\\Users\\me\\location.json"],
+  };
+  for (const path of [
+    "D:\\Custom\\state",
+    "E:\\Retained",
+    "C:\\Users\\me\\location.json",
+    "C:\\Users\\me\\.agentherd\\state",
+  ]) {
+    expect(guardCheck({ kind: "edit", title: "edit", paths: [path] }, where)).toMatchObject({
+      hit: true,
+      id: "self-config",
+    });
+  }
+  expect(
+    guardCheck({ kind: "edit", title: "edit", paths: ["D:\\Custom-old\\state"] }, where),
+  ).toEqual({ hit: false });
+});
+
+it("uses the fixture volume's lookup for declared roots and missing children", () => {
+  const home = mkdtempSync(join(realpathSync(tmpdir()), "herd-guard-"));
+  try {
+    const root = join(home, "Retained");
+    const variant = join(home, "RETAINED");
+    mkdirSync(root);
+    const where = { cwd: home, home, protectedPaths: [root] };
+    const before = existsSync(variant);
+    expect(guardCheck(cmd("fixture", [join(variant, "not-created")]), where).hit).toBe(before);
+    expect(guardCheck(cmd("fixture", [join(home, "Retained-old", "not-created")]), where).hit).toBe(
+      false,
+    );
+  } finally {
+    rmSync(home, { recursive: true });
+  }
+});
+
+it("asks for case variants only of declared absent location metadata", () => {
+  const home = mkdtempSync(join(realpathSync(tmpdir()), "herd-guard-"));
+  try {
+    const reserved = join(home, ".agentherd-location-request.json");
+    const variant = join(home, ".AGENTHERD-LOCATION-REQUEST.JSON");
+    const ordinary = join(home, "Retained");
+    const unrelated = join(home, "unrelated");
+    const where = {
+      cwd: home,
+      home,
+      protectedPaths: [ordinary],
+      protectedLocationFiles: [reserved],
+    };
+    mkdirSync(unrelated);
+    for (const scope of ["all", "configured"] as const) {
+      expect(guardCheck(cmd("fixture", [variant]), where, [], scope)).toMatchObject({
+        hit: true,
+        id: "self-config",
+      });
+      expect(guardCheck(cmd(`fixture "${variant}"`), where, [], scope).hit).toBe(true);
+      for (const path of [
+        join(home, "RETAINED"),
+        join(unrelated, ".AGENTHERD-LOCATION-REQUEST.JSON"),
+        `${variant}.bak`,
+      ]) {
+        expect(guardCheck(cmd("fixture", [path]), where, [], scope).hit).toBe(false);
+      }
+      mkdirSync(reserved);
+      expect(guardCheck(cmd("fixture", [variant]), where, [], scope).hit).toBe(existsSync(variant));
+      rmSync(reserved, { recursive: true });
+    }
+  } finally {
+    rmSync(home, { recursive: true });
+  }
+});
 
 describe("rm-outside-cwd", () => {
   it.each([

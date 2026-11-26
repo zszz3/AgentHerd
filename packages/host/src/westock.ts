@@ -10,6 +10,7 @@ import { join, posix, win32 } from "node:path";
 import { promisify } from "node:util";
 import type { AppToolInfo, AppTools, McpTool } from "@agentherd/core";
 import type { WestockTest, WestockView } from "./api.ts";
+import { hostDataPaths, westockDataPaths } from "./data-home-paths.ts";
 import { envValue, onPath, searchPath } from "./profiles.ts";
 import { currentTarget, renameWithRetry } from "./runtimes.ts";
 
@@ -526,12 +527,9 @@ export class Westock {
     return this.opts.enabled?.() ?? true;
   }
 
-  private binName(): string {
-    return this.platform === "win32" ? "westock.exe" : "westock";
-  }
-
   private managedPath(): string {
-    return join(this.opts.home, "bin", this.binName());
+    const path = this.platform === "win32" ? westockDataPaths.win32 : westockDataPaths.posix;
+    return join(this.opts.home, path.relative);
   }
 
   private releaseForTarget(): WestockRelease | undefined {
@@ -566,7 +564,9 @@ export class Westock {
 
   /** Directory containing the managed `westock` executable when present on disk. */
   binDir(): string | undefined {
-    return this.exists(this.managedPath()) ? join(this.opts.home, "bin") : undefined;
+    return this.exists(this.managedPath())
+      ? join(this.opts.home, hostDataPaths.bin.relative)
+      : undefined;
   }
 
   /** Re-syncs the cached `enabled` bit after `config.json` changed and notifies listeners. */
@@ -669,7 +669,7 @@ export class Westock {
       if (digest !== release.sha256) {
         throw new Error(`westock SHA-256 mismatch (expected ${release.sha256}, got ${digest})`);
       }
-      mkdirSync(join(this.opts.home, "bin"), { recursive: true });
+      mkdirSync(join(this.opts.home, hostDataPaths.bin.relative), { recursive: true });
       writeFileSync(tmp, buf);
       if (this.platform !== "win32") chmodSync(tmp, 0o755);
       await renameWithRetry(tmp, dest);

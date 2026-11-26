@@ -17,6 +17,7 @@ import {
   type RemoteHost,
   type ResultMessage,
 } from "./api.ts";
+import { hostDataPaths } from "./data-home-paths.ts";
 
 const isWindows = process.platform === "win32";
 
@@ -29,7 +30,7 @@ export function socketPath(home: string, platform: NodeJS.Platform = process.pla
       .slice(0, 16);
     return `\\\\.\\pipe\\agentherd-${id}`;
   }
-  return join(home, "run", "herd.sock");
+  return join(home, hostDataPaths.hostSocket.relative);
 }
 
 /**

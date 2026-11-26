@@ -146,6 +146,7 @@ import { withClaudeHome } from "./claude-home.ts";
 import { withCodexHome } from "./codex-home.ts";
 import { type CliConfig, readConfig, secretFile, writeConfig } from "./config.ts";
 import { Danjuan, type DanjuanBrowser } from "./danjuan.ts";
+import { hostDataPaths } from "./data-home-paths.ts";
 import { DingTalkAccount } from "./dingtalk-account.ts";
 import { type DingTalkCliPort, dingtalkCli } from "./dingtalk-cli.ts";
 import { dingtalkCapabilities, dingtalkTools } from "./dingtalk-tools.ts";
@@ -184,6 +185,8 @@ export const AGENT_DOWN_MS = 30 * 60_000;
 
 export interface HostOptions {
   home: string;
+  protectedPaths?: readonly string[] | undefined;
+  protectedLocationFiles?: readonly string[] | undefined;
   /** Run background memory jobs. Off in tests. */
   memoryJobs?: boolean;
   userHome?: string;
@@ -297,7 +300,8 @@ export class Host implements HostApi {
     this.opts = opts;
     this.agentList = new Agents({
       ...(opts.agentsDir === undefined ? {} : { bundled: new RuntimeStore(opts.agentsDir) }),
-      downloaded: opts.runtimes ?? new RuntimeStore(join(opts.home, "runtimes")),
+      downloaded:
+        opts.runtimes ?? new RuntimeStore(join(opts.home, hostDataPaths.runtimes.relative)),
       ...(opts.env === undefined ? {} : { env: { ...process.env, ...opts.env } }),
       ...(opts.catalog === undefined ? {} : { catalog: opts.catalog }),
       ...(opts.exists === undefined ? {} : { exists: opts.exists }),
@@ -353,12 +357,17 @@ export class Host implements HostApi {
       ...(opts.pluginClient === undefined ? {} : { client: opts.pluginClient }),
       log: (line) => this.log(line),
     });
-    this.wecomApps = new WecomAccount(opts.wecomCli ?? new WecomCli(join(opts.home, "wecom-cli")));
+    this.wecomApps = new WecomAccount(
+      opts.wecomCli ?? new WecomCli(join(opts.home, hostDataPaths.wecomCli.relative)),
+    );
     const dws = opts.env?.AGENTHERD_DWS ?? process.env.AGENTHERD_DWS;
     const cli =
       opts.dingTalkCli ??
       (dws !== undefined && isAbsolute(dws) && existsSync(dws)
-        ? dingtalkCli({ executable: dws, stateDir: join(opts.home, "dingtalk-dws") })
+        ? dingtalkCli({
+            executable: dws,
+            stateDir: join(opts.home, hostDataPaths.dingTalkDws.relative),
+          })
         : undefined);
     this.dingTalkAccount = cli === undefined ? undefined : new DingTalkAccount(cli);
     this.westockCli = new Westock({
@@ -858,6 +867,8 @@ export class Host implements HostApi {
     const herd = new Herd({
       home: this.opts.home,
       userHome: this.opts.userHome ?? homedir(),
+      protectedPaths: this.opts.protectedPaths,
+      protectedLocationFiles: this.opts.protectedLocationFiles,
       channel: this.petFeed.wrap(this.opts.createChannel(locale)),
       binding: config.channel,
       mode: config.mode ?? "assist",
@@ -1066,7 +1077,7 @@ export class Host implements HostApi {
       ...("env" in pi ? { piModelEnv: pi.env } : {}),
     });
     // Pi keeps its sessions here so an old task can be continued after a restart (ADR 0039).
-    const sessionDir = join(this.opts.home, "pi-sessions");
+    const sessionDir = join(this.opts.home, hostDataPaths.piSessions.relative);
     return profiles.map((p) => {
       if (p.id === "antigravity") this.antigravitySettings();
       const base =

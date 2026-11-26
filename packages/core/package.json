@@ -4,7 +4,8 @@
   "private": true,
   "type": "module",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./data-home-paths": "./src/data-home-paths.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit -p .",

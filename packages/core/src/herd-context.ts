@@ -44,6 +44,8 @@ import type { TaskWorkspace, Workspaces } from "./workspace.ts";
 export interface HerdOptions {
   /** AgentHerd home (`AGENTHERD_HOME` or `~/.agentherd`). `herd.db` lives here. */
   home: string;
+  protectedPaths?: readonly string[] | undefined;
+  protectedLocationFiles?: readonly string[] | undefined;
   /** The user's home directory, for `~` in commands and rules. */
   userHome: string;
   channel: Channel;

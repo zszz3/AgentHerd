@@ -10,6 +10,8 @@ import { type ApiServer, serveApi, socketPath } from "./server.ts";
 
 export interface RunHostOptions {
   home: string;
+  protectedPaths?: readonly string[] | undefined;
+  protectedLocationFiles?: readonly string[] | undefined;
   script?: string;
   log?: (line: string) => void;
 }
@@ -29,6 +31,8 @@ export async function runHost(opts: RunHostOptions): Promise<RunningHost> {
   const mcpSocket = mcpSocketPath(opts.home);
   const host = new Host({
     home: opts.home,
+    protectedPaths: opts.protectedPaths,
+    protectedLocationFiles: opts.protectedLocationFiles,
     mcpSocket,
     ...(process.env.AGENTHERD_AGENTS ? { agentsDir: process.env.AGENTHERD_AGENTS } : {}),
     memoryJobs: true,
