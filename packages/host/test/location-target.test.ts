@@ -12,6 +12,7 @@ import {
 import { tmpdir } from "node:os";
 import { join, win32 } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { systemPowerShell, windowsPowerShellEnv } from "../src/location-gate.ts";
 import {
   checkExistingHome,
   checkTargetParent,
@@ -21,7 +22,6 @@ import {
   TARGET_NAME,
   verifyPrivateFolder,
 } from "../src/location-target.ts";
-import { systemPowerShell, windowsPowerShellEnv } from "../src/location-gate.ts";
 import { mcpSocketPath } from "../src/mcp-socket.ts";
 import { socketPath } from "../src/server.ts";
 
