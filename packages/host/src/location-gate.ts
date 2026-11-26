@@ -163,6 +163,22 @@ export function isMacLocalDisk(path: string): boolean {
   return /^\/dev\/disk\d+(?:s\d+)*\s+(?:apfs|hfs)\s/.test(fs.split("\n")[1] ?? "");
 }
 
+/**
+ * The environment for the system Windows PowerShell. PowerShell 7 puts its own module folders
+ * on PSModulePath; Windows PowerShell started from it then fails to load Get-Acl's module.
+ * Without the variable Windows PowerShell uses its default module path.
+ */
+export function windowsPowerShellEnv(extra: Record<string, string>): NodeJS.ProcessEnv {
+  const env: NodeJS.ProcessEnv = {};
+  for (const [key, value] of Object.entries(process.env)) {
+    if (key.toLowerCase() !== "psmodulepath") env[key] = value;
+  }
+  return { ...env, ...extra };
+}
+
+/** Cold PowerShell starts can take many seconds on a busy machine, such as at login. */
+export const windowsCheckTimeoutMs = 30_000;
+
 /** Read-only NTFS checks of the profile `root` and existing gate files in `paths`. */
 export function checkWindowsProfile(root: string, paths: string[]): void {
   const powershell = systemPowerShell();
@@ -180,16 +196,24 @@ export function checkWindowsProfile(root: string, paths: string[]): void {
         Buffer.from(windowsProfileCheck, "utf16le").toString("base64"),
       ],
       {
-        env: { ...process.env, AGENTHERD_GATE_PATHS: JSON.stringify([root, ...paths]) },
-        stdio: "ignore",
+        env: windowsPowerShellEnv({ AGENTHERD_GATE_PATHS: JSON.stringify([root, ...paths]) }),
+        stdio: ["ignore", "ignore", "pipe"],
         windowsHide: true,
-        timeout: 5_000,
+        timeout: windowsCheckTimeoutMs,
       },
     );
   } catch (error) {
-    // Tell a refused profile apart from a check that never finished.
-    const status = (error as { status?: unknown }).status;
-    const detail = typeof status === "number" ? `check exited ${status}` : "check did not finish";
+    // Tell a refused profile apart from a check that failed or never finished.
+    // PowerShell's error text names only the failed command and local paths.
+    const { status, stderr } = error as { status?: unknown; stderr?: unknown };
+    const said = String(stderr ?? "")
+      .replace(/\s+/g, " ")
+      .trim()
+      .slice(0, 300);
+    const detail =
+      typeof status !== "number"
+        ? "check did not finish"
+        : `check exited ${status}${said ? `: ${said}` : ""}`;
     throw gateFailure(
       `use a protected user profile on a local fixed NTFS volume. Check the profile and gate ACLs (${detail}).`,
     );

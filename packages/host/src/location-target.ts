@@ -5,7 +5,13 @@
 import { execFile } from "node:child_process";
 import { lstatSync, mkdirSync, readdirSync, realpathSync } from "node:fs";
 import { isAbsolute, join, normalize, parse, resolve, sep } from "node:path";
-import { isFsError, isMacLocalDisk, systemPowerShell } from "./location-gate.ts";
+import {
+  isFsError,
+  isMacLocalDisk,
+  systemPowerShell,
+  windowsCheckTimeoutMs,
+  windowsPowerShellEnv,
+} from "./location-gate.ts";
 import { mcpSocketPath } from "./mcp-socket.ts";
 import { socketPath } from "./server.ts";
 
@@ -32,7 +38,7 @@ export class LocationTargetError extends Error {
 
 /** macOS `sun_path` holds 104 bytes including the terminating NUL. */
 const maxMacSocketBytes = 103;
-const toolTimeoutMs = 10_000;
+const toolTimeoutMs = windowsCheckTimeoutMs;
 const maxToolOutput = 64 * 1024;
 /** FileSystemRights.FullControl. */
 const fullControl = 2032127;
@@ -180,7 +186,7 @@ async function runWindows(mode: "check" | "create" | "verify", path: string): Pr
         "-EncodedCommand",
         Buffer.from(windowsScript, "utf16le").toString("base64"),
       ],
-      { ...process.env, AGENTHERD_TARGET_MODE: mode, AGENTHERD_TARGET_PATH: path },
+      windowsPowerShellEnv({ AGENTHERD_TARGET_MODE: mode, AGENTHERD_TARGET_PATH: path }),
     );
     return JSON.parse(out) as unknown;
   } catch {
