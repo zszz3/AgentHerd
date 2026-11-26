@@ -32,6 +32,7 @@ const temp = mkdtempSync(join(process.env.RUNNER_TEMP, "ah-"));
 const image = join(temp, "app");
 const resources = join(image, "resources");
 const host = join(resources, "host");
+const icon = join(temp, "AgentHerd.ico");
 const version = JSON.parse(readFileSync(join(desktop, "package.json"), "utf8")).version;
 
 function copyTree(from, to, filter) {
@@ -102,6 +103,26 @@ function packHost() {
   }
 }
 
+// The app's own icon and name on AgentHerd.exe, so the taskbar, Task Manager and the Start menu
+// do not show Electron's.
+async function brandExe(electron) {
+  const { writeWindowsIcon } = await import("./windows-icon.ts");
+  const { rcedit } = await import("rcedit");
+  writeWindowsIcon(electron, join(desktop, "resources/icon.png"), icon);
+  await rcedit(join(image, "AgentHerd.exe"), {
+    icon,
+    "file-version": version,
+    "product-version": version,
+    "version-string": {
+      CompanyName: "AgentHerd",
+      FileDescription: "AgentHerd",
+      InternalFilename: "AgentHerd",
+      OriginalFilename: "AgentHerd.exe",
+      ProductName: "AgentHerd",
+    },
+  });
+}
+
 async function packAgents() {
   const { fetchAgents } = await import("./fetch-agents.ts");
   await fetchAgents(join(resources, "agents"));
@@ -111,6 +132,7 @@ try {
   const require = createRequire(import.meta.url);
   copyTree(dirname(require("electron")), image);
   renameSync(join(image, "electron.exe"), join(image, "AgentHerd.exe"));
+  await brandExe(require("electron"));
   rmSync(join(resources, "default_app.asar"), { force: true });
   const app = join(resources, "app");
   copyTree(join(desktop, "out"), join(app, "out"));
@@ -137,6 +159,7 @@ try {
     [
       `/DImageDir=${image}`,
       `/DAppVersion=${version}`,
+      `/DIconFile=${icon}`,
       `/O${output}`,
       join(import.meta.dirname, "package-windows.iss"),
     ],

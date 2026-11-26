@@ -46,6 +46,7 @@ vi.mock("electron", () => ({
     getCursorScreenPoint: () => ({ ...cursor }),
     getDisplayNearestPoint: ({ x }: { x: number }) => (x < 1000 ? display : secondDisplay),
     getPrimaryDisplay: () => display,
+    on: () => undefined,
   },
   app: { getPath: () => directory },
 }));

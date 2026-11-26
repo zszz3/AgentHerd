@@ -31,6 +31,7 @@ import {
   type HerderFactory,
   type HerderHost,
   type HerderPort,
+  isHerderAlert,
   type OwnerImage,
 } from "./herder-port.ts";
 import { Inbox, type OwnerAnswer, type OwnerInputSource } from "./inbox.ts";
@@ -43,7 +44,7 @@ import { Registry } from "./registry.ts";
 import { Relay, type RelayState } from "./relay.ts";
 import type { SocialPlatform } from "./social-watch.ts";
 import { SourceHealth, type SourceState } from "./source-health.ts";
-import { Store, type TranscriptEntry } from "./store.ts";
+import { OWNER_CARDS_KEEP, Store, type TranscriptEntry } from "./store.ts";
 import { applyReport, onAlarm, restage } from "./task-report.ts";
 import { TaskRunner, unfinished } from "./task-runner.ts";
 import type { Task } from "./tasks.ts";
@@ -157,7 +158,10 @@ export class Herd {
           ack: (taskId, text) => this.runner.ack(taskId, text),
         },
       ),
-      outbox: new Outbox(opts.channel, this.store, this.clock),
+      // A 「重试」 card is kept with the owner's cards when it goes out, so it can be closed later.
+      outbox: new Outbox(opts.channel, this.store, this.clock, (view, ref) => {
+        if (isHerderAlert(view)) this.store.putOwnerCard(`${ref.channelId}:${ref.id}`, view);
+      }),
       workspaces: new Workspaces(opts.home),
       sources: new SourceHealth(() => this.ctx, opts.sourceDownMinutes),
       herder: () => this.herder,
@@ -344,6 +348,7 @@ export class Herd {
               }
             : {}),
         }),
+      closeAlerts: (why) => this.closeHerderAlerts(why),
       noticeLevels: () => noticeLevels(this.store),
       setNoticeLevel: (kind, level) => setNoticeLevel(this.store, kind, level),
       audit: (type, data) => this.store.audit(type, data),
@@ -411,6 +416,8 @@ export class Herd {
       (inbound, source: OwnerInputSource = "channel") => this.owner.handle(inbound, source),
     );
     this.store.audit("herd.started", { mode: this.mode, channel: this.opts.channel.id });
+    // A 「重试」 card from the last run waits on nothing: what it held is taken up again below.
+    void this.closeHerderAlerts("stale");
     // What the last run could not send goes out now.
     this.ctx.outbox.start();
     this.github?.start();
@@ -426,6 +433,37 @@ export class Herd {
         this.store.audit("workspace.error", { step: "cleanup", message: error.message });
       });
     }
+  }
+
+  /**
+   * Closes the Herder's 「重试」 cards (ADR 0037): the unsent ones never go out, the sent ones
+   * lose their button and say why. Out-of-date cards must not keep waiting for the owner.
+   */
+  private async closeHerderAlerts(why: "done" | "stale"): Promise<void> {
+    const dropped = this.ctx.outbox.drop(isHerderAlert);
+    const cards = this.store.ownerCards(OWNER_CARDS_KEEP).filter((c) => isHerderAlert(c.view));
+    const text = why === "done" ? this.texts.herderHeldDone : this.texts.herderHeldStale;
+    const view = { kind: "text" as const, text, target: HERDER_RETRY_TARGET };
+    let closed = 0;
+    for (const card of cards) {
+      const at = card.ref.indexOf(":");
+      if (at <= 0) continue;
+      try {
+        await this.opts.channel.update(
+          { channelId: card.ref.slice(0, at), id: card.ref.slice(at + 1) },
+          view,
+        );
+        this.store.putOwnerCard(card.ref, view);
+        closed++;
+      } catch (error) {
+        this.store.audit("herder.alert.error", {
+          ref: card.ref,
+          message: (error as Error).message,
+        });
+      }
+    }
+    if (dropped > 0 || closed > 0)
+      this.store.audit("herder.alert.closed", { why, dropped, closed });
   }
 
   /** A relay the last run left open points at an agent that is gone: show it ended. */

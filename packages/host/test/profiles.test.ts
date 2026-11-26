@@ -42,11 +42,11 @@ describe("findAgent", () => {
   it("returns undefined when it is not installed", () => {
     expect(findAgent("codex", { PATH: "" }, has(), "darwin")).toBeUndefined();
   });
-  it("finds Claude Code's adapter, and knows no DSH (ADR 0067, 0069)", () => {
+  it("finds Claude Code's adapter and the owner's DSH (ADR 0069, 0106)", () => {
     expect(findAgent("claude", { PATH: "/b" }, has("/b/claude-agent-acp"), "darwin")).toBe(
       "/b/claude-agent-acp",
     );
-    expect(findAgent("dsh", { PATH: "/b" }, has("/b/dsh"), "darwin")).toBeUndefined();
+    expect(findAgent("dsh", { PATH: "/b" }, has("/b/dsh"), "darwin")).toBe("/b/dsh");
   });
 });
 
@@ -76,8 +76,8 @@ describe("resolveProfile", () => {
     );
   });
   it("lists known profiles for an unknown id", () => {
-    expect(() => resolveProfile("dsh", { configured: [] })).toThrow(
-      /known: mock, pi, codex, claude, antigravity\)/,
+    expect(() => resolveProfile("nope", { configured: [] })).toThrow(
+      /known: mock, pi, codex, claude, antigravity, dsh\)/,
     );
   });
 });

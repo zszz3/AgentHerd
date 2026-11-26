@@ -38,8 +38,12 @@ export interface CoreTexts {
   /** The Herder now runs on another model (ADR 0037). */
   /** `fix`: the old model failed on its key, balance or request, which the owner must fix. */
   herderSwitched: (to: string, why: string, fix: boolean) => string;
-  /** Every model failed; the message waits. */
-  herderHeld: (message: string) => string;
+  /** Every model failed; the owner's message waits. `said` is its start, when known. */
+  herderHeld: (message: string, said?: string) => string;
+  /** A 「重试」 card closed: what it held ran after all (ADR 0037). */
+  herderHeldDone: string;
+  /** A 「重试」 card closed: nothing waits on it any more (ADR 0037). */
+  herderHeldStale: string;
   /** The button that runs a held message again. */
   retry: string;
   herderGuardHit: (path: string, reason: string) => string;
@@ -258,8 +262,10 @@ const zh: CoreTexts = {
     `主管这次没能回答：${message}\n重试也没用，请到模型页检查密钥、余额，或给主管换一个模型。固定命令仍然可用，发 /help 查看。`,
   herderSwitched: (to, why, fix) =>
     `主管换成了 ${to}，原因：${why}${fix ? "\n原来的模型要你处理：到模型页检查密钥和余额，或给主管换个模型。" : ""}`,
-  herderHeld: (message) =>
-    `所有模型都没能回答（${message}）。你的消息还在，网络恢复后会自动接着处理，也可以点「重试」。`,
+  herderHeld: (message, said) =>
+    `所有模型都没能回答（${message}）。${said ? `你说的「${said}」` : "你的消息"}还在，网络恢复后会自动接着处理，也可以点「重试」。`,
+  herderHeldDone: "刚才没连上模型，后来已经接着处理了。",
+  herderHeldStale: "这条提醒已经过时，关掉了。",
   retry: "重试",
   herderGuardHit: (path, reason) =>
     `主管想在 ${path} 操作，已被拦下（${reason}）。如果确实要做，请你自己用 /run。`,
@@ -461,8 +467,10 @@ const en: CoreTexts = {
     `The Herder could not answer: ${message}\nRetrying will not help; check the key or balance on the Models page, or give the Herder another model. Commands still work; send /help.`,
   herderSwitched: (to, why, fix) =>
     `The Herder switched to ${to} because: ${why}${fix ? "\nThe old model needs you: check its key and balance on the Models page, or pick another model for the Herder." : ""}`,
-  herderHeld: (message) =>
-    `No model could answer (${message}). Your message is kept and runs when a model works again; or tap Retry.`,
+  herderHeld: (message, said) =>
+    `No model could answer (${message}). ${said ? `Your message "${said}"` : "Your message"} is kept and runs when a model works again; or tap Retry.`,
+  herderHeldDone: "The models could not be reached earlier; it was picked up after.",
+  herderHeldStale: "This notice is out of date, so it was closed.",
   retry: "Retry",
   herderGuardHit: (path, reason) =>
     `The Herder tried to work in ${path} and was stopped (${reason}). To do it anyway, use /run yourself.`,

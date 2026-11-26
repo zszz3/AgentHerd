@@ -72,6 +72,7 @@ export {
   HERDER_CONTEXT_ITEM_TEXT_MAX,
   HERDER_CONTEXT_PARTS,
   HERDER_RETRY_TARGET,
+  isHerderAlert,
 } from "./herder-port.ts";
 export {
   HERDER_PROMPTS_KEEP,
@@ -152,6 +153,7 @@ export {
   CASE_JOB,
   type Completer,
   cosine,
+  DREAM_JOB,
   type Embedder,
   JOB_RETRY_MS,
   LESSON_JOB,

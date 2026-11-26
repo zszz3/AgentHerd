@@ -107,6 +107,9 @@ type Job = (
   resumedAt?: string;
 };
 
+/** How much of the owner's waiting message a 「重试」 card quotes. */
+const HELD_WORDS_MAX = 30;
+
 /** Where the owner's messages and answers wait until their turn ran (ADR 0062). */
 export const PENDING_STATE_KEY = "herder.pending";
 /** A message older than this is not taken up after a restart: it is no longer what they want. */
@@ -167,6 +170,8 @@ export class Herder implements HerderPort {
   /** A message every model failed on; it runs before anything else (ADR 0037). */
   private held: Job | undefined;
   private heldTimer: ReturnType<typeof setTimeout> | undefined;
+  /** A 「重试」 card is out for the held message; it is closed once that ran (ADR 0037). */
+  private alerted = false;
   private readonly now: () => number;
   /** Tokens of conversation since the last review was queued (ADR 0101). */
   private reviewTokens = 0;
@@ -381,7 +386,13 @@ export class Herder implements HerderPort {
   /** The owner tapped 「重试」, or the held timer fired: run the held message now. */
   retry(): void {
     const job = this.held;
-    if (job === undefined || this.stopped) return;
+    if (this.stopped) return;
+    // A 「重试」 tapped when nothing waits: the card is out of date, so it is closed.
+    if (job === undefined) {
+      this.alerted = false;
+      void this.host.closeAlerts?.("stale");
+      return;
+    }
     this.held = undefined;
     if (this.heldTimer !== undefined) clearTimeout(this.heldTimer);
     this.heldTimer = undefined;
@@ -436,6 +447,11 @@ export class Herder implements HerderPort {
         this.settle(job.pendingId);
       }
       if (this.held !== undefined) return; // Later messages wait behind the held one.
+      // What the 「重试」 card held ran: the card must not keep waiting for the owner.
+      if (this.alerted && !this.stopped) {
+        this.alerted = false;
+        await this.host.closeAlerts?.("done");
+      }
     }
   }
 
@@ -837,8 +853,29 @@ export class Herder implements HerderPort {
     this.held = job;
     this.heldTimer = setTimeout(() => this.retry(), this.heldRetryMs);
     this.heldTimer.unref?.();
-    await this.host.alert(this.host.texts.herderHeld(shortError(result.message)), true);
+    // Only the owner's own words waiting is worth a card, and one card is enough: a timer or a
+    // letter just waits and is tried again, and so does a held message failing again.
+    const said = this.waitingWords(job);
+    if (said === undefined || this.alerted) {
+      this.host.audit("herder.held", { kind: job.kind, message: result.message });
+      return false;
+    }
+    this.alerted = true;
+    await this.host.alert(this.host.texts.herderHeld(shortError(result.message), said), true);
     return false;
+  }
+
+  /**
+   * The start of what the owner said that now waits (the held job or one queued behind it), or
+   * undefined when nothing of theirs does.
+   */
+  private waitingWords(held: Job): string | undefined {
+    const theirs = [held, ...this.jobs].find((j) => j.kind === "owner" || j.kind === "answer");
+    if (theirs === undefined) return undefined;
+    const words = (theirs.kind === "owner" ? theirs.text : theirs.answer)
+      .replace(/\s+/g, " ")
+      .trim();
+    return words.length <= HELD_WORDS_MAX ? words : `${words.slice(0, HELD_WORDS_MAX - 1)}…`;
   }
 
   /**

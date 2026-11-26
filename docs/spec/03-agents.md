@@ -42,9 +42,10 @@ server ([09-agent-tools.md](09-agent-tools.md)).
 | Codex | `node …/codex-acp/dist/index.js` (npm `@agentclientprotocol/codex-acp`), env `INITIAL_AGENT_MODE=read-only`, `NO_BROWSER=1`, the model in `CODEX_CONFIG` (ADR 0031) | Ships inside the app (2.5.0, with the Codex CLI for the build's platform); 验证 reports "Codex process was killed by SIGKILL" on this Mac (endpoint security); prompt run not tried **(verify, Q01)** |
 | Claude Code | `node …/claude-agent-acp/dist/index.js` (npm `@agentclientprotocol/claude-agent-acp` 0.107.2), env `NO_BROWSER=1`, the model and key in `ANTHROPIC_*`, `CLAUDE_CONFIG_DIR=<home>/run/claude` (ask before edits and commands), `CLAUDE_CODE_EXECUTABLE` = the owner's own `claude` when found ([ADR 0069](../adr/0069-claude-code-the-owners-own-or-downloaded.md)) | Not in the app; `claude` is killed by endpoint security on this Mac (exit 137), so not run end to end **(verify, Q01)** |
 | Antigravity | The owner's own `agy acp --cli_dir_name agentherd`, with `~/.gemini/antigravity-cli/agentherd/settings.json` `toolPermission: request-review` (ask before edits, commands, web and MCP); own Google sign-in and models, a named model set with `session/set_config_option` ([ADR 0104](../adr/0104-antigravity-the-owners-own-agy.md)) | Tested 2026-11-23 with `agy` 1.5.15: commands and writes ask over ACP; model switch works; used only when the owner names it |
+| DeepSeek Harness | The owner's own DSH desktop app: `dsh acp` from the installed app (before `PATH`), env `DSH_PERMISSION_MODE=read-only` (writes ask); own models, a named model matched to the session's model ids and set with `session/set_config_option` ([ADR 0106](../adr/0106-dsh-the-owners-own-desktop-app.md)) | Tested 2026-11-24 on Windows with DSH 0.2.1-rc.2: a write asked and a denial blocked it; model switch works; used only when the owner names it |
 | Qwen Code, others | Their ACP mode, as a config.json profile | **(verify, Q02)** |
 
-The desktop app has built-in profiles for Pi, Codex, Claude Code and Antigravity and lets the user
+The desktop app has built-in profiles for Pi, Codex, Claude Code, Antigravity and DeepSeek Harness and lets the user
 add any ACP command. Claude Code's CLI may not be redistributed, so it is not in the app
 ([ADR 0069](../adr/0069-claude-code-the-owners-own-or-downloaded.md)): see
 [Claude Code](#claude-code).

@@ -63,6 +63,16 @@ export interface Script {
   loadSession?: boolean;
   /** Take messages during a running turn (AgentHerd's steer extension, ADR 0063). */
   steer?: boolean;
+  /**
+   * The models `session/new` offers, as one group of the `model` config option (like DSH's,
+   * ADR 0106); none when absent.
+   */
+  models?: ScriptModel[];
+}
+
+export interface ScriptModel {
+  value: string;
+  name: string;
 }
 
 export class ScriptError extends Error {
@@ -228,7 +238,16 @@ export function parseScript(text: string): Script {
   if (doc.steer !== undefined && typeof doc.steer !== "boolean") {
     throw new ScriptError("steer: expected true or false");
   }
+  let models: ScriptModel[] | undefined;
+  if (doc.models !== undefined) {
+    if (!Array.isArray(doc.models)) throw new ScriptError("models: expected a list");
+    models = doc.models.map((m, i) => {
+      if (!isObj(m)) throw new ScriptError(`models[${i}]: expected a mapping`);
+      return { value: str(m.value, `models[${i}].value`), name: str(m.name, `models[${i}].name`) };
+    });
+  }
   return {
+    ...(models === undefined ? {} : { models }),
     ...(doc.load_session === true ? { loadSession: true } : {}),
     ...(doc.steer === true ? { steer: true } : {}),
     name: doc.name === undefined ? "mock-agent" : str(doc.name, "name"),

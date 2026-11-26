@@ -1,6 +1,75 @@
 import type { PermissionOption } from "@agentclientprotocol/sdk";
 import { describe, expect, it } from "vitest";
-import { ToolCallTracker, toAcpOutcome, toToolCallInfo } from "../src/mapping.ts";
+import {
+  modelChoices,
+  modelValue,
+  ToolCallTracker,
+  toAcpOutcome,
+  toToolCallInfo,
+} from "../src/mapping.ts";
+
+describe("modelValue (ADR 0106)", () => {
+  // DSH's `model` option after `session/new`, shortened: grouped by provider, ids as JSON.
+  const configOptions = [
+    {
+      id: "model",
+      name: "Model",
+      category: "model",
+      type: "select",
+      currentValue: '["personal-claude","claude-opus-5-5"]',
+      options: [
+        {
+          group: "deepseek-official",
+          name: "DeepSeek",
+          options: [
+            { value: '["deepseek-official","deepseek-flash"]', name: "DeepSeek-V4.1-Flash" },
+          ],
+        },
+        {
+          group: "deepseek-account",
+          name: "DeepSeek Account",
+          options: [
+            { value: '["deepseek-account","deepseek-flash"]', name: "DeepSeek-V4.1-Flash" },
+          ],
+        },
+        {
+          group: "personal-claude",
+          name: "个人中转站claude",
+          options: [{ value: '["personal-claude","claude-opus-5-5"]', name: "Claude Opus 5.5" }],
+        },
+      ],
+    },
+    { id: "reasoning_effort", type: "select", currentValue: "medium", options: [] },
+  ];
+  const choices = modelChoices(configOptions);
+
+  it("reads the model choices, flattening groups", () => {
+    expect(choices.map((c) => c.name)).toEqual([
+      "DeepSeek-V4.1-Flash",
+      "DeepSeek-V4.1-Flash",
+      "Claude Opus 5.5",
+    ]);
+    expect(modelChoices(undefined)).toEqual([]);
+  });
+
+  it("finds the id by itself, the model's own id, provider/model or the name", () => {
+    const opus = '["personal-claude","claude-opus-5-5"]';
+    expect(modelValue(choices, opus)).toBe(opus);
+    expect(modelValue(choices, "claude-opus-5-5")).toBe(opus);
+    expect(modelValue(choices, "personal-claude/claude-opus-5-5")).toBe(opus);
+    expect(modelValue(choices, "claude opus 5.5")).toBe(opus);
+    // The same model under two providers: the first the agent lists.
+    expect(modelValue(choices, "deepseek-flash")).toBe('["deepseek-official","deepseek-flash"]');
+    expect(modelValue(choices, "deepseek-account/deepseek-flash")).toBe(
+      '["deepseek-account","deepseek-flash"]',
+    );
+  });
+
+  it("passes an unknown name on, for the agent to refuse", () => {
+    expect(modelValue(choices, "gpt-9")).toBe("gpt-9");
+    expect(modelValue([], "gemini-3.8-flash")).toBe("gemini-3.8-flash");
+  });
+});
 
 const ALLOW_ONCE: PermissionOption = { optionId: "allow", name: "Allow", kind: "allow_once" };
 const ALLOW_ALWAYS: PermissionOption = {

@@ -692,6 +692,7 @@ function installFakeBridge(): void {
           canInstall: false,
           canRemove: false,
         };
+  const dsh = missing("dsh", "DeepSeek Harness");
   let agents: AgentView[] =
     sim === "no-agent"
       ? [
@@ -699,12 +700,14 @@ function installFakeBridge(): void {
           missing("codex", "Codex", { adapted: "2.5.0" }),
           claudeMissing,
           antigravity,
+          dsh,
         ]
       : [
           bundled("pi", "Pi", "1.5.0"),
           bundled("codex", "Codex", "2.5.0"),
           claudeMissing,
           antigravity,
+          dsh,
         ];
   const setAgents = (next: AgentView[]): AgentView[] => {
     agents = next;

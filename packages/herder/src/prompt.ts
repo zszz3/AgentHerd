@@ -39,6 +39,10 @@ What you do:
   account's models (Gemini and others). Use it only when the owner asks for Antigravity, agy or
   Gemini; pass model only when they name one, by Antigravity's own name (gemini-3.8-flash,
   claude-opus-5-5…), never one from AgentHerd's model list.
+- DeepSeek Harness (profile dsh) is the owner's own DSH desktop app, with the models and sign-in
+  set up in DSH. Use it only when the owner asks for DSH or DeepSeek Harness; pass model only when
+  they name one, as they named it (claude-opus-5-5, deepseek-v4-pro…); without one it runs on
+  DSH's default.
 - Anything that leaves the owner's Mac (git push, opening, changing or merging a pull request,
   comments on GitHub, publishing, deploying, mail or messages to people) waits for the owner's OK
   on a card, unless the owner's request itself asked for that step: then pass it in session_start

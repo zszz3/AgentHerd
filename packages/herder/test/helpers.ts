@@ -34,6 +34,8 @@ export interface Recorded {
   audits: { type: string; data: Record<string, unknown> }[];
   turns: { role: string; text: string }[];
   alerts: { text: string; retry: boolean }[];
+  /** Calls to closeAlerts, with why. */
+  closed: string[];
   state: Map<string, unknown>;
   /** The saved Herder conversation (`herder_log`). */
   log: unknown[];
@@ -165,6 +167,7 @@ export function fakeHost(
     audits: [],
     turns: [],
     alerts: [],
+    closed: [],
     state: new Map(),
     log: [],
   };
@@ -207,6 +210,7 @@ export function fakeHost(
     endRelay: async () => void rec.relays.push("end"),
     say: async (text) => void rec.said.push(text),
     alert: async (text, retry) => void rec.alerts.push({ text, retry }),
+    closeAlerts: async (why) => void rec.closed.push(why),
     ask: async (text, options) => void rec.asked.push({ text, options }),
     audit: (type, data) => void rec.audits.push({ type, data }),
     recordTurn: (role, text) => void rec.turns.push({ role, text }),

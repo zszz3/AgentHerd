@@ -8,6 +8,71 @@ import type {
 } from "@agentclientprotocol/sdk";
 import type { ToolCallInfo } from "@agentherd/protocol";
 
+/** One model a session offers in its `model` config option. */
+export interface ModelChoice {
+  /** The agent's own id, sent back in `session/set_config_option`. */
+  value: string;
+  name: string;
+}
+
+function isRecord(x: unknown): x is Record<string, unknown> {
+  return typeof x === "object" && x !== null;
+}
+
+/**
+ * The models of a `session/new` or `session/load` answer's `model` config option (id or category
+ * "model"), flattening grouped options. Empty when the agent names none.
+ */
+export function modelChoices(configOptions: unknown): ModelChoice[] {
+  if (!Array.isArray(configOptions)) return [];
+  const option = configOptions.find(
+    (o) => isRecord(o) && (o.id === "model" || o.category === "model"),
+  );
+  const choices: ModelChoice[] = [];
+  const add = (items: unknown) => {
+    if (!Array.isArray(items)) return;
+    for (const item of items) {
+      if (!isRecord(item)) continue;
+      if (Array.isArray(item.options)) add(item.options);
+      else if (typeof item.value === "string") {
+        choices.push({ value: item.value, name: typeof item.name === "string" ? item.name : "" });
+      }
+    }
+  };
+  if (isRecord(option)) add(option.options);
+  return choices;
+}
+
+/** The parts of an id like DSH's `["provider","model"]`; undefined for a plain id. */
+function idParts(value: string): string[] | undefined {
+  if (!value.startsWith("[")) return undefined;
+  try {
+    const parts: unknown = JSON.parse(value);
+    return Array.isArray(parts) && parts.every((p) => typeof p === "string") ? parts : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * The id a session offers model `wanted` under (ADR 0106): the id itself, else the model's own id
+ * inside a compound one (DSH's `["personal-claude","claude-opus-5-5"]` for `claude-opus-5-5` or
+ * `personal-claude/claude-opus-5-5`), else the display name (any case). The first the agent lists
+ * wins; an unknown name goes on as it is, for the agent to refuse.
+ */
+export function modelValue(choices: readonly ModelChoice[], wanted: string): string {
+  const exact = choices.find((c) => c.value === wanted);
+  if (exact !== undefined) return exact.value;
+  const byId = choices.find((c) => {
+    const parts = idParts(c.value);
+    return parts !== undefined && (parts.at(-1) === wanted || parts.join("/") === wanted);
+  });
+  if (byId !== undefined) return byId.value;
+  const lower = wanted.toLowerCase();
+  const byName = choices.find((c) => c.name.toLowerCase() === lower);
+  return byName?.value ?? wanted;
+}
+
 export type PermissionAnswer = { kind: "allow" } | { kind: "deny" } | { kind: "cancelled" };
 
 /**

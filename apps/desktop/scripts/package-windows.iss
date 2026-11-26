@@ -13,11 +13,13 @@ OutputBaseFilename=AgentHerd-Setup-x64
 Compression=lzma2/fast
 SolidCompression=yes
 UninstallDisplayIcon={app}\AgentHerd.exe
+SetupIconFile={#IconFile}
 
 [Files]
 Source: "{#ImageDir}\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 
 [Icons]
-Name: "{userprograms}\AgentHerd"; Filename: "{app}\AgentHerd.exe"; WorkingDir: "{app}"
+; The app sets the same AppUserModelID, so its taskbar button and notifications use this shortcut.
+Name: "{userprograms}\AgentHerd"; Filename: "{app}\AgentHerd.exe"; WorkingDir: "{app}"; IconFilename: "{app}\AgentHerd.exe"; AppUserModelID: "com.agentherd.desktop"
 
 ; No uninstall cleanup outside the installer-owned files. Owner settings, sessions and keys remain.

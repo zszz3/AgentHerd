@@ -2,7 +2,8 @@
 // work, Pi for the rest). Pi and Codex ship inside the app (ADR 0067). Claude Code uses the
 // owner's own `claude`; without one, 下载 fetches the version AgentHerd is adapted to (ADR 0069).
 // Antigravity is the owner's own `agy` with its own Google sign-in and models, used only when the
-// owner names it (ADR 0104). Nothing is updated here. 验证 starts one once to prove it works.
+// owner names it (ADR 0104); DeepSeek Harness is the owner's own DSH app, the same way (ADR 0106).
+// Nothing is updated here. 验证 starts one once to prove it works.
 
 import type { AgentCheck, AgentView } from "@agentherd/host/api";
 import {
@@ -26,6 +27,7 @@ const DESCRIPTIONS: Record<string, string> = {
     "Anthropic 的 Claude Code。复杂的编程任务用它，配你模型页里 Anthropic 接口的模型（不用登录 Claude 账号）；跑不起来就换 Pi。",
   antigravity:
     "Google 的 Antigravity CLI（agy）。用你 Google 账号里的模型（Gemini 等），不用模型页里的。只在你说「用 Antigravity」或「用 Gemini」时才用。",
+  dsh: "DeepSeek Harness 桌面版自带的 dsh。用你在 DSH 里配好的模型和登录，不用模型页里的。只在你说「用 DSH」时才用。",
 };
 
 /** How to sign in, for agents that use their own account. */
@@ -37,6 +39,7 @@ const LOGIN: Record<string, string> = {
 const GET: Record<string, string> = {
   antigravity:
     "你电脑上没找到 agy。装好 Antigravity CLI（antigravity.google/download）并登录后，重开 AgentHerd 就能用。",
+  dsh: "你电脑上没找到 DeepSeek Harness 桌面版。装好并在里面配好模型后，重开 AgentHerd 就能用。",
 };
 
 const SOURCES: Record<NonNullable<AgentView["source"]>, string> = {
@@ -255,8 +258,8 @@ export function AgentsPage() {
         title="编程 Agent"
         hint={
           ready === 0
-            ? "不用选 Agent：GPT 模型用 Codex，复杂的编程任务用 Claude Code，其余用 Pi。Pi 和 Codex 跟着 App 装好；Claude Code 用你电脑上的，没有再下载。Antigravity 用你自己装的 agy，只在你点名时用。"
-            : `${ready} 个可以用。不用选：GPT 模型用 Codex，复杂的编程任务用 Claude Code，其余用 Pi。Pi 和 Codex 跟着 App 装好；Claude Code 用你电脑上的，没有再下载。Antigravity 用你自己装的 agy，只在你点名时用。`
+            ? "不用选 Agent：GPT 模型用 Codex，复杂的编程任务用 Claude Code，其余用 Pi。Pi 和 Codex 跟着 App 装好；Claude Code 用你电脑上的，没有再下载。Antigravity 用你自己装的 agy，DeepSeek Harness 用你装的 DSH 桌面版，都只在你点名时用。"
+            : `${ready} 个可以用。不用选：GPT 模型用 Codex，复杂的编程任务用 Claude Code，其余用 Pi。Pi 和 Codex 跟着 App 装好；Claude Code 用你电脑上的，没有再下载。Antigravity 用你自己装的 agy，DeepSeek Harness 用你装的 DSH 桌面版，都只在你点名时用。`
         }
       >
         <Group>

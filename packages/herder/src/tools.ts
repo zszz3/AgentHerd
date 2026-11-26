@@ -400,7 +400,7 @@ const sessionStartSchema = obj({
   profile: opt(
     str({
       description:
-        "Only when the owner names an agent (pi, codex, claude for Claude Code, antigravity for Antigravity, also when they ask for Gemini or agy). Omit otherwise: AgentHerd picks the agent from the model and `hard`.",
+        "Only when the owner names an agent (pi, codex, claude for Claude Code, antigravity for Antigravity, also when they ask for Gemini or agy; dsh for DSH or DeepSeek Harness). Omit otherwise: AgentHerd picks the agent from the model and `hard`.",
     }),
   ),
   name: str({
@@ -418,7 +418,7 @@ const sessionStartSchema = obj({
   model: opt(
     str({
       description:
-        "Model name from session_list (e.g. deepseek-v4-pro); AgentHerd uses the first service offering it that answers. service/model picks one service. Omit to select from AgentHerd's configured models in tier order. With an agent that has its own models (antigravity): only when the owner names one, its own name (e.g. gemini-3.8-flash, claude-opus-5-5); omit for the agent's default.",
+        "Model name from session_list (e.g. deepseek-v4-pro); AgentHerd uses the first service offering it that answers. service/model picks one service. Omit to select from AgentHerd's configured models in tier order. With an agent that has its own models (antigravity, dsh): only when the owner names one, its own name (e.g. gemini-3.8-flash, claude-opus-5-5); omit for the agent's default.",
     }),
   ),
   allowed: opt(

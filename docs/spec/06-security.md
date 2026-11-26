@@ -12,7 +12,7 @@ a mistake with the user's shell. This spec lists the rules that keep that power 
 | Agent → core (MCP) | The `agentherd` relay reaches `<home>/run/mcp.sock` (mode `600`; Windows: a named pipe) and must send its task's 32-byte token first; tokens die with the task. No TCP listener ([09-agent-tools.md](09-agent-tools.md)). |
 | Core → agent configs | Exporters write only their own block, after a backup; a rule is never widened. |
 | Renderer → main → core | `contextIsolation: true`, `sandbox: true`, `nodeIntegration: false`. The preload exposes typed methods only. |
-| Agent commands → rules | Command normalization preserves Windows `\` paths, strips `.exe`/`.cmd`/`.bat`/`.ps1`/`.com` suffixes, escalates on unexpanded `%VAR%` references, and guards Windows downloaders, shells/interpreters (`cmd`, `powershell`, `pwsh`, `cscript`, `wscript`, `mshta`, `iwr`, `irm`, `iex`, `certutil`, `bitsadmin`), credential/registry exports (`cmdkey`, `vaultcmd`, `reg`), elevation (`runas`, `gsudo`, `Start-Process -Verb RunAs`), and recursive deletes (`rd`, `del`, `erase`, `Remove-Item`). |
+| Agent commands → rules | Command normalization preserves Windows `\` paths, strips `.exe`/`.cmd`/`.bat`/`.ps1`/`.com` suffixes, escalates on unexpanded `%VAR%` references, unwraps Windows `cmd` / `%COMSPEC%` / `powershell` / `pwsh` shell invocations (including UTF-16LE `-EncodedCommand`, escalating unreadable stdin/malformed wrappers, piped `Remove-Item`, and `{ ... }` blocks mentioning deletes) in mass-delete checks, and guards Windows downloaders, shells/interpreters (`cmd`, `powershell`, `pwsh`, `cscript`, `wscript`, `mshta`, `iwr`, `irm`, `iex`, `certutil`, `bitsadmin`), credential/registry exports (`cmdkey`, `vaultcmd`, `reg`), elevation (`runas`, `gsudo`, `Start-Process -Verb RunAs`), and recursive deletes (`rd`, `del`, `erase`, `Remove-Item`). |
 | Herder model → decisions | Model output is data. It is parsed against a schema; on a parse error the item is escalated. The guard list runs before any model. |
 | Agent content → Herder prompt | Agent output (commands, files, transcripts) is untrusted. It is quoted as data in prompts and can never change rules or mode. |
 
@@ -26,7 +26,7 @@ a mistake with the user's shell. This spec lists the rules that keep that power 
   agents from reading the active, default and retained data roots and the location metadata.
 - Switching locations needs an exclusive lease. The app creates and verifies a new private
   directory before selecting it; it never cleans up the source. Only the main window's main frame
-  can invoke data directory IPC; paths come from the native picker, not the renderer (ADR 0106).
+  can invoke data directory IPC; paths come from the native picker, not the renderer (ADR 0107).
 - Logs, `herd.db`, cards and model prompts are passed through a redaction step: known secret
   formats (API keys, tokens, private keys) and values of variables whose names contain
   `KEY`, `TOKEN`, `SECRET` or `PASSWORD` are replaced with `«redacted»`.

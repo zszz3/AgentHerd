@@ -10,7 +10,14 @@ import { join } from "node:path";
 import type { AgentProfile } from "@agentherd/protocol";
 import type { AgentSource, AgentView } from "./api.ts";
 import { AGENTS, type AgentDef, type Fetchers, httpFetchers, npmRuntime } from "./catalog.ts";
-import { agentEnv, CLAUDE_EXECUTABLE_ENV, codexAppClis, envValue, onPath } from "./profiles.ts";
+import {
+  agentEnv,
+  CLAUDE_EXECUTABLE_ENV,
+  codexAppClis,
+  dshAppBins,
+  envValue,
+  onPath,
+} from "./profiles.ts";
 import { currentTarget, type InstallProgress, type RuntimeStore } from "./runtimes.ts";
 
 export interface AgentsOptions {
@@ -28,6 +35,8 @@ export interface AgentsOptions {
   platform?: NodeJS.Platform;
   /** The Codex desktop app's CLI candidates. Default: codexAppClis(platform). */
   codexApps?: string[];
+  /** The DeepSeek Harness desktop app's CLI candidates (ADR 0106). Default: dshAppBins(platform). */
+  dshApps?: string[];
   /** The owner's home (where Anthropic's installer puts `claude`). Default: os.homedir(). */
   userHome?: string;
   onChange: () => void;
@@ -88,6 +97,12 @@ export class Agents {
     if (downloaded !== undefined && this.runnable(def, downloaded.version)) {
       return { path: downloaded.path, source: "managed", version: downloaded.version };
     }
+    // DSH's own app comes before PATH: a `dsh` there may be the separate npm launcher, at a
+    // version that does not match the app's ACP profile (ADR 0106).
+    if (id === "dsh") {
+      const fromApp = this.dshApps().find((p) => this.exists(p));
+      if (fromApp !== undefined) return { path: fromApp, source: "system" };
+    }
     const onSystem = onPath(
       def.systemNames,
       envValue(this.env, "PATH"),
@@ -118,6 +133,14 @@ export class Agents {
   ownCli(id: string): string | undefined {
     if (id !== "claude") return undefined;
     return this.extraEnv(id)[CLAUDE_EXECUTABLE_ENV] ?? envValue(this.env, CLAUDE_EXECUTABLE_ENV);
+  }
+
+  private dshBins: string[] | undefined;
+
+  /** The DSH app's CLI candidates; the registry is read once per host. */
+  private dshApps(): string[] {
+    this.dshBins ??= this.opts.dshApps ?? dshAppBins(this.opts.platform ?? process.platform);
+    return this.dshBins;
   }
 
   private codexClis: string[] | undefined;

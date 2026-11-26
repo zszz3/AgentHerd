@@ -3,7 +3,7 @@ import type { SourceState } from "./source-health.ts";
 // What the Herd and the Herder know about each other (docs/spec/04-herder.md §1). The core does
 // not import the Herder or any model library: the CLI or the app passes a factory.
 
-import type { Locale, ReportResult } from "@agentherd/protocol";
+import type { Locale, ReportResult, View } from "@agentherd/protocol";
 import type { OutboundStep } from "@agentherd/rules";
 import type {
   Letter,
@@ -165,6 +165,11 @@ export interface HerderHost {
   say(text: string): Promise<void>;
   /** A red card from the Herder (ADR 0037); `retry` adds a 「重试」 button that calls {@link HerderPort.retry}. */
   alert(text: string, retry: boolean): Promise<void>;
+  /**
+   * Closes the 「重试」 cards (ADR 0037): `done` when what they held ran after all, `stale` when
+   * nothing waits on them. Unsent ones are dropped; sent ones lose their button.
+   */
+  closeAlerts?(why: "done" | "stale"): Promise<void>;
   ask(text: string, options: string[]): Promise<void>;
   /** Names of the owner's connected apps; agents use them (docs/spec/09-agent-tools.md §3). */
   apps?(): string[];
@@ -366,6 +371,13 @@ export interface HerderEventRecord {
 
 /** Card action target of the 「重试」 button on a held Herder message. */
 export const HERDER_RETRY_TARGET = "herder";
+
+/** A card with the Herder's 「重试」 button that still works (ADR 0037). */
+export function isHerderAlert(view: View): boolean {
+  return (
+    view.kind === "text" && view.target === HERDER_RETRY_TARGET && (view.options?.length ?? 0) > 0
+  );
+}
 
 /** Calls return at once; the Herder works through them one at a time. */
 export interface HerderPort {

@@ -66,6 +66,26 @@ try {
     $installed = $true
     if (!(Test-Path -LiteralPath $exe -PathType Leaf)) { throw 'Setup did not install AgentHerd.exe in the requested directory' }
 
+    # The taskbar and Task Manager take the name and icon from the exe, so neither may be Electron's.
+    $info = (Get-Item -LiteralPath $exe).VersionInfo
+    if ($info.FileDescription -ne 'AgentHerd' -or $info.ProductName -ne 'AgentHerd') {
+        throw "AgentHerd.exe describes itself as '$($info.FileDescription)' / '$($info.ProductName)'"
+    }
+    $desktopPackage = Join-Path $PSScriptRoot '..\apps\desktop\package.json'
+    $electronExe = & node -e "console.log(require('node:module').createRequire(process.argv[1])('electron'))" $desktopPackage |
+        Select-Object -Last 1
+    if ($LASTEXITCODE -ne 0 -or !$electronExe -or !(Test-Path -LiteralPath $electronExe -PathType Leaf)) {
+        throw 'Cannot find the Electron binary to compare icons'
+    }
+    Add-Type -AssemblyName System.Drawing
+    $iconOf = {
+        param($file)
+        $stream = [IO.MemoryStream]::new()
+        [Drawing.Icon]::ExtractAssociatedIcon($file).ToBitmap().Save($stream, [Drawing.Imaging.ImageFormat]::Png)
+        [Convert]::ToBase64String($stream.ToArray())
+    }
+    if ((& $iconOf $exe) -eq (& $iconOf $electronExe)) { throw "AgentHerd.exe still has Electron's icon" }
+
     # Chromium can resolve its default user data via Windows known folders rather than APPDATA.
     $app = Start-Process -FilePath $exe -ArgumentList "--user-data-dir=`"$roaming\chromium`"" -Environment $envOverrides -WorkingDirectory $install -PassThru
     $clock = [Diagnostics.Stopwatch]::StartNew()

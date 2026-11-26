@@ -30,7 +30,7 @@ AgentHerd 是一个桌面 App，让 Pi、Codex、Claude Code 和 Antigravity 这
 
 - **点她就能说话。** 大肥鱼、Claude 娘或另外 16 个动漫形象浮在桌面一角。点一下就是和主管的对话，任务卡、要你同意的事都在里面；文件拖到她身上，就交给主管处理。
 - **看她就知道在干什么。** 她在想时捧着书、头上冒「…」，回复到了会跳一下；头顶每个在跑的任务一个小圆点，哪个在等你一眼就看得出。
-- **不在眼前也知道。** 有事会弹系统通知，菜单栏的小羊图标能看状态，晚上可以设免打扰。
+- **不在眼前也知道。** 有事会弹系统通知，菜单栏的图标能看状态，晚上可以设免打扰。
 - **快捷键。** 在任何应用里按 ⇧⌘空格 直接跟她说话，按两下 ⇧⌘Y 同意最早那件等你的事。
 
 ### 派活和跟进
@@ -61,6 +61,7 @@ AgentHerd 是一个桌面 App，让 Pi、Codex、Claude Code 和 Antigravity 这
 | Codex | 随 App 一起装，GPT 模型的任务交给它 | 你在 App 里加的模型服务 |
 | Claude Code | 用你电脑上的 `claude`；没有的话在「Agent」页下载 | 你自己的 Anthropic 接口服务 |
 | Antigravity | 用你自己装的 `agy`，你点名时才用 | 你 Google 账号里的模型 |
+| DeepSeek Harness | 用你自己装的 DSH 桌面版，你点名时才用 | 你在 DSH 里配好的模型 |
 
 它们都通过 [Agent Client Protocol](https://agentclientprotocol.com) 运行。任务第一轮就出错时，主管会自动换下一个模型。
 

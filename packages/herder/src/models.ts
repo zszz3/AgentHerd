@@ -15,7 +15,7 @@ import { Herder, type HerderModel } from "./herder.ts";
 import { LOGIN_FIELD, loginStream, loginsFor, subscriptionModel } from "./logins.ts";
 import type { LookupOptions } from "./lookup.ts";
 import { modelFetch } from "./model-fetch.ts";
-import type { TierPlacement } from "./model-guide.ts";
+import type { TierEntry, TierPlacement } from "./model-guide.ts";
 import { fallbackOrder } from "./tools.ts";
 
 /** pi-ai providers that need more than one key (cloud credentials, OAuth or an account id). */
@@ -328,14 +328,42 @@ export function memoryModels(
   tiers?: TierPlacement,
   env?: Record<string, string>,
 ): MemoryModel[] {
-  const candidates: { service: ModelService; model: string }[] = [];
-  for (const entry of tiers?.fast ?? []) {
+  const candidates = tierCandidates(settings, tiers?.fast ?? []);
+  const herder = modelFor(settings, "herder");
+  if (herder !== undefined) candidates.push(herder);
+  return readyMemoryModels(candidates, settings, secrets, env);
+}
+
+export function dreamModels(
+  settings: ModelSettings,
+  secrets: SecretStore,
+  tiers?: TierPlacement,
+  env?: Record<string, string>,
+): MemoryModel[] {
+  const candidates = tierCandidates(settings, [...(tiers?.strong ?? []), ...(tiers?.fast ?? [])]);
+  const herder = modelFor(settings, "herder");
+  if (herder !== undefined) candidates.unshift(herder);
+  return readyMemoryModels(candidates, settings, secrets, env);
+}
+
+type MemoryCandidate = { service: ModelService; model: string };
+
+function tierCandidates(settings: ModelSettings, entries: TierEntry[]): MemoryCandidate[] {
+  const candidates: MemoryCandidate[] = [];
+  for (const entry of entries) {
     for (const service of settings.services) {
       if (service.models.includes(entry.model)) candidates.push({ service, model: entry.model });
     }
   }
-  const herder = modelFor(settings, "herder");
-  if (herder !== undefined) candidates.push(herder);
+  return candidates;
+}
+
+function readyMemoryModels(
+  candidates: MemoryCandidate[],
+  settings: ModelSettings,
+  secrets: SecretStore,
+  env?: Record<string, string>,
+): MemoryModel[] {
   const out: MemoryModel[] = [];
   for (const c of candidates) {
     const ref = `${c.service.id}/${c.model}`;
@@ -406,7 +434,12 @@ export class MemoryModelChain {
     this.now = now;
   }
 
-  async complete(system: string, user: string, signal: AbortSignal): Promise<string> {
+  async complete(
+    system: string,
+    user: string,
+    signal: AbortSignal,
+    validate?: (text: string) => void,
+  ): Promise<string> {
     const all = this.models();
     if (all.length === 0) throw new Error("no model for memory");
     const now = this.now();
@@ -421,6 +454,7 @@ export class MemoryModelChain {
           user,
           AbortSignal.any([signal, AbortSignal.timeout(MEMORY_TRY_MS)]),
         );
+        validate?.(text);
         this.down.delete(m.ref);
         return text;
       } catch (error) {

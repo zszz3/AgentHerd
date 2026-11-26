@@ -193,13 +193,43 @@ describe("Herder", () => {
     herder.ownerMessage("一");
     await herder.idle();
     expect(rec.alerts[0]?.retry).toBe(true);
+    expect(rec.alerts[0]?.text).toContain("你说的「一」还在");
     expect(rec.said).toEqual([]);
+    expect(rec.closed).toEqual([]);
     herder.retry();
     await herder.idle();
+    // It ran after all: the 「重试」 card is closed, it must not keep waiting (ADR 0037).
+    expect(rec.closed).toEqual(["done"]);
     herder.ownerMessage("二");
     await herder.idle();
     expect(rec.said).toEqual(["第一条", "第二条"]);
+    expect(rec.closed).toEqual(["done"]);
     expect(rec.turns.filter((t) => t.role === "owner").map((t) => t.text)).toEqual(["一", "二"]);
+  });
+
+  it("a held message failing again sends no second card (ADR 0037)", async () => {
+    const { herder, rec, faux } = setup({}, { retryDelaysMs: [] });
+    faux.setResponses([
+      fauxAssistantMessage("", { stopReason: "error", errorMessage: "Connection error." }),
+      fauxAssistantMessage("", { stopReason: "error", errorMessage: "Connection error." }),
+      fauxAssistantMessage("好了"),
+    ]);
+    herder.ownerMessage("在吗");
+    await herder.idle();
+    herder.retry();
+    await herder.idle();
+    expect(rec.alerts).toHaveLength(1);
+    herder.retry();
+    await herder.idle();
+    expect(rec.said).toEqual(["好了"]);
+    expect(rec.closed).toEqual(["done"]);
+  });
+
+  it("「重试」 on a card nothing waits on closes it as out of date (ADR 0037)", async () => {
+    const { herder, rec } = setup();
+    herder.retry();
+    await herder.idle();
+    expect(rec.closed).toEqual(["stale"]);
   });
 
   it("events start no turn; they go with the owner's next message", async () => {
@@ -690,6 +720,22 @@ describe("Herder schedules (ADR 0055)", () => {
     paused: false,
     createdAt: "2026-11-04T00:00:00.000Z",
   };
+
+  it("a timer the models cannot answer waits quietly: no card for what the owner did not send (ADR 0037)", async () => {
+    const { herder, rec, faux } = setup({ mailbox: [] }, { retryDelaysMs: [] });
+    faux.setResponses([
+      fauxAssistantMessage("", { stopReason: "error", errorMessage: "Connection error." }),
+      fauxAssistantMessage("今天没有新 issue"),
+      fauxAssistantMessage("QUIET"),
+    ]);
+    herder.scheduled(schedule);
+    await herder.idle();
+    expect(rec.alerts).toEqual([]);
+    expect(rec.audits.some((a) => a.type === "herder.held")).toBe(true);
+    herder.retry();
+    await herder.idle();
+    expect(rec.closed).toEqual([]);
+  });
 
   it("a due schedule comes back as the owner's words and the reply is said", async () => {
     const { herder, rec, faux } = setup({ mailbox: [] });

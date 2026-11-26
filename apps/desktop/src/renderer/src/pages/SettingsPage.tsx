@@ -372,7 +372,7 @@ function PetQuiet({
             ? `${quietLine(pet, now) ?? ""}，到点自动恢复`
             : isQuiet(pet, now)
               ? "现在在免打扰时段里"
-              : "临时安静一会儿；菜单栏的小羊图标里也能点"
+              : "临时安静一会儿；菜单栏的图标里也能点"
         }
         trailing={
           snoozed ? (

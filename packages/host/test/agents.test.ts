@@ -26,6 +26,7 @@ import {
 } from "../src/catalog.ts";
 import { writeConfig } from "../src/config.ts";
 import { Host } from "../src/host.ts";
+import { DSH_MAC_BIN, dshAppBins, dshInstallDirs } from "../src/profiles.ts";
 import { type ArchiveRelease, type Release, RuntimeStore, windowsTar } from "../src/runtimes.ts";
 import { verifyProfile } from "../src/verify.ts";
 
@@ -209,6 +210,8 @@ describe("catalog", () => {
       ["claude", CLAUDE_ACP_VERSION],
       // The owner's own Antigravity CLI: no version of AgentHerd's (ADR 0104).
       ["antigravity", undefined],
+      // The owner's own DeepSeek Harness desktop app (ADR 0106).
+      ["dsh", undefined],
     ]);
     // Claude Code is never in the app (ADR 0069).
     expect(AGENTS.filter((a) => a.onRequest === true).map((a) => a.id)).toEqual(["claude"]);
@@ -239,6 +242,7 @@ describe("catalog", () => {
       PI_VERSION,
       CODEX_ACP_VERSION,
       CLAUDE_ACP_VERSION,
+      undefined,
       undefined,
     ]);
     expect(asked).toEqual([
@@ -394,6 +398,7 @@ describe("Agents (ADR 0067)", () => {
       ["codex", "managed", "2.4.0", CODEX_ACP_VERSION, true],
       ["claude", undefined, undefined, CLAUDE_ACP_VERSION, false],
       ["antigravity", undefined, undefined, undefined, false],
+      ["dsh", undefined, undefined, undefined, false],
     ]);
     agents.remove("codex");
     expect(agents.find("codex")).toMatchObject({ source: "system" });
@@ -402,6 +407,7 @@ describe("Agents (ADR 0067)", () => {
     expect(() => agents.remove("pi")).toThrow(/not downloaded/);
     const none = new Agents({ env: { PATH: "" }, exists: () => false, onChange() {} });
     expect(none.views([], {}).map((v) => v.state)).toEqual([
+      "missing",
       "missing",
       "missing",
       "missing",
@@ -467,6 +473,7 @@ describe("Host agents", () => {
         ["codex", "missing", undefined, undefined],
         ["claude", "missing", undefined, undefined],
         ["antigravity", "missing", undefined, undefined],
+        ["dsh", "missing", undefined, undefined],
       ]);
       expect(host.status().profiles).toEqual(["pi"]);
       expect(() => host.removeAgent("pi")).toThrow(/not downloaded/);
@@ -476,6 +483,7 @@ describe("Host agents", () => {
         ["codex", false],
         ["claude", true],
         ["antigravity", false],
+        ["dsh", false],
       ]);
       expect(() => host.installAgent("codex")).toThrow(/comes with the app/);
     } finally {
@@ -548,5 +556,71 @@ describe("Antigravity (ADR 0104)", () => {
       toolPermission: "request-review",
       agentMode: "",
     });
+  });
+});
+
+describe("DeepSeek Harness (ADR 0106)", () => {
+  const WIN_BIN = "G:\\Program File\\DSH\\resources\\runtime\\cli\\bin\\dsh.cmd";
+  // `reg query HKCU\...\Uninstall /s /f "DeepSeek Harness" /d`, shortened.
+  const OUTPUT = [
+    "",
+    "HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\1bf39983-50d0-5fe0-9ef4-cece76f67c5e",
+    "    DisplayName    REG_SZ    DeepSeek Harness 0.2.1-rc.2",
+    "    DisplayIcon    REG_SZ    G:\\Program File\\DSH\\DeepSeek Harness.exe,0",
+    "    InstallLocation    REG_SZ    G:\\Program File\\DSH",
+    "",
+    "HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\other",
+    "    DisplayName    REG_SZ    Something Else",
+    "    InstallLocation    REG_SZ    C:\\Other",
+    "",
+  ].join("\r\n");
+
+  it("finds the folders the uninstall entries name, by DisplayIcon or InstallLocation", () => {
+    expect(dshInstallDirs(OUTPUT)).toEqual(["G:\\Program File\\DSH"]);
+    const noIcon = OUTPUT.replace(/.*DisplayIcon.*\r\n/, "");
+    expect(dshInstallDirs(noIcon)).toEqual(["G:\\Program File\\DSH"]);
+  });
+
+  it("points at the app's CLI on Windows (per-user, all users, WOW6432Node) and on macOS", () => {
+    const asked: string[] = [];
+    const bins = dshAppBins("win32", (args) => {
+      asked.push(args[1] ?? "");
+      if (args[1]?.startsWith("HKLM")) throw new Error("ERROR: no match");
+      return OUTPUT;
+    });
+    expect(asked).toEqual([
+      "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall",
+      "HKLM\\Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall",
+      "HKLM\\Software\\WOW6432Node\\Microsoft\\Windows\\CurrentVersion\\Uninstall",
+    ]);
+    expect(bins).toEqual([WIN_BIN]);
+    expect(dshAppBins("darwin")).toEqual([DSH_MAC_BIN]);
+    expect(dshAppBins("linux")).toEqual([]);
+  });
+
+  it("runs the app's CLI before a `dsh` on PATH, read-only, with its own models", () => {
+    const agents = new Agents({
+      env: { PATH: "C:\\nvm4w\\nodejs" },
+      exists: (p) => p === WIN_BIN || p === "C:\\nvm4w\\nodejs\\dsh.cmd",
+      platform: "win32",
+      dshApps: [WIN_BIN],
+      onChange() {},
+    });
+    expect(agents.find("dsh")).toEqual({ path: WIN_BIN, source: "system" });
+    const onlyPath = new Agents({
+      env: { PATH: "C:\\nvm4w\\nodejs" },
+      exists: (p) => p === "C:\\nvm4w\\nodejs\\dsh.cmd",
+      platform: "win32",
+      dshApps: [WIN_BIN],
+      onChange() {},
+    });
+    expect(onlyPath.find("dsh")).toEqual({ path: "C:\\nvm4w\\nodejs\\dsh.cmd", source: "system" });
+    const def = AGENTS.find((d) => d.id === "dsh");
+    if (def === undefined) throw new Error("no dsh");
+    const p = agentProfile(def, WIN_BIN);
+    expect(p.name).toBe("DeepSeek Harness");
+    expect(p.command).toEqual([WIN_BIN, "acp"]);
+    expect(p.env).toEqual({ DSH_PERMISSION_MODE: "read-only" });
+    expect(p.ownModels).toBe(true);
   });
 });

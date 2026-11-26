@@ -265,7 +265,21 @@ export function createMockAgent(script: Script, options: MockAgentOptions = {}):
       const sessionId = `mock-${nextSession++}`;
       const mcpServers = stdioServers(params.mcpServers, log);
       sessions.set(sessionId, { turn: 0, abort: null, mcpServers, steers: [] });
-      return { sessionId };
+      if (script.models === undefined) return { sessionId };
+      // Grouped like DSH's (ADR 0106): values are the agent's own ids, names are for people.
+      return {
+        sessionId,
+        configOptions: [
+          {
+            id: "model",
+            name: "Model",
+            category: "model",
+            type: "select" as const,
+            currentValue: script.models[0]?.value ?? "",
+            options: [{ group: "mock", name: "Mock", options: script.models }],
+          },
+        ],
+      };
     })
     .onRequest(methods.agent.session.load, ({ params }) => {
       if (script.loadSession !== true) throw new Error("session/load is not supported");

@@ -299,4 +299,19 @@ describe("setModel (ADR 0104)", () => {
     await conn.setModel(sessionId, "gemini-3.8-flash");
     expect(conn.stderr().join("\n")).toContain("config model=gemini-3.8-flash");
   });
+  it("turns the model's name into the id the session offers it under (DSH, ADR 0106)", async () => {
+    const { conn, sessionId } = await start(
+      [
+        "models:",
+        `  - { value: '["personal-claude","claude-opus-5-5"]', name: Claude Opus 5.5 }`,
+        `  - { value: '["personal-claude","claude-sonnet-5-5"]', name: Claude Sonnet 5.5 }`,
+        "turns: []",
+        "",
+      ].join("\n"),
+    );
+    await conn.setModel(sessionId, "claude-sonnet-5-5");
+    expect(conn.stderr().join("\n")).toContain(
+      'config model=["personal-claude","claude-sonnet-5-5"]',
+    );
+  });
 });

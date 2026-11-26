@@ -26,11 +26,19 @@ export class Outbox {
   private readonly channel: Channel;
   private readonly store: Store;
   private readonly clock: Clock;
+  private readonly sent: ((view: View, ref: MessageRef) => void) | undefined;
 
-  constructor(channel: Channel, store: Store, clock: Clock) {
+  /** @param sent told each time the channel took a message, now or on a later try. */
+  constructor(
+    channel: Channel,
+    store: Store,
+    clock: Clock,
+    sent?: (view: View, ref: MessageRef) => void,
+  ) {
     this.channel = channel;
     this.store = store;
     this.clock = clock;
+    this.sent = sent;
   }
 
   /** Sends what an earlier run left unsent and retries from now on. */
@@ -74,6 +82,20 @@ export class Outbox {
     return this.store.outbox().length;
   }
 
+  /**
+   * Drops the unsent messages `match` picks, so they never go out: they are no longer true.
+   * One the channel is taking right now cannot be stopped. Returns how many were dropped.
+   */
+  drop(match: (view: View) => boolean): number {
+    let dropped = 0;
+    for (const row of this.store.outbox()) {
+      if (this.sending.has(row.id) || !match(row.view)) continue;
+      this.store.deleteOutbox(row.id);
+      dropped++;
+    }
+    return dropped;
+  }
+
   private async attempt(row: OutboxRow): Promise<MessageRef | undefined> {
     if (this.sending.has(row.id)) return undefined;
     this.sending.add(row.id);
@@ -85,6 +107,13 @@ export class Outbox {
       }
       if (row.attempts > 0) {
         this.store.audit("send.retried", { kind: row.view.kind, attempts: row.attempts });
+      }
+      if (ref !== undefined) {
+        try {
+          this.sent?.(row.view, ref);
+        } catch {
+          // Only bookkeeping: the message went out.
+        }
       }
       return ref;
     } catch (error) {

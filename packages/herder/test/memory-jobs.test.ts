@@ -1,9 +1,29 @@
-import { CASE_JOB, LESSON_JOB, REVIEW_JOB, Store } from "@agentherd/core";
-import { describe, expect, it } from "vitest";
+import { DatabaseSync } from "node:sqlite";
 import {
+  CASE_JOB,
+  DREAM_JOB,
+  type HerderTurn,
+  JOB_RETRY_MS,
+  LESSON_JOB,
+  MEMORY_TABLES_SQL,
+  type MemoryKind,
+  MemoryStore,
+  REVIEW_JOB,
+  Store,
+} from "@agentherd/core";
+import { describe, expect, it, vi } from "vitest";
+import {
+  DREAM_IDLE_MS,
+  DREAM_INTERVAL_MS,
+  DREAM_KINDS,
+  DREAM_MAX_ENTRIES,
+  DREAM_MIN_ENTRIES,
+  DREAM_OPS_MAX,
+  DREAM_SYSTEM,
   EXPERIENCE_SYSTEM,
   LESSON_SYSTEM,
   MemoryWorker,
+  type MemoryWorkerDeps,
   parseJson,
   REVIEW_SYSTEM,
   REVIEW_TURNS,
@@ -21,7 +41,7 @@ function model(replies: Record<string, string[]>) {
   return { asked, complete };
 }
 
-function setup(replies: Record<string, string[]>) {
+function setup(replies: Record<string, string[]>, deps?: Pick<MemoryWorkerDeps, "embedder">) {
   const store = Store.open(":memory:");
   const m = model(replies);
   const worker = new MemoryWorker({
@@ -29,6 +49,7 @@ function setup(replies: Record<string, string[]>) {
     transcript: (id) => store.transcript(id),
     herderTurnsAfter: (id, n) => store.herderTurnsAfter(id, n),
     complete: m.complete,
+    ...deps,
   });
   return { store, worker, asked: m.asked };
 }
@@ -49,6 +70,35 @@ describe("parseJson", () => {
 });
 
 describe("MemoryWorker", () => {
+  it.each([false, true])("finds related experience when hybrid search fails: %s", async (fails) => {
+    const embedder = {
+      model: "test",
+      embed: async (texts: readonly string[]) => texts.map(() => new Float32Array([1, 0])),
+    };
+    const { store, worker, asked } = setup(
+      { [LESSON_SYSTEM]: [LESSON], [EXPERIENCE_SYSTEM]: ['{"action":"none"}'] },
+      { embedder },
+    );
+    const { ids } = store.memory.write(
+      [
+        {
+          op: "add",
+          kind: "experience",
+          abstract: fails ? "打包签名失败" : "Inspect the certificate first",
+        },
+      ],
+      { actor: "task", source: "task" },
+    );
+    store.memory.setVector(ids[0] as string, embedder.model, new Float32Array([1, 0]));
+    if (fails)
+      vi.spyOn(store.memory, "searchHybrid").mockRejectedValueOnce(new Error("unavailable"));
+    store.addTranscript("task", "prompt", "打包失败");
+    store.addTranscript("task", "agent", "签名已修复");
+    store.memory.enqueueJob(LESSON_JOB, { taskId: "task", signals: SIGNALS });
+    await worker.drain();
+    expect(asked[1]?.user).toContain(ids[0]?.slice(0, 8));
+  });
+
   it("a task picked for a lesson adds experience and no case (ADR 0054)", async () => {
     const { store, worker, asked } = setup({
       [LESSON_SYSTEM]: [LESSON],
@@ -372,5 +422,490 @@ describe("reviews keep the owner's profile card (ADR 0091)", () => {
     await worker.drain();
     expect(asked[1]?.user).toContain("[profile] 称呼：火哥");
     expect(card()).toEqual(["作息：最近早睡", "称呼：火哥"]);
+  });
+});
+
+function dreamSetup(initialEntries = 0) {
+  let time = Date.parse("2026-11-01T10:00:00Z");
+  const now = () => new Date(time);
+  const db = new DatabaseSync(":memory:");
+  db.exec(MEMORY_TABLES_SQL);
+  const memory = new MemoryStore(db, undefined, now);
+  const turns: HerderTurn[] = [];
+  const deps: MemoryWorkerDeps = {
+    memory,
+    now,
+    transcript: () => [],
+    herderTurnsAfter: () => [],
+    recentTurns: (limit) => turns.slice(-limit),
+    isQuietTime: () => true,
+    complete: async () => '{"operations":[]}',
+  };
+  const worker = new MemoryWorker(deps);
+  const add = (kind: MemoryKind, abstract: string, scope = "global", until?: string, body = "") =>
+    memory.write(
+      [{ op: "add", kind, abstract, scope, body, ...(until === undefined ? {} : { until }) }],
+      { actor: "owner", source: "owner_edit" },
+    ).ids[0] as string;
+  for (let index = 0; index < initialEntries; index++) add("person", `Contact ${index}`);
+  const turn = (role: HerderTurn["role"], text: string) =>
+    turns.push({ id: turns.length + 1, role, text, at: now().toISOString() });
+  const run = async (operations: unknown[]) => {
+    const ask = vi.fn(async () => JSON.stringify({ operations, summary: "checked" }));
+    deps.dreamComplete = ask;
+    memory.enqueueJob(DREAM_JOB, {});
+    await worker.drain();
+    return ask;
+  };
+  return {
+    memory,
+    deps,
+    worker,
+    add,
+    turn,
+    run,
+    now,
+    advance: (ms: number) => {
+      time += ms;
+    },
+  };
+}
+
+describe("silent dream jobs", () => {
+  it("requires eligible entries and real idle time, and never queues a second waiting dream", () => {
+    const { worker, deps, memory, add, turn, advance } = dreamSetup();
+    for (let index = 1; index < DREAM_MIN_ENTRIES; index++) add("note", `note ${index}`);
+    add("decision", "no releases");
+    add("profile", "称呼：Boss");
+    deps.isQuietTime = () => true;
+    worker.maybeScheduleDream();
+    expect(memory.jobs()).toEqual([]);
+    add("note", "last");
+    delete deps.isQuietTime;
+    worker.maybeScheduleDream();
+    expect(memory.jobs()).toEqual([]);
+    turn("owner", "test");
+    advance(DREAM_IDLE_MS - 1);
+    worker.maybeScheduleDream();
+    expect(memory.jobs()).toEqual([]);
+    advance(1);
+    worker.maybeScheduleDream();
+    for (let index = 0; index < 21; index++) memory.enqueueJob(REVIEW_JOB, {});
+    worker.maybeScheduleDream();
+    expect(memory.jobs(50, DREAM_JOB)).toHaveLength(1);
+    memory.claimJob(DREAM_JOB);
+    worker.maybeScheduleDream();
+    expect(memory.jobs(50, DREAM_JOB)).toHaveLength(1);
+  });
+
+  it("prefers configured quiet hours, with an idle fallback only after 48 hours", () => {
+    const { worker, deps, memory, add, turn, advance } = dreamSetup();
+    for (let index = 0; index < DREAM_MIN_ENTRIES; index++) add("project", `project ${index}`);
+    deps.isQuietTime = () => false;
+    turn("herder", "done");
+    advance(2 * DREAM_INTERVAL_MS);
+    worker.maybeScheduleDream();
+    expect(memory.jobs()).toEqual([]);
+    advance(1);
+    worker.maybeScheduleDream();
+    expect(memory.jobs()).toHaveLength(1);
+  });
+
+  it("waits 24 hours and requires three non-dream changes or an old unused temporary entry", async () => {
+    const { worker, deps, memory, add, advance } = dreamSetup();
+    for (let index = 0; index < DREAM_MIN_ENTRIES; index++) add("project", `project ${index}`);
+    deps.isQuietTime = () => true;
+    worker.start();
+    await worker.stop();
+    expect(memory.lastLog("dream.done")?.ref).toBe("0");
+    advance(1);
+    add("note", "one");
+    add("experience", "two");
+    memory.write([{ op: "add", kind: "case", abstract: "ignored revision" }], {
+      actor: "dream",
+      source: "review",
+    });
+    advance(DREAM_INTERVAL_MS - 1);
+    worker.maybeScheduleDream();
+    expect(memory.jobs()).toHaveLength(1);
+    add("person", "three");
+    worker.maybeScheduleDream();
+    expect(memory.jobs()).toHaveLength(2);
+    await new MemoryWorker(deps).drain();
+    add("project", "same timestamp does not count");
+    advance(30 * DREAM_INTERVAL_MS + 1);
+    worker.maybeScheduleDream();
+    expect(memory.jobs()).toHaveLength(3);
+  });
+
+  it("checks task and owner facts, merges a case across projects and undoes all changes together", async () => {
+    const { memory, deps, add, turn, run, now, advance } = dreamSetup(2);
+    const cold = add("note", "temporary instruction");
+    advance(31 * DREAM_INTERVAL_MS);
+    const keep = add("experience", "Retry the build", "project:/repo/one");
+    const drop = add("case", "Build under /work/two", "project:/repo/two");
+    const project = add("project", "The build is broken");
+    const untouched = add("decision", "do not deploy");
+    turn("owner", "Use /work/fixed");
+    deps.recentTasks = () => [
+      {
+        id: "test",
+        title: "Build",
+        project: "two",
+        stage: "done",
+        failed: false,
+        endedWhy: "finished",
+        lastReport: `fixed ${"x".repeat(194)}not-in-prompt`,
+        updatedAt: now().toISOString(),
+      },
+    ];
+    const before = memory.list();
+    const ask = await run([
+      {
+        action: "merge",
+        keep_id: keep.slice(0, 8),
+        drop_ids: [drop],
+        content: "Retry under /work/two",
+        reason: "same lesson",
+      },
+      {
+        action: "replace",
+        id: project,
+        content: "Build fixed under /work/fixed",
+        reason: "recent task report",
+      },
+      { action: "remove", id: cold, reason: "unused" },
+    ]);
+    expect(ask).toHaveBeenCalledWith(
+      DREAM_SYSTEM,
+      expect.stringContaining("[owner] Use /work/fixed"),
+      expect.any(AbortSignal),
+    );
+    expect(ask).toHaveBeenCalledWith(
+      DREAM_SYSTEM,
+      expect.stringContaining('"endedWhy":"finished"'),
+      expect.any(AbortSignal),
+    );
+    expect(ask).not.toHaveBeenCalledWith(
+      DREAM_SYSTEM,
+      expect.stringContaining("not-in-prompt"),
+      expect.anything(),
+    );
+    expect(ask).not.toHaveBeenCalledWith(
+      DREAM_SYSTEM,
+      expect.stringContaining(untouched),
+      expect.anything(),
+    );
+    expect(memory.list({ kinds: ["experience"] })[0]).toMatchObject({
+      scope: "global",
+      abstract: "Retry under /work/two",
+      source: "review",
+    });
+    expect(memory.get(drop)?.status).toBe("deleted");
+    expect(memory.get(cold)?.status).toBe("deleted");
+    expect(memory.list({ kinds: ["project"] })[0]?.abstract).toContain("/work/fixed");
+    const batch = memory.lastLog("dream.written")?.ref;
+    expect(batch).toBeTruthy();
+    expect(
+      memory
+        .revisions()
+        .find((rev) => rev.batchId === batch && rev.after?.abstract === "Retry under /work/two")
+        ?.after?.scope,
+    ).toBe("global");
+    expect(
+      new Set(
+        memory
+          .revisions()
+          .filter((rev) => rev.actor === "dream")
+          .map((rev) => rev.batchId),
+      ),
+    ).toEqual(new Set([batch]));
+    expect(memory.lastLog("dream.done")).toMatchObject({ ref: "1", text: "checked" });
+    memory.undo(batch as string);
+    expect(memory.list()).toEqual(before);
+  });
+
+  it("drops unauthorized writes, conflicts, ungrounded paths, and operations over the limit", async () => {
+    const { memory, add, turn, run } = dreamSetup(3);
+    const owner = add("owner", "Use paper reports");
+    const note = add("note", "keep the note");
+    const decision = add("decision", "no deploys");
+    const profile = add("profile", "称呼：Boss");
+    const lesson = add("experience", "useful lesson");
+    turn("answer", "Forget Use paper reports");
+    turn("herder", "Try /untrusted/path");
+    const fix = (id: string, content: string) => ({
+      action: "replace",
+      id,
+      content,
+      reason: "corrected",
+    });
+    await run([
+      null,
+      { action: "add", kind: "note", content: "invented" },
+      fix(decision, "different"),
+      fix(profile, "称呼：X"),
+      { action: "remove", id: owner, reason: "Forget Use paper reports" },
+      {
+        action: "merge",
+        keep_id: lesson,
+        drop_ids: [note],
+        content: "incompatible",
+        reason: "duplicate",
+      },
+      {
+        action: "merge",
+        keep_id: note,
+        drop_ids: [note.slice(0, 8)],
+        content: "self",
+        reason: "duplicate",
+      },
+      fix(note, "New /untrusted/path"),
+      fix(lesson, "x".repeat(201)),
+      { action: "remove", id: lesson, reason: "cold" },
+      fix(note, "checked note"),
+      fix(note, "conflicting"),
+      fix(lesson, "over limit"),
+    ]);
+    expect(memory.list({ kinds: ["note"] }).map((row) => row.abstract)).toEqual(["checked note"]);
+    expect(memory.list()).toHaveLength(8);
+    expect(memory.get(owner)?.status).toBe("active");
+    expect(memory.get(lesson)?.status).toBe("active");
+    expect(memory.logs(20, "dream.dropped")).toHaveLength(DREAM_OPS_MAX);
+  });
+
+  it("includes old unused candidates in a bounded prompt and does not overwrite concurrent edits", async () => {
+    const { memory, deps, worker, add, advance } = dreamSetup();
+    const cold = add("case", "old case");
+    advance(31 * DREAM_INTERVAL_MS);
+    for (let index = 0; index < DREAM_MAX_ENTRIES + 5; index++)
+      add("experience", `experience ${index}`);
+    delete deps.complete;
+    deps.dreamComplete = async (_system, user) => {
+      expect(user).toContain(cold);
+      expect(user.match(/"accessCount":/g)).toHaveLength(DREAM_MAX_ENTRIES);
+      memory.setStatus(cold, "deleted");
+      return JSON.stringify({ operations: [{ action: "remove", id: cold, reason: "cold" }] });
+    };
+    memory.enqueueJob(REVIEW_JOB, {});
+    memory.enqueueJob(DREAM_JOB, {});
+    await worker.drain();
+    expect(memory.jobs().map((job) => job.state)).toEqual(["done", "pending"]);
+    expect(memory.lastLog("dream.dropped")).toBeDefined();
+    expect(memory.lastLog("dream.written")).toBeUndefined();
+  });
+
+  it("only drops owner rules as duplicates or on an explicit recent typed revocation", async () => {
+    const { memory, add, turn, run, advance } = dreamSetup(3);
+    const keep = add("owner", "Use short reports");
+    const duplicate = add("owner", "Use short reports");
+    const revoked = add("owner", "Use paper reports");
+    advance(1);
+    turn("owner", "Forget Use short reports?");
+    turn("owner", "Please forget Use paper reports.");
+    await run([
+      { action: "remove", id: keep, reason: "Forget Use short reports?" },
+      {
+        action: "merge",
+        keep_id: keep,
+        drop_ids: [duplicate],
+        content: "Use short reports",
+        reason: "duplicate",
+      },
+      { action: "remove", id: revoked, reason: "Please forget Use paper reports." },
+    ]);
+    expect(memory.logs(20, "dream.dropped")).toHaveLength(1);
+    expect(memory.list({ kinds: ["owner"] }).map((row) => row.abstract)).toEqual([
+      "Use short reports",
+    ]);
+  });
+
+  it("does not rewrite owner rules, reuse old revocations, or authorize paths from taps", async () => {
+    const { memory, add, turn, run, advance } = dreamSetup(DREAM_MIN_ENTRIES);
+    const old = add("owner", "Paper reports");
+    turn("owner", "Forget Paper reports");
+    advance(1);
+    memory.setStatus(old, "deleted");
+    const rebuilt = add("owner", "Paper reports");
+    const sameTime = add("owner", "Daily reports");
+    turn("owner", "Forget Daily reports");
+    turn("owner", "Check my calendar today");
+    turn("answer", "/picked/folder");
+    const project = add("project", "folder unknown");
+    const before = memory.list();
+    await run([
+      {
+        action: "replace",
+        id: rebuilt,
+        content: "Check my calendar today",
+        reason: "owner said so",
+      },
+      { action: "remove", id: rebuilt, reason: "Forget Paper reports" },
+      { action: "remove", id: sameTime, reason: "Forget Daily reports" },
+      { action: "replace", id: project, content: "Use /picked/folder", reason: "owner tapped" },
+    ]);
+    expect(memory.logs(10, "dream.dropped")).toHaveLength(4);
+    expect(memory.list()).toEqual(before);
+  });
+
+  it("keeps scope, expiry and owner details when merging", async () => {
+    const { memory, add, run } = dreamSetup();
+    const early = "2026-12-01";
+    const late = "2026-12-15";
+    const owner = add("owner", "Concise", "global", late);
+    const note = add("note", "notes", "project:/a", early);
+    const lesson = add("experience", "lesson", "project:/a", early);
+    const merge = (keep: string, drop: string, details?: string) => ({
+      action: "merge",
+      keep_id: keep,
+      drop_ids: [drop],
+      content: memory.get(keep)?.abstract,
+      details,
+      reason: "duplicate",
+    });
+    const rejected = [
+      merge(owner, add("owner", "Concise", "project:/b", late)),
+      merge(owner, add("owner", "Concise", "global", early)),
+      merge(owner, add("owner", "Concise", "global", late, "Weekly only")),
+      merge(owner, add("owner", "Concise", "global", late), "Only today"),
+      merge(note, add("note", "notes", "project:/b", early)),
+      merge(note, add("note", "notes", "project:/a")),
+      merge(lesson, add("case", "old lesson", "project:/b", late)),
+    ];
+    const valid = add("project", "repo", "project:G:\\Work", late);
+    const duplicate = add("project", "repo", "project:g:/work", early);
+    await run([...rejected, merge(valid, duplicate)]);
+    expect(memory.logs(10, "dream.dropped")).toHaveLength(rejected.length);
+    for (const proposal of rejected) {
+      expect(memory.get(proposal.keep_id)?.status).toBe("active");
+      expect(memory.get(proposal.drop_ids[0] as string)?.status).toBe("active");
+    }
+    expect(memory.get(duplicate)?.status).toBe("deleted");
+    expect(memory.list({ kinds: ["project"] })[0]).toMatchObject({
+      scope: "project:G:\\Work",
+      until: late,
+    });
+  });
+
+  it("requires a verbatim quote naming the non-cold target by word, project or id", async () => {
+    const { memory, add, turn, run, deps, now } = dreamSetup();
+    const unrelated = add("note", "The atlas");
+    const short = add("case", "archive");
+    const missing = add("experience", "registry");
+    const english = add("note", "Registry");
+    const chinese = add("case", "攻略", "global", undefined, "证书轮换");
+    const project = add("experience", "Check settings", "project:/repos/Quartz");
+    const idOnly = add("note", "old reminder");
+    const report = "Quartz was discontinued";
+    deps.recentTasks = () => [
+      {
+        id: "task",
+        title: "Retirement",
+        project: "Quartz",
+        stage: "done",
+        failed: false,
+        lastReport: report,
+        updatedAt: now().toISOString(),
+      },
+    ];
+    const proposals = [
+      [unrelated, "Good morning"],
+      [short, "archive"],
+      [missing, "registry was replaced"],
+      [english, "the registry is retired"],
+      [chinese, "我们今天已经不再使用旧证书了"],
+      [project, report],
+      [idOnly, `Forget note ${idOnly.slice(0, 8)}`],
+    ] as const;
+    for (const [id, reason] of proposals)
+      if (id !== missing && id !== project) turn("owner", reason);
+    await run(proposals.map(([id, reason]) => ({ action: "remove", id, reason })));
+    expect(memory.logs(10, "dream.dropped")).toHaveLength(3);
+    expect(
+      memory
+        .list()
+        .map((row) => row.id)
+        .sort(),
+    ).toEqual([unrelated, short, missing].sort());
+  });
+
+  it.each(["count", "idle", "quiet"])(
+    "skips without calling a model when queued %s eligibility changes",
+    async (condition) => {
+      const { memory, deps, worker, turn } = dreamSetup(DREAM_MIN_ENTRIES);
+      const complete = vi.fn(async () => '{"operations":[]}');
+      deps.dreamComplete = complete;
+      worker.maybeScheduleDream();
+      expect(memory.jobs()[0]?.state).toBe("pending");
+      if (condition === "count")
+        memory.setStatus(memory.list({ kinds: DREAM_KINDS })[0]?.id as string, "deleted");
+      else if (condition === "idle") {
+        delete deps.isQuietTime;
+        turn("owner", "back");
+      } else deps.isQuietTime = () => false;
+      await worker.drain();
+      expect(complete).not.toHaveBeenCalled();
+      expect(memory.jobs()[0]?.state).toBe("done");
+      expect(memory.lastLog("dream.skipped")).toBeDefined();
+      expect(memory.lastLog("dream.tried")).toBeUndefined();
+      expect(memory.lastLog("dream.done")).toBeUndefined();
+    },
+  );
+
+  it("retries the queued dream but waits 24 hours after its final model attempt for a new one", async () => {
+    const { memory, deps, worker, advance, turn } = dreamSetup(DREAM_MIN_ENTRIES);
+    deps.dreamComplete = vi.fn(async () => '{"summary":"invalid"}');
+    turn("owner", "still here");
+    worker.maybeScheduleDream();
+    await worker.drain();
+    for (const wait of JOB_RETRY_MS) {
+      advance(wait);
+      worker.maybeScheduleDream();
+      await worker.drain();
+    }
+    expect(deps.dreamComplete).toHaveBeenCalledTimes(JOB_RETRY_MS.length + 1);
+    expect(memory.jobs()).toMatchObject([{ state: "failed" }]);
+    expect(memory.lastLog("dream.tried")?.ref).toBe("1");
+    expect(memory.lastLog("dream.done")).toBeUndefined();
+    advance(DREAM_INTERVAL_MS - 1);
+    worker.maybeScheduleDream();
+    expect(memory.jobs()).toHaveLength(1);
+    advance(1);
+    worker.maybeScheduleDream();
+    expect(memory.jobs()).toMatchObject([{ state: "pending" }, { state: "failed" }]);
+  });
+
+  it("redacts a scheduling error and still drains the pending review", async () => {
+    const { deps, worker, memory } = dreamSetup(DREAM_MIN_ENTRIES);
+    const log = vi.fn();
+    deps.log = log;
+    const marker = "private-marker";
+    deps.isQuietTime = () => {
+      throw new Error(`config unavailable: Bearer ${marker}`);
+    };
+    memory.enqueueJob(REVIEW_JOB, {});
+    worker.kick();
+    await worker.stop();
+    expect(log).toHaveBeenCalledWith(expect.stringContaining("config unavailable"));
+    expect(JSON.stringify(log.mock.calls)).not.toContain(marker);
+    expect(memory.jobs()).toMatchObject([{ kind: REVIEW_JOB, state: "done" }]);
+  });
+
+  it("logs a full kind and rolls back the whole dream, including removals", async () => {
+    const { memory, add, run, advance } = dreamSetup();
+    const cold = add("case", "obsolete case");
+    advance(31 * DREAM_INTERVAL_MS);
+    for (let index = 0; index < 10; index++) add("note", `${index}${"n".repeat(199)}`);
+    add("note", "filler");
+    const edited = add("note", "before");
+    const before = memory.list();
+    await run([
+      { action: "remove", id: cold, reason: "cold" },
+      { action: "replace", id: edited, content: "x".repeat(200), reason: "corrected" },
+    ]);
+    expect(memory.lastLog("dream.dropped")?.text).toContain("of 2200");
+    expect(memory.lastLog("dream.written")).toBeUndefined();
+    expect(memory.lastLog("dream.done")).toBeDefined();
+    expect(memory.list()).toEqual(before);
   });
 });

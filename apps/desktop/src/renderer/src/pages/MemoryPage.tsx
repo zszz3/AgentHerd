@@ -19,7 +19,7 @@ const KINDS: readonly { kind: Entry["kind"]; label: string; hint: string }[] = [
     label: "定了的事",
     hint: "你拍过板的事和定了不做的事，带着原话；主管和每个新任务都会照做，不再问你",
   },
-  { kind: "note", label: "主管笔记", hint: "主管自己记下的环境和做法，每次都会看" },
+  { kind: "note", label: "主管笔记", hint: "主管自己记下的环境和做法，相关时会参考" },
   { kind: "person", label: "人", hint: "你提到的人和他们负责什么" },
   { kind: "project", label: "项目", hint: "项目是什么、谁负责；路径只当线索" },
   { kind: "experience", label: "经验", hint: "从做过的任务里总结的做法，开新任务时会参考" },

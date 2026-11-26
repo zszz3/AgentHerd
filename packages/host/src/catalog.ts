@@ -270,6 +270,20 @@ export const AGENTS: AgentDef[] = [
     homeBins: [".local/bin/agy"],
     ownModels: true,
   },
+  {
+    id: "dsh",
+    name: "DeepSeek Harness",
+    envVar: "AGENTHERD_DSH",
+    // The CLI of the owner's own DeepSeek Harness desktop app (ADR 0106), found in the app before
+    // PATH (Agents.find): a `dsh` there may be the separate npm launcher at another version.
+    // `dsh acp` serves ACP with the models and sign-in the owner set up in DSH. Not shipped or
+    // downloaded.
+    systemNames: ["dsh"],
+    acpArgs: ["acp"],
+    // read-only: every write, and every command that needs more than reading, asks over ACP.
+    env: { DSH_PERMISSION_MODE: "read-only" },
+    ownModels: true,
+  },
 ];
 
 export function agentDef(id: string): AgentDef | undefined {

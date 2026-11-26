@@ -135,6 +135,77 @@ const regQuery: RegQuery = (args) => {
   });
 };
 
+/** The CLI launcher inside the DeepSeek Harness desktop app on macOS (ADR 0106). */
+export const DSH_MAC_BIN =
+  "/Applications/DeepSeek Harness.app/Contents/Resources/runtime/cli/bin/dsh";
+
+/** The CLI launcher inside the Windows install folder of DeepSeek Harness. */
+export const DSH_WINDOWS_LAUNCHER = "resources\\runtime\\cli\\bin\\dsh.cmd";
+
+/**
+ * Install folders of DeepSeek Harness from the uninstall entries in `reg query /s /f ... /d`
+ * output: an entry whose DisplayName starts with the app name, through its DisplayIcon
+ * (`<folder>\DeepSeek Harness.exe,0`), else its InstallLocation. The installer lets the owner
+ * pick any folder.
+ */
+export function dshInstallDirs(output: string): string[] {
+  const dirs: string[] = [];
+  let name = "";
+  let icon = "";
+  let installLocation = "";
+  const flush = () => {
+    if (name.startsWith("DeepSeek Harness")) {
+      if (icon !== "") dirs.push(win32.dirname(icon));
+      else if (installLocation !== "") dirs.push(installLocation);
+    }
+    name = "";
+    icon = "";
+    installLocation = "";
+  };
+  for (const line of output.split(/\r?\n/)) {
+    if (line.startsWith("HKEY_")) {
+      flush();
+      continue;
+    }
+    const value = /^\s+(\S+)\s+REG_(?:EXPAND_)?SZ\s+(.*)$/.exec(line);
+    if (value === null) continue;
+    const data = (value[2] ?? "").trim();
+    if (value[1] === "DisplayName") name = data;
+    if (value[1] === "DisplayIcon") icon = data.replace(/,-?\d+$/, "").replace(/^"(.*)"$/, "$1");
+    if (value[1] === "InstallLocation") installLocation = data.replace(/^"(.*)"$/, "$1");
+  }
+  flush();
+  return [...new Set(dirs)];
+}
+
+/**
+ * Where the DeepSeek Harness desktop app keeps its CLI: the macOS bundle; on Windows the launcher
+ * in each install folder the uninstall entries name (per-user, then all users and WOW6432Node).
+ */
+export function dshAppBins(
+  platform: NodeJS.Platform = process.platform,
+  query: RegQuery = regQuery,
+): string[] {
+  if (platform === "darwin") return [DSH_MAC_BIN];
+  if (platform !== "win32") return [];
+  const keys = [
+    "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall",
+    "HKLM\\Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall",
+    "HKLM\\Software\\WOW6432Node\\Microsoft\\Windows\\CurrentVersion\\Uninstall",
+  ];
+  const bins: string[] = [];
+  for (const key of keys) {
+    let output: string;
+    try {
+      output = query(["query", key, "/s", "/f", "DeepSeek Harness", "/d"]);
+    } catch {
+      continue;
+    }
+    for (const dir of dshInstallDirs(output)) bins.push(win32.join(dir, DSH_WINDOWS_LAUNCHER));
+  }
+  return [...new Set(bins)];
+}
+
 /** The Codex CLI inside the package folder of OpenAI's Codex (ChatGPT) desktop app. */
 export const CODEX_WINDOWS_CLI = "app\\resources\\codex.exe";
 

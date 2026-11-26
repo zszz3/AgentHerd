@@ -19,7 +19,15 @@ import {
 import type { AgentProfile, ToolCallInfo } from "@agentherd/protocol";
 import { redact } from "@agentherd/rules";
 import { commandLine, killTree } from "./command.ts";
-import { type PermissionAnswer, ToolCallTracker, toAcpOutcome, toToolCallInfo } from "./mapping.ts";
+import {
+  type ModelChoice,
+  modelChoices,
+  modelValue,
+  type PermissionAnswer,
+  ToolCallTracker,
+  toAcpOutcome,
+  toToolCallInfo,
+} from "./mapping.ts";
 
 export const STDERR_LINES = 200;
 /** How long close() waits after SIGTERM before SIGKILL. */
@@ -254,6 +262,8 @@ export async function startAgent(
   const open = new Map<string, PermissionRequest & { cancel(): void }>();
   let nextRequest = 1;
   const tracker = new ToolCallTracker();
+  // Each session's model choices, to turn a model the owner names into the agent's id (ADR 0106).
+  const models = new Map<string, ModelChoice[]>();
 
   const exited = new Promise<ExitEvent>((resolve) => {
     let done = false;
@@ -381,12 +391,16 @@ export async function startAgent(
     acceptsImages: init.agentCapabilities?.promptCapabilities?.image === true,
     loadsSessions: init.agentCapabilities?.loadSession === true,
     async loadSession(sessionId, cwd, mcpServers = []) {
-      await whileAlive(agent.request(methods.agent.session.load, { sessionId, cwd, mcpServers }));
+      const res: { configOptions?: unknown } | null | undefined = await whileAlive(
+        agent.request(methods.agent.session.load, { sessionId, cwd, mcpServers }),
+      );
+      models.set(sessionId, modelChoices(res?.configOptions));
     },
     async newSession(cwd, mcpServers = []) {
       const res: NewSessionResponse = await whileAlive(
         agent.request(methods.agent.session.new, { cwd, mcpServers }),
       );
+      models.set(res.sessionId, modelChoices(res.configOptions));
       return res.sessionId;
     },
     async prompt(sessionId, text, images = []) {
@@ -413,7 +427,7 @@ export async function startAgent(
         agent.request(methods.agent.session.setConfigOption, {
           sessionId,
           configId: "model",
-          value: model,
+          value: modelValue(models.get(sessionId) ?? [], model),
         }),
       );
     },

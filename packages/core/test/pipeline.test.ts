@@ -1,3 +1,4 @@
+import { toToolCallInfo } from "@agentherd/acp-client";
 import type { AppHints, Item, Rule, ToolCallInfo } from "@agentherd/protocol";
 import { describe, expect, it } from "vitest";
 import { BODY_MAX_LINES, itemBody, itemView } from "../src/inbox.ts";
@@ -237,6 +238,47 @@ describe("decide", () => {
       expect(r.decision.reason).toMatch(/^mass delete:/);
     },
   );
+
+  it.each([
+    'cmd.exe /d /s /c "rd /s /q ."',
+    'powershell.exe -NoProfile -Command "Remove-Item -Recurse -Force ..\\other"',
+    'powershell -Command "Remove-Item -Recurse -Force ." -Verbose',
+    "Get-ChildItem -Recurse | Remove-Item -ErrorAction SilentlyContinue",
+    `powershell -EncodedCommand ${Buffer.from("Remove-Item -Recurse -Force .", "utf16le").toString("base64")}`,
+    "Remove-Item -Recurse -Force ., build",
+  ])("a Windows execute rawInput.command mass delete escalates in every mode: %s", (rawCmd) => {
+    const mapped = toToolCallInfo({
+      toolCallId: "t1",
+      kind: "execute",
+      title: "Run shell",
+      rawInput: { command: rawCmd },
+    });
+    for (const mode of ["observe", "assist", "auto"] as const) {
+      const winItem = item(mapped, { cwd: "C:\\work\\proj" });
+      const r = decide(winItem, { mode, rules: [allowAll], home: "C:\\Users\\me" });
+      expect(r.apply).toBe(false);
+      expect(r.decision).toMatchObject({ action: "escalate", risk: "high" });
+      expect(r.decision.reason).toMatch(/^mass delete:/);
+    }
+  });
+
+  it.each([
+    'cmd.exe /d /s /c "rd /s /q .\\dist"',
+    'powershell.exe -NoProfile -Command "Remove-Item -Recurse -Force build"',
+    'cmd /c "del src\\*.log"',
+    "Remove-Item -LiteralPath 'logs,..,archive'",
+  ])("a routine Windows execute rawInput.command stays allowed: %s", (rawCmd) => {
+    const mapped = toToolCallInfo({
+      toolCallId: "t1",
+      kind: "execute",
+      title: "Run shell",
+      rawInput: { command: rawCmd },
+    });
+    const winItem = item(mapped, { cwd: "C:\\work\\proj" });
+    const r = decide(winItem, { mode: "assist", rules: [], home: "C:\\Users\\me" });
+    expect(r.apply).toBe(true);
+    expect(r.decision).toMatchObject({ action: "allow", source: "rule", reason: AUTO_APPROVED });
+  });
 
   it("a non-permission item escalates", () => {
     const r = decide(item(undefined, { kind: "notification" }), {
