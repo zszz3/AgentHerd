@@ -16,3 +16,7 @@ apps/desktop/agents/
 
 # Pinned DingTalk Workspace CLI fetched by apps/desktop/scripts/fetch-dws.ts
 apps/desktop/dws/
+
+# Local agent tooling copied into the checkout by the owner's tools (not part of the product)
+.agents/
+.zcode/

@@ -1,0 +1,6014 @@
+[
+  {
+    "case": "",
+    "t": 1795515708860,
+    "kind": "environment",
+    "data": {
+      "os": "win32",
+      "tempRoot": "~\\AppData\\Local\\Temp\\zcode-modes-l0BMj7",
+      "proj": "~\\AppData\\Local\\Temp\\zcode-modes-l0BMj7\\proj",
+      "bridge": "~\\AppData\\Roaming\\fnm\\aliases\\default\\zcode-acp.cmd"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 137,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "available_commands_update"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 303,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "available_commands_update"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 1003,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "available_commands_update"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 2810,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "available_commands_update"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 3034,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "config_option_update"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 3060,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "available_commands_update"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 3162,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "current_mode_update",
+      "currentModeId": "guarded"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 3215,
+    "kind": "mode_confirmation",
+    "data": {
+      "requested": "guarded",
+      "confirmed": "guarded"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 3228,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "session_info_update"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 3419,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "config_option_update"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 3756,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "available_commands_update"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 4996,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 9244,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 9507,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 11002,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 11258,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 12241,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 12969,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 13225,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 13702,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 13973,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 14241,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 14627,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 15243,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 15498,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 15751,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 16118,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 16472,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 16825,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 17089,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 17459,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 17836,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 18265,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 18550,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 18816,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 19256,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 19525,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 19799,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 20082,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 20336,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 20610,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 20879,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 21367,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 21787,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 22267,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 22517,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 22779,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 23047,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 23306,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 23566,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 23853,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 24125,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 24387,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 24644,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 24931,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 25188,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 25455,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 25714,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 25968,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 26252,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 26509,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 26761,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 27020,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 27274,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 27526,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 28136,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 29367,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 29917,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 30179,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 30433,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 30685,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 31647,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 31924,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 32202,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 32479,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 32768,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 33034,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 33290,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 33548,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 33802,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 34682,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 34944,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 35308,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 35561,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 35812,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 36230,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 36683,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 36948,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 37218,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 37487,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 37741,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 38018,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 38398,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 38662,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 38916,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 39397,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 39651,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 39906,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 40190,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 40464,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 40798,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 41048,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 41310,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 41761,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 42024,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 42291,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 42540,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 42794,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 43047,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 44812,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 45064,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 45475,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 45838,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 46156,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 46407,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 46700,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 46979,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 47332,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 47625,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 47904,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 48157,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 48428,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 48789,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 49063,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 49569,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 49854,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 50523,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 50825,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 51093,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 51346,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 51596,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 52028,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 52747,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 53168,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 53567,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 53836,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 54110,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 54360,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 54669,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 55175,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 55543,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 55831,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 56104,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 56377,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 57009,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 59492,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 59947,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 60215,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 60522,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 60773,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 61108,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 61376,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 61760,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 62040,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 62296,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 62582,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 63018,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 63290,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 63605,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 63854,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 64342,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 64722,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 64988,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 65446,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 65721,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 65977,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 66235,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 66573,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 66926,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 67258,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 67510,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 67818,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 68087,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 68354,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 68639,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 70175,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 70591,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 70854,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 71554,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 72562,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 72934,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 73189,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 73492,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 73941,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 74195,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 74539,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 76037,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 76325,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 76638,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 77040,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 77294,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 77631,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 77906,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 78354,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 78606,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 79247,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 79545,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 79817,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 80098,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 80356,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 80619,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 80872,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 81165,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 81438,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 81708,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 82196,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 82459,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 82714,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 82974,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 83275,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 83608,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 83865,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 84530,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 85707,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 85963,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 86382,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 86650,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 86923,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 87177,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 87440,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 87691,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 88685,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 88952,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 89436,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 95547,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 95816,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 96207,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 96703,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 97236,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 97488,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 97740,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 98008,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 98272,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 98648,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 98995,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 99694,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 100084,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 100345,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 100676,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 100937,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 101194,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 101449,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 101843,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 102325,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 102614,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 102869,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 103142,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 103595,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 104293,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 105498,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 106074,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 106559,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 106809,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 107059,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 107324,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 107598,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 107960,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 108268,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 108532,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 108797,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 109075,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 109480,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 109741,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 109993,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 110246,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 110523,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 111693,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 111959,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 112211,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 114147,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 114457,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 116875,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 117132,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 117395,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 117666,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 117974,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 118282,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 118558,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 118985,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 119236,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 119525,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 119790,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 120042,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 120336,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 120600,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 120882,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 121134,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 121390,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 121654,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 121921,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 122182,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 122438,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 122707,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 123224,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 128381,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 128633,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 128887,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 129137,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 129425,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 129688,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 129954,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 130224,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 131004,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 132012,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 132369,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 132643,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 132897,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 133152,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 133430,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 133685,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 133970,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 134229,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 134479,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 134733,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 135051,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 136421,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 136877,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 137219,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 137700,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 137956,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 138216,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 138484,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 138744,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 139101,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 139967,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 140248,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 140517,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 140779,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 141089,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 141604,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 142196,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 143560,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 143812,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 144097,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 144349,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 144614,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 144872,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 145175,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 145425,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 146030,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 146293,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 146547,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 146806,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 147062,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 147318,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 147624,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 147882,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 148158,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 148655,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 149001,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 149262,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 149700,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 150047,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 150297,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 150623,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 150876,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 151126,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 151399,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 151760,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 152021,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 152481,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 152744,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 153415,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 153789,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 154044,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 154300,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 154768,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 155025,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 155460,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 155727,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 155985,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 156239,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 156679,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 165451,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 166404,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 167414,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 167492,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 171489,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "usage_update"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 171491,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "tool_call",
+      "title": "工具权限 (Bash)",
+      "rawInput": {
+        "command": "rm -rf '~\\AppData\\Local\\Temp\\zcode-modes-l0BMj7\\proj\\m-guarded-rm'",
+        "description": "Delete the m-guarded-rm temp directory"
+      },
+      "status": "pending"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 171493,
+    "kind": "permission",
+    "data": {
+      "decision": "deny",
+      "title": "Bash: rm -rf '~\\AppData\\Local\\Temp\\zcode-modes-l0BMj7\\proj\\m-guarded-rm'",
+      "rawInput": {
+        "command": "rm -rf '~\\AppData\\Local\\Temp\\zcode-modes-l0BMj7\\proj\\m-guarded-rm'",
+        "description": "Delete the m-guarded-rm temp directory"
+      },
+      "options": [
+        {
+          "optionId": "allow_once",
+          "kind": "allow_once"
+        },
+        {
+          "optionId": "deny",
+          "kind": "reject_once"
+        }
+      ]
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 171497,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "usage_update"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 171499,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "tool_call",
+      "title": "Bash: rm -rf '~\\AppData\\Local\\Temp\\zcode-modes-l0BMj7\\proj\\m-guarded-rm'",
+      "rawInput": {
+        "command": "rm -rf '~\\AppData\\Local\\Temp\\zcode-modes-l0BMj7\\proj\\m-guarded-rm'",
+        "description": "Delete the m-guarded-rm temp directory"
+      },
+      "status": "pending"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 171502,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "tool_call_update",
+      "status": "failed"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 176629,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 176891,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 177169,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 177449,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 177702,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 177965,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 178337,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 178600,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 178866,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 179120,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 179375,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 179709,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 179981,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 180442,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 180706,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 180985,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 181262,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 181568,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 181828,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 182086,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 182347,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 182615,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 182779,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 182783,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_message_chunk",
+      "text": "The"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 183083,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_message_chunk",
+      "text": " command was **rejected by the permission system** — the `rm` call was declined, so `m"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 183334,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_message_chunk",
+      "text": "-guarded-rm` was **not** deleted and"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 183736,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_message_chunk",
+      "text": " I have not retried it.\n\nI won't try to work around the"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 184104,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_message_chunk",
+      "text": " rejection with another deletion method, since the block"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 184409,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_message_chunk",
+      "text": " appears"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 184876,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_message_chunk",
+      "text": " deliberate (a guarded `rm`). If you do want the directory removed, you can"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 185135,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_message_chunk",
+      "text": " re-run with the command allowed, or delete `~\\AppData\\Local\\Temp\\zcode-modes-l0BMj7\\"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 185400,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_message_chunk",
+      "text": "proj\\m-guarded-rm` yourself.\n\nSo I can't report DONE — the deletion"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 185610,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_message_chunk",
+      "text": " did not happen."
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 185617,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "usage_update"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 185626,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "usage_update"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 185848,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "usage_update"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 185849,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "tool_call_update",
+      "status": "failed"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 185851,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "plan"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 185943,
+    "kind": "after_rm",
+    "data": {
+      "stop": "end_turn",
+      "dirStillExists": true
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 186051,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "config_option_update"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 186997,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 187255,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 187524,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 187773,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 188046,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 188304,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 188709,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 189147,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 191761,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 192024,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 192280,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 192590,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 193196,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 193654,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 193970,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 194039,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 194049,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "session_info_update"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 194052,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 194407,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 194662,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 194936,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 195195,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 195456,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 195790,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 196042,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 196339,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 196662,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 196928,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 197270,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 197542,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 197797,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 198062,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 198338,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 198643,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 198909,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 199289,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 199714,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 200269,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 200519,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 200818,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 201187,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 201442,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 201706,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 201968,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 202218,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 202478,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 202769,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 203029,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 203514,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 203832,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 204082,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 204336,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 204713,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 205543,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 205810,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 206065,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 206323,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 206597,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 206892,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 207154,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 207515,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 207765,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 208028,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 208310,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 209190,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 209451,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 209737,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 210064,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 210318,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 210597,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 210885,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 211143,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 211548,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 211807,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 212515,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 217511,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 217763,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 218063,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 218321,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 218571,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 218840,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 219130,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 219384,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 219684,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 219978,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 220257,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 220556,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 220872,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 221211,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 221462,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 221728,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 221980,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 222348,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 222617,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 222870,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 223153,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 223416,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 223676,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 224101,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 224629,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 225766,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 226032,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 226295,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 226554,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 227142,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 230054,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 230324,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 230603,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 230868,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 231130,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 231551,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 231822,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 232079,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 232419,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 232777,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 233035,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 233298,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 233604,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 233861,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 234150,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 234506,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 234798,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 235070,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 235343,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 235652,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 236261,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 236531,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 236803,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 237066,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 237324,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 237628,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 237886,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 238332,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 238622,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 238934,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 240366,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 240665,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 240950,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 241217,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 241468,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 241872,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 242811,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "usage_update"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 242823,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "usage_update"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 242829,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "tool_call",
+      "title": "Write: ~\\AppData\\Local\\Temp\\zcode-modes-l0BMj7\\zc-out-",
+      "rawInput": {
+        "file_path": "~\\AppData\\Local\\Temp\\zcode-modes-l0BMj7\\zc-out-guarded.txt",
+        "content": "outside"
+      },
+      "status": "pending"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 242835,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "tool_call_update",
+      "status": "in_progress"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 243014,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "tool_call_update",
+      "status": "completed"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 243019,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "tool_call_update",
+      "status": "completed"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 251404,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 251410,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 251412,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_message_chunk",
+      "text": "DONE"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 251760,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_message_chunk",
+      "text": "\n\nThe file was created at `~\\AppData\\Local\\Temp\\zcode-modes-l0BMj7\\zc-out-guarded.txt` with exactly `outsid"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 252016,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_message_chunk",
+      "text": " \"outside\" in your message as sentence punctuation, not part of the content — say the word if you wanted `outside.` with"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 252088,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_message_chunk",
+      "text": " the period included."
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 252093,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "usage_update"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 252102,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "usage_update"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 252293,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "usage_update"
+    }
+  },
+  {
+    "case": "guarded",
+    "t": 252372,
+    "kind": "after_outside_write",
+    "data": {
+      "stop": "end_turn",
+      "fileExists": true
+    }
+  },
+  {
+    "case": "edit",
+    "t": 163,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "config_option_update"
+    }
+  },
+  {
+    "case": "edit",
+    "t": 233,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "current_mode_update",
+      "currentModeId": "edit"
+    }
+  },
+  {
+    "case": "edit",
+    "t": 283,
+    "kind": "mode_confirmation",
+    "data": {
+      "requested": "edit",
+      "confirmed": "edit"
+    }
+  },
+  {
+    "case": "edit",
+    "t": 394,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "config_option_update"
+    }
+  },
+  {
+    "case": "edit",
+    "t": 1932,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "edit",
+    "t": 3557,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "edit",
+    "t": 13200,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "edit",
+    "t": 13491,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "edit",
+    "t": 13900,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "edit",
+    "t": 14171,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "edit",
+    "t": 14449,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "edit",
+    "t": 15066,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "edit",
+    "t": 15336,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "edit",
+    "t": 15591,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "edit",
+    "t": 16002,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "edit",
+    "t": 16389,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "edit",
+    "t": 16750,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "edit",
+    "t": 17005,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "edit",
+    "t": 17278,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "edit",
+    "t": 17528,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "edit",
+    "t": 17791,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "edit",
+    "t": 18096,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "edit",
+    "t": 18357,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "edit",
+    "t": 18644,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "edit",
+    "t": 18904,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "edit",
+    "t": 19180,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "edit",
+    "t": 19501,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "edit",
+    "t": 19752,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "edit",
+    "t": 20024,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "edit",
+    "t": 20291,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "edit",
+    "t": 20563,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "edit",
+    "t": 20842,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "edit",
+    "t": 21103,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "edit",
+    "t": 21151,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "edit",
+    "t": 22424,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "usage_update"
+    }
+  },
+  {
+    "case": "edit",
+    "t": 22430,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "usage_update"
+    }
+  },
+  {
+    "case": "edit",
+    "t": 22437,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "tool_call",
+      "title": "Bash: rm -rf '~\\AppData\\Local\\Temp\\zcode-modes-l0BMj7\\proj\\m-edit-rm'",
+      "rawInput": {
+        "command": "rm -rf '~\\AppData\\Local\\Temp\\zcode-modes-l0BMj7\\proj\\m-edit-rm'",
+        "description": "Delete the m-edit-rm temp directory"
+      },
+      "status": "pending"
+    }
+  },
+  {
+    "case": "edit",
+    "t": 22443,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "tool_call",
+      "title": "工具权限 (Bash)",
+      "rawInput": {
+        "command": "rm -rf '~\\AppData\\Local\\Temp\\zcode-modes-l0BMj7\\proj\\m-edit-rm'",
+        "description": "Delete the m-edit-rm temp directory"
+      },
+      "status": "pending"
+    }
+  },
+  {
+    "case": "edit",
+    "t": 22445,
+    "kind": "permission",
+    "data": {
+      "decision": "deny",
+      "title": "Bash: rm -rf '~\\AppData\\Local\\Temp\\zcode-modes-l0BMj7\\proj\\m-edit-rm'",
+      "rawInput": {
+        "command": "rm -rf '~\\AppData\\Local\\Temp\\zcode-modes-l0BMj7\\proj\\m-edit-rm'",
+        "description": "Delete the m-edit-rm temp directory"
+      },
+      "options": [
+        {
+          "optionId": "allow_once",
+          "kind": "allow_once"
+        },
+        {
+          "optionId": "allow_project",
+          "kind": "allow_always"
+        },
+        {
+          "optionId": "deny",
+          "kind": "reject_once"
+        }
+      ]
+    }
+  },
+  {
+    "case": "edit",
+    "t": 22481,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "tool_call_update",
+      "status": "failed"
+    }
+  },
+  {
+    "case": "edit",
+    "t": 24085,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "edit",
+    "t": 24447,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "edit",
+    "t": 24485,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "edit",
+    "t": 24487,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_message_chunk",
+      "text": "The"
+    }
+  },
+  {
+    "case": "edit",
+    "t": 24752,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_message_chunk",
+      "text": " command was **rejected by the permission system** again — so `m-edit-rm`"
+    }
+  },
+  {
+    "case": "edit",
+    "t": 25010,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_message_chunk",
+      "text": " was **not** deleted.\n\nSame as the previous `rm -rf` attempt: the"
+    }
+  },
+  {
+    "case": "edit",
+    "t": 25265,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_message_chunk",
+      "text": " `rm` call is being declined before execution, and I won't route around the"
+    }
+  },
+  {
+    "case": "edit",
+    "t": 25532,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_message_chunk",
+      "text": " block with a different deletion method since the guard looks intentional. If you want the directory"
+    }
+  },
+  {
+    "case": "edit",
+    "t": 25835,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_message_chunk",
+      "text": " gone, allow the `rm`"
+    }
+  },
+  {
+    "case": "edit",
+    "t": 26091,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_message_chunk",
+      "text": " command in the permission prompt or delete `~\\AppData\\Local\\Temp\\"
+    }
+  },
+  {
+    "case": "edit",
+    "t": 26418,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_message_chunk",
+      "text": "zcode-modes-l0BMj7\\proj\\m-edit"
+    }
+  },
+  {
+    "case": "edit",
+    "t": 26684,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_message_chunk",
+      "text": "-rm` manually.\n\nSo I can't reply DONE — the deletion did"
+    }
+  },
+  {
+    "case": "edit",
+    "t": 26759,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_message_chunk",
+      "text": " not happen."
+    }
+  },
+  {
+    "case": "edit",
+    "t": 26763,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "usage_update"
+    }
+  },
+  {
+    "case": "edit",
+    "t": 26770,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "usage_update"
+    }
+  },
+  {
+    "case": "edit",
+    "t": 26932,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "usage_update"
+    }
+  },
+  {
+    "case": "edit",
+    "t": 26934,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "tool_call_update",
+      "status": "failed"
+    }
+  },
+  {
+    "case": "edit",
+    "t": 27021,
+    "kind": "after_rm",
+    "data": {
+      "stop": "end_turn",
+      "dirStillExists": true
+    }
+  },
+  {
+    "case": "edit",
+    "t": 27136,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "config_option_update"
+    }
+  },
+  {
+    "case": "edit",
+    "t": 28679,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "edit",
+    "t": 28885,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "usage_update"
+    }
+  },
+  {
+    "case": "edit",
+    "t": 28888,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "usage_update"
+    }
+  },
+  {
+    "case": "edit",
+    "t": 28900,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "tool_call",
+      "title": "Write: ~\\AppData\\Local\\Temp\\zcode-modes-l0BMj7\\zc-out-",
+      "rawInput": {
+        "file_path": "~\\AppData\\Local\\Temp\\zcode-modes-l0BMj7\\zc-out-edit.txt",
+        "content": "outside"
+      },
+      "status": "pending"
+    }
+  },
+  {
+    "case": "edit",
+    "t": 28903,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "tool_call_update",
+      "status": "in_progress"
+    }
+  },
+  {
+    "case": "edit",
+    "t": 28913,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "tool_call_update",
+      "status": "completed"
+    }
+  },
+  {
+    "case": "edit",
+    "t": 28917,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "tool_call_update",
+      "status": "completed"
+    }
+  },
+  {
+    "case": "edit",
+    "t": 29961,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "edit",
+    "t": 30703,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "edit",
+    "t": 31114,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "edit",
+    "t": 31211,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "edit",
+    "t": 31213,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_message_chunk",
+      "text": "DONE"
+    }
+  },
+  {
+    "case": "edit",
+    "t": 31539,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_message_chunk",
+      "text": "\n\nCreated `~\\AppData"
+    }
+  },
+  {
+    "case": "edit",
+    "t": 32048,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_message_chunk",
+      "text": "\\Local\\Temp\\zcode-modes-l0BMj7\\"
+    }
+  },
+  {
+    "case": "edit",
+    "t": 32051,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_message_chunk",
+      "text": "zc-out-edit.txt` containing exactly `outside`."
+    }
+  },
+  {
+    "case": "edit",
+    "t": 32055,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "usage_update"
+    }
+  },
+  {
+    "case": "edit",
+    "t": 32062,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "usage_update"
+    }
+  },
+  {
+    "case": "edit",
+    "t": 32237,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "usage_update"
+    }
+  },
+  {
+    "case": "edit",
+    "t": 32329,
+    "kind": "after_outside_write",
+    "data": {
+      "stop": "end_turn",
+      "fileExists": true
+    }
+  },
+  {
+    "case": "build",
+    "t": 180,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "config_option_update"
+    }
+  },
+  {
+    "case": "build",
+    "t": 270,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "current_mode_update",
+      "currentModeId": "build"
+    }
+  },
+  {
+    "case": "build",
+    "t": 301,
+    "kind": "mode_confirmation",
+    "data": {
+      "requested": "build",
+      "confirmed": "build"
+    }
+  },
+  {
+    "case": "build",
+    "t": 419,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "config_option_update"
+    }
+  },
+  {
+    "case": "build",
+    "t": 1970,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "build",
+    "t": 8657,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "usage_update"
+    }
+  },
+  {
+    "case": "build",
+    "t": 8661,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "usage_update"
+    }
+  },
+  {
+    "case": "build",
+    "t": 8668,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "tool_call",
+      "title": "Bash: rm -rf '~\\AppData\\Local\\Temp\\zcode-modes-l0BMj7\\proj\\m-build-rm'",
+      "rawInput": {
+        "command": "rm -rf '~\\AppData\\Local\\Temp\\zcode-modes-l0BMj7\\proj\\m-build-rm'",
+        "description": "Delete the m-build-rm temp directory"
+      },
+      "status": "pending"
+    }
+  },
+  {
+    "case": "build",
+    "t": 8674,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "tool_call",
+      "title": "工具权限 (Bash)",
+      "rawInput": {
+        "command": "rm -rf '~\\AppData\\Local\\Temp\\zcode-modes-l0BMj7\\proj\\m-build-rm'",
+        "description": "Delete the m-build-rm temp directory"
+      },
+      "status": "pending"
+    }
+  },
+  {
+    "case": "build",
+    "t": 8676,
+    "kind": "permission",
+    "data": {
+      "decision": "deny",
+      "title": "Bash: rm -rf '~\\AppData\\Local\\Temp\\zcode-modes-l0BMj7\\proj\\m-build-rm'",
+      "rawInput": {
+        "command": "rm -rf '~\\AppData\\Local\\Temp\\zcode-modes-l0BMj7\\proj\\m-build-rm'",
+        "description": "Delete the m-build-rm temp directory"
+      },
+      "options": [
+        {
+          "optionId": "allow_once",
+          "kind": "allow_once"
+        },
+        {
+          "optionId": "allow_project",
+          "kind": "allow_always"
+        },
+        {
+          "optionId": "deny",
+          "kind": "reject_once"
+        }
+      ]
+    }
+  },
+  {
+    "case": "build",
+    "t": 8682,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "tool_call_update",
+      "status": "failed"
+    }
+  },
+  {
+    "case": "build",
+    "t": 10081,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_message_chunk",
+      "text": "The"
+    }
+  },
+  {
+    "case": "build",
+    "t": 10546,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_message_chunk",
+      "text": " command was **rejected by the permission system** — `m-build-rm"
+    }
+  },
+  {
+    "case": "build",
+    "t": 10859,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_message_chunk",
+      "text": "` was **not** deleted.\n\nThat's three"
+    }
+  },
+  {
+    "case": "build",
+    "t": 11126,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_message_chunk",
+      "text": " `rm -rf` attempts now, all declined by the guard before"
+    }
+  },
+  {
+    "case": "build",
+    "t": 11501,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_message_chunk",
+      "text": " execution. I'm continuing"
+    }
+  },
+  {
+    "case": "build",
+    "t": 11752,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_message_chunk",
+      "text": " not to work around it with a different deletion method. If the goal is actually to remove these directories,"
+    }
+  },
+  {
+    "case": "build",
+    "t": 12003,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_message_chunk",
+      "text": " the `rm` command needs to"
+    }
+  },
+  {
+    "case": "build",
+    "t": 12297,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_message_chunk",
+      "text": " be allowed in the permission prompt (or deleted manually); otherwise, if you're testing the"
+    }
+  },
+  {
+    "case": "build",
+    "t": 12549,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_message_chunk",
+      "text": " guard itself, this attempt failed as blocked too.\n\nI can't reply"
+    }
+  },
+  {
+    "case": "build",
+    "t": 12726,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_message_chunk",
+      "text": " DONE — the deletion did not happen."
+    }
+  },
+  {
+    "case": "build",
+    "t": 12731,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "usage_update"
+    }
+  },
+  {
+    "case": "build",
+    "t": 12738,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "usage_update"
+    }
+  },
+  {
+    "case": "build",
+    "t": 12864,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "usage_update"
+    }
+  },
+  {
+    "case": "build",
+    "t": 12867,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "tool_call_update",
+      "status": "failed"
+    }
+  },
+  {
+    "case": "build",
+    "t": 12980,
+    "kind": "after_rm",
+    "data": {
+      "stop": "end_turn",
+      "dirStillExists": true
+    }
+  },
+  {
+    "case": "build",
+    "t": 13076,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "config_option_update"
+    }
+  },
+  {
+    "case": "build",
+    "t": 14618,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "build",
+    "t": 56953,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "usage_update"
+    }
+  },
+  {
+    "case": "build",
+    "t": 56960,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "usage_update"
+    }
+  },
+  {
+    "case": "build",
+    "t": 56966,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "tool_call",
+      "title": "Write: ~\\AppData\\Local\\Temp\\zcode-modes-l0BMj7\\zc-out-",
+      "rawInput": {
+        "file_path": "~\\AppData\\Local\\Temp\\zcode-modes-l0BMj7\\zc-out-build.txt",
+        "content": "outside"
+      },
+      "status": "pending"
+    }
+  },
+  {
+    "case": "build",
+    "t": 56971,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "tool_call",
+      "title": "工具权限 (Write)",
+      "rawInput": {
+        "file_path": "~\\AppData\\Local\\Temp\\zcode-modes-l0BMj7\\zc-out-build.txt",
+        "content": "outside"
+      },
+      "status": "pending"
+    }
+  },
+  {
+    "case": "build",
+    "t": 56974,
+    "kind": "permission",
+    "data": {
+      "decision": "deny",
+      "title": "Write: ~\\AppData\\Local\\Temp\\zcode-modes-l0BMj7\\zc-out-build.txt",
+      "rawInput": {
+        "file_path": "~\\AppData\\Local\\Temp\\zcode-modes-l0BMj7\\zc-out-build.txt",
+        "content": "outside"
+      },
+      "options": [
+        {
+          "optionId": "allow_once",
+          "kind": "allow_once"
+        },
+        {
+          "optionId": "allow_project",
+          "kind": "allow_always"
+        },
+        {
+          "optionId": "deny",
+          "kind": "reject_once"
+        }
+      ]
+    }
+  },
+  {
+    "case": "build",
+    "t": 56979,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "tool_call_update",
+      "status": "failed"
+    }
+  },
+  {
+    "case": "build",
+    "t": 66725,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "build",
+    "t": 67061,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "build",
+    "t": 67595,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "build",
+    "t": 68106,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "build",
+    "t": 68379,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "build",
+    "t": 68643,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "build",
+    "t": 68898,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "build",
+    "t": 69226,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "build",
+    "t": 69632,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "build",
+    "t": 70519,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "build",
+    "t": 70772,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "build",
+    "t": 71104,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "build",
+    "t": 71386,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "build",
+    "t": 71390,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_message_chunk",
+      "text": "The"
+    }
+  },
+  {
+    "case": "build",
+    "t": 71649,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_message_chunk",
+      "text": " Write was **rejected by the permission system** — so `zc-out-build.txt` was **not"
+    }
+  },
+  {
+    "case": "build",
+    "t": 72018,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_message_chunk",
+      "text": "** created.\n\nNotably, the two earlier writes to outside-work"
+    }
+  },
+  {
+    "case": "build",
+    "t": 72337,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_message_chunk",
+      "text": "space paths (`zc-out-guard"
+    }
+  },
+  {
+    "case": "build",
+    "t": 72588,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_message_chunk",
+      "text": "ed.txt`, `zc-out-edit.txt`) went through, and this"
+    }
+  },
+  {
+    "case": "build",
+    "t": 72853,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_message_chunk",
+      "text": " identical one was declined — so the guard behavior has changed between then and now. Whatever"
+    }
+  },
+  {
+    "case": "build",
+    "t": 73247,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_message_chunk",
+      "text": " the cause, the"
+    }
+  },
+  {
+    "case": "build",
+    "t": 73823,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_message_chunk",
+      "text": " denial means I shouldn't retry it or create the file through a different route (e"
+    }
+  },
+  {
+    "case": "build",
+    "t": 74092,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_message_chunk",
+      "text": ".g., shell redirection), so I haven't.\n\nI can't"
+    }
+  },
+  {
+    "case": "build",
+    "t": 74369,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_message_chunk",
+      "text": " reply DONE — the file write"
+    }
+  },
+  {
+    "case": "build",
+    "t": 74607,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "agent_message_chunk",
+      "text": " did not happen."
+    }
+  },
+  {
+    "case": "build",
+    "t": 74611,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "usage_update"
+    }
+  },
+  {
+    "case": "build",
+    "t": 74619,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "usage_update"
+    }
+  },
+  {
+    "case": "build",
+    "t": 74788,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "usage_update"
+    }
+  },
+  {
+    "case": "build",
+    "t": 74791,
+    "kind": "update",
+    "data": {
+      "sessionUpdate": "tool_call_update",
+      "status": "failed"
+    }
+  },
+  {
+    "case": "build",
+    "t": 74897,
+    "kind": "after_outside_write",
+    "data": {
+      "stop": "end_turn",
+      "fileExists": false
+    }
+  },
+  {
+    "case": "build",
+    "t": 74900,
+    "kind": "stderr_tail",
+    "data": {
+      "lines": [
+        "[zcode-acp]   ⚠ unhandled server→client request: interaction/requestOfficialMcpAuthHeaders (id=server-2)",
+        "[zcode-acp]   ⚠ unhandled server→client request: session/readReplyLanguage (id=server-4)",
+        "[zcode-acp]   ⚠ unhandled server→client request: interaction/requestOfficialMcpAuthHeaders (id=server-5)",
+        "[zcode-acp]   ⚠ unhandled server→client request: interaction/requestOfficialMcpAuthHeaders (id=server-6)",
+        "[zcode-acp]   ⚠ unhandled server→client request: interaction/requestOfficialMcpAuthHeaders (id=server-7)",
+        "[zcode-acp]   ⚠ unhandled server→client request: session/readReplyLanguage (id=server-9)",
+        "[zcode-acp] session/messages carries the 3.18+ wire shape (info.messageId, no info.id) — normalized onto info.id for all id-based consumers",
+        "[zcode-acp]   ⚠ unhandled server→client request: session/readReplyLanguage (id=server-10)",
+        "[zcode-acp]   ⚠ unhandled server→client request: session/readReplyLanguage (id=server-11)",
+        "[zcode-acp]   ⚠ unhandled server→client request: session/readReplyLanguage (id=server-12)",
+        "[zcode-acp]   ⚠ unhandled server→client request: session/readReplyLanguage (id=server-14)",
+        "[zcode-acp]   ⚠ unhandled server→client request: session/readReplyLanguage (id=server-15)",
+        "[zcode-acp]   ⚠ unhandled server→client request: session/readReplyLanguage (id=server-16)",
+        "[zcode-acp]   ⚠ unhandled server→client request: session/readReplyLanguage (id=server-17)",
+        "[zcode-acp]   ⚠ unhandled server→client request: session/readReplyLanguage (id=server-19)",
+        "[zcode-acp]   ⚠ unhandled server→client request: session/readReplyLanguage (id=server-20)",
+        "[zcode-acp]   ⚠ unhandled server→client request: session/readReplyLanguage (id=server-22)"
+      ]
+    }
+  }
+]

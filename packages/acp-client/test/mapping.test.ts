@@ -217,3 +217,77 @@ describe("ToolCallTracker", () => {
     expect(t.merge("s1", { toolCallId: "c1" }).title).toBeUndefined();
   });
 });
+
+describe("ZCode permission requests (ADR 0108)", () => {
+  // The shape zcode-acp 0.88.0 sends on `session/request_permission`: a tool call named
+  // "<tool>: <detail>" with the full input as rawInput, the paths it touches, and options
+  // in ACP kinds (observed in the qualification, openspec/changes/support-zcode-acp).
+  const ZCODE_OPTIONS: PermissionOption[] = [
+    { optionId: "allow_once", name: "Allow", kind: "allow_once" },
+    { optionId: "reject_once", name: "Deny", kind: "reject_once" },
+  ];
+
+  function zcodeCall(): Parameters<typeof toToolCallInfo>[0] {
+    return {
+      toolCallId: "call-1",
+      kind: "other",
+      title: "execute_command: cmd /c del /f /s /q scratch",
+      rawInput: { command: "cmd /c del /f /s /q scratch", target: "scratch" },
+      locations: [{ path: "~/proj/scratch" }],
+    };
+  }
+
+  it("gives the pipeline the action and its target", () => {
+    expect(toToolCallInfo(zcodeCall())).toEqual({
+      kind: "other",
+      title: "execute_command: cmd /c del /f /s /q scratch",
+      command: "cmd /c del /f /s /q scratch",
+      paths: ["~/proj/scratch"],
+      rawInput: { command: "cmd /c del /f /s /q scratch", target: "scratch" },
+    });
+  });
+
+  it("an allow selects only the one-time option", () => {
+    expect(toAcpOutcome({ kind: "allow" }, ZCODE_OPTIONS)).toEqual({
+      outcome: "selected",
+      optionId: "allow_once",
+    });
+  });
+
+  it("a deny cannot grant permission", () => {
+    expect(toAcpOutcome({ kind: "deny" }, ZCODE_OPTIONS)).toEqual({
+      outcome: "selected",
+      optionId: "reject_once",
+    });
+    expect(toAcpOutcome({ kind: "deny" }, ZCODE_OPTIONS)).not.toHaveProperty(
+      "optionId",
+      "allow_once",
+    );
+  });
+
+  it("a cancel cannot grant permission", () => {
+    expect(toAcpOutcome({ kind: "cancelled" }, ZCODE_OPTIONS)).toEqual({ outcome: "cancelled" });
+  });
+
+  it("allow stays one-time when the agent also offers an always tier", () => {
+    const withAlways: PermissionOption[] = [
+      { optionId: "allowSession", name: "Always allow in this session", kind: "allow_always" },
+      ...ZCODE_OPTIONS,
+    ];
+    expect(toAcpOutcome({ kind: "allow" }, withAlways)).toEqual({
+      outcome: "selected",
+      optionId: "allow_once",
+    });
+  });
+
+  it("a permission request that repeats an earlier tool call keeps its command", () => {
+    const t = new ToolCallTracker();
+    t.merge("s1", zcodeCall());
+    const info = toToolCallInfo(t.merge("s1", { toolCallId: "call-1" }));
+    expect(info).toMatchObject({
+      title: "execute_command: cmd /c del /f /s /q scratch",
+      command: "cmd /c del /f /s /q scratch",
+      paths: ["~/proj/scratch"],
+    });
+  });
+});

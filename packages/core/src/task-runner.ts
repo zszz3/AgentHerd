@@ -4,6 +4,7 @@ import { randomUUID } from "node:crypto";
 import { existsSync } from "node:fs";
 import { type AgentConnection, type StdioMcpServer, startAgent } from "@agentherd/acp-client";
 import type { AgentProfile, MessageRef } from "@agentherd/protocol";
+import { ZCODE_PROFILE } from "@agentherd/protocol";
 import type { OutboundStep } from "@agentherd/rules";
 import {
   type Following,
@@ -64,6 +65,9 @@ export class TaskRunner {
   private readonly ops: TaskOps;
   /** Turns running now, so stopping can wait for their reports. */
   private readonly turns = new Set<Promise<unknown>>();
+  /** Ends started by a notification callback, whose tail must land before a stop closes the
+   * store: the callback cannot await it, so stopping does. */
+  private readonly ending = new Set<Promise<void>>();
 
   constructor(ctx: HerdContext, relay: Relay, ops: TaskOps) {
     this.ctx = ctx;
@@ -140,6 +144,15 @@ export class TaskRunner {
       f.connection = connection;
       f.agentSessionId = await connection.newSession(f.cwd, mcpServers(ctx, f));
       if (own && model !== undefined) await connection.setModel(f.agentSessionId, model);
+      // A profile with a required permission mode (ZCode, ADR 0108) runs nothing before the
+      // running session confirms the mode; the catch below closes the connection otherwise.
+      if (profile.mode !== undefined) {
+        await connection.prepareSession(
+          f.agentSessionId,
+          profile.mode,
+          ctx.opts.modeConfirmTimeoutMs,
+        );
+      }
     } catch (error) {
       const message = (error as Error).message;
       await f.connection?.close().catch(() => {});
@@ -436,12 +449,15 @@ export class TaskRunner {
     const now = ctx.clock.now().toISOString();
     for (const saved of ctx.store.tasks(limit).reverse()) {
       if (ctx.following.has(saved.task.id)) continue;
+      // A saved task stays recognizable when its agent is gone (ZCode, ADR 0108): the
+      // placeholder keeps the account choice, so recovery never substitutes another agent.
       const profile = ctx.opts.profiles.find((p) => p.id === saved.profileId) ?? {
         id: saved.profileId,
         name: saved.task.agent,
         command: [],
         env: {},
         exporter: null,
+        ...(saved.profileId === ZCODE_PROFILE ? { ownModels: true } : {}),
       };
       const f: Following = {
         task: saved.task,
@@ -480,7 +496,12 @@ export class TaskRunner {
     return crashed;
   }
 
-  /** Agents to start an ended task again with: its own, then Pi, then the rest. */
+  /**
+   * Agents to start an ended task again with: its own, then Pi, then the rest. A task on the
+   * owner's own account stays on that agent (ZCode, ADR 0108): recovery retries it, and when
+   * it cannot start the owner chooses what happens next. ZCode is never an automatic
+   * substitute for another task.
+   */
   private reopenCandidates(f: Following): AgentProfile[] {
     const profiles = this.ctx.opts.profiles;
     const out: AgentProfile[] = [];
@@ -488,8 +509,18 @@ export class TaskRunner {
       if (p !== undefined && !out.some((o) => o.id === p.id)) out.push(p);
     };
     add(profiles.find((p) => p.id === f.profile.id));
+    if (f.profile.mode !== undefined || f.profile.id === ZCODE_PROFILE) {
+      // The saved agent is gone (its executable was removed): try the saved profile's own
+      // entry, which fails with a clear reason, and stop there — recovery must not switch
+      // the owner's account without an explicit choice.
+      if (!out.some((p) => p.id === f.profile.id)) add(f.profile);
+      return out;
+    }
     add(profiles.find((p) => p.id === "pi"));
-    for (const p of profiles) add(p);
+    for (const p of profiles) {
+      if (p.mode !== undefined || p.id === ZCODE_PROFILE) continue;
+      add(p);
+    }
     return out;
   }
 
@@ -517,6 +548,7 @@ export class TaskRunner {
     }
     for (const base of this.reopenCandidates(f)) {
       try {
+        if (base.command.length === 0) throw new Error(`${base.name} is not installed`);
         const own = base.ownModels === true;
         const model = own ? f.task.model : await this.configuredModel(base.id, f.task.model);
         let profile = base;
@@ -532,11 +564,27 @@ export class TaskRunner {
           f.agentSessionId !== undefined &&
           base.id === f.profile.id
         ) {
+          let loadedOk = false;
           try {
             await connection.loadSession(f.agentSessionId, f.cwd, mcpServers(ctx, f));
+            loadedOk = true;
+            // A loaded session runs only after its mode is verified (ADR 0108). When that
+            // fails, this connection is closed and the attempt fails: no work goes out on it,
+            // and a fresh session on the same account is not a substitute for the saved one.
+            if (profile.mode !== undefined) {
+              await connection.prepareSession(
+                f.agentSessionId,
+                profile.mode,
+                ctx.opts.modeConfirmTimeoutMs,
+              );
+            }
             sessionId = f.agentSessionId;
           } catch (error) {
             ctx.store.audit("task.load-failed", { taskId, message: (error as Error).message });
+            if (loadedOk) {
+              await connection.close().catch(() => {});
+              throw error;
+            }
           }
         }
         const loaded = sessionId !== undefined;
@@ -544,6 +592,13 @@ export class TaskRunner {
           try {
             sessionId = await connection.newSession(f.cwd, mcpServers(ctx, f));
             if (own && model !== undefined) await connection.setModel(sessionId, model);
+            if (profile.mode !== undefined) {
+              await connection.prepareSession(
+                sessionId,
+                profile.mode,
+                ctx.opts.modeConfirmTimeoutMs,
+              );
+            }
           } catch (error) {
             await connection.close().catch(() => {});
             throw error;
@@ -612,6 +667,17 @@ export class TaskRunner {
     if (f.busy && f.connection !== undefined && f.agentSessionId !== undefined) {
       await f.connection.cancel(f.agentSessionId);
     }
+  }
+
+  /**
+   * Ends a task from a notification callback (mode drift, agent exit, idle): the callback cannot
+   * await the end, so the runner tracks it and a stop waits for its tail in {@link settle}.
+   */
+  private endLater(taskId: string, why: string): void {
+    const ending = this.ops.endTask(taskId, why).finally(() => {
+      this.ending.delete(ending);
+    });
+    this.ending.add(ending);
   }
 
   /** Closes the agent of a task. The task stays on the board. */
@@ -769,6 +835,22 @@ export class TaskRunner {
           ctx.watchdog.toolCall(sessionId, key, u.toolCall.command ?? u.toolCall.title);
         } else {
           ctx.watchdog.event(sessionId);
+          if (
+            u.type === "mode" &&
+            f.profile.mode !== undefined &&
+            u.modeId !== undefined &&
+            u.modeId !== "" &&
+            u.modeId !== f.profile.mode &&
+            u.modeId !== "plan"
+          ) {
+            ctx.store.audit("session.mode-drift", {
+              sessionId,
+              expected: f.profile.mode,
+              actual: u.modeId,
+            });
+            this.endLater(sessionId, `session mode changed to ${u.modeId}`);
+            return;
+          }
         }
         const state = ctx.registry.get(sessionId)?.state;
         if (state !== "waiting-approval" && f.busy) ctx.registry.set(sessionId, "working");
@@ -779,7 +861,7 @@ export class TaskRunner {
           ctx.watchdog.exited(sessionId, ctx.texts.exited(String(e.code ?? e.signal)));
         }
         if (!f.ended) ctx.registry.set(sessionId, e.code === 0 ? "ended" : "error");
-        if (!f.busy && !f.ended) void this.ops.endTask(sessionId, ctx.texts.agentExited);
+        if (!f.busy && !f.ended) this.endLater(sessionId, ctx.texts.agentExited);
       }),
     ];
   }
@@ -790,10 +872,10 @@ export class TaskRunner {
    * closes, or the outbox sends it a second time after the next start.
    */
   async settle(ms: number): Promise<void> {
-    if (this.turns.size === 0) return;
+    if (this.turns.size === 0 && this.ending.size === 0) return;
     let timer: ReturnType<typeof setTimeout> | undefined;
     await Promise.race([
-      Promise.allSettled([...this.turns]),
+      Promise.allSettled([...this.turns, ...this.ending]),
       new Promise((resolve) => {
         timer = setTimeout(resolve, ms);
       }),
@@ -839,7 +921,7 @@ export class TaskRunner {
     }
     const minutes = this.ctx.opts.sessionIdleMinutes ?? SESSION_IDLE_MINUTES;
     f.idleTimer = this.ctx.clock.after(minutes * 60_000, () => {
-      void this.ops.endTask(f.task.id, `no prompt for ${minutes} minutes`);
+      this.endLater(f.task.id, `no prompt for ${minutes} minutes`);
     });
   }
 

@@ -1,0 +1,126 @@
+[
+  {
+    "case": "",
+    "t": 1795769212738,
+    "kind": "environment",
+    "data": {
+      "os": "win32 10.0.26200",
+      "node": "v24.22.2",
+      "bridge": "~\\AppData\\Roaming\\fnm\\aliases\\default\\zcode-acp.cmd",
+      "tempRoot": "~\\AppData\\Local\\Temp\\zcode-plan-probe-VTOarH",
+      "proj": "~\\AppData\\Local\\Temp\\zcode-plan-probe-VTOarH\\proj"
+    }
+  },
+  {
+    "case": "plan",
+    "t": 671,
+    "kind": "initialize",
+    "data": {
+      "agentInfo": {
+        "name": "zcode-acp-server",
+        "title": "ZCode",
+        "version": "0.95.1"
+      }
+    }
+  },
+  {
+    "case": "plan",
+    "t": 5790,
+    "kind": "update",
+    "data": {
+      "sessionId": "c986c86c-cd88-442b-9572-7c506511924f",
+      "sessionUpdate": "current_mode_update",
+      "currentModeId": "plan"
+    }
+  },
+  {
+    "case": "plan",
+    "t": 5791,
+    "kind": "mode_confirm_plan",
+    "data": {
+      "requested": "plan",
+      "confirmed": "plan",
+      "rpcSettingsMode": "yolo",
+      "rpcBackendSid": "sess_be687229-b856-4d11-aae3-cb0dad4724ee"
+    }
+  },
+  {
+    "case": "plan",
+    "t": 13187,
+    "kind": "update",
+    "data": {
+      "sessionId": "c986c86c-cd88-442b-9572-7c506511924f",
+      "sessionUpdate": "tool_call",
+      "title": "Bash: echo plan-probe-123",
+      "rawInput": {
+        "command": "echo plan-probe-123",
+        "description": "Print plan-probe-123 to output"
+      }
+    }
+  },
+  {
+    "case": "plan",
+    "t": 31465,
+    "kind": "plan_echo",
+    "data": {
+      "stopReason": "end_turn",
+      "permissionRequests": 0,
+      "lastPermTitle": null
+    }
+  },
+  {
+    "case": "plan",
+    "t": 44758,
+    "kind": "plan_write_in_workspace",
+    "data": {
+      "stopReason": "end_turn",
+      "permissionRequests": 0,
+      "lastPermTitle": null,
+      "fileAppeared": false
+    }
+  },
+  {
+    "case": "plan",
+    "t": 46632,
+    "kind": "update",
+    "data": {
+      "sessionId": "c986c86c-cd88-442b-9572-7c506511924f",
+      "sessionUpdate": "tool_call",
+      "title": "Read: ~\\AppData\\Local\\Temp\\zcode-plan-probe-VTOarH\\pr",
+      "rawInput": {
+        "file_path": "~\\AppData\\Local\\Temp\\zcode-plan-probe-VTOarH\\proj\\plan-readme.txt"
+      }
+    }
+  },
+  {
+    "case": "plan",
+    "t": 48565,
+    "kind": "plan_read",
+    "data": {
+      "stopReason": "end_turn",
+      "permissionRequests": 0,
+      "lastPermTitle": null
+    }
+  },
+  {
+    "case": "plan",
+    "t": 52651,
+    "kind": "plan_delete",
+    "data": {
+      "stopReason": "end_turn",
+      "permissionRequests": 0,
+      "lastPermTitle": null,
+      "victimStillExists": true
+    }
+  },
+  {
+    "case": "plan",
+    "t": 52651,
+    "kind": "stderr_tail",
+    "data": {
+      "lines": [
+        "[zcode-acp] session/messages carries the 3.18+ wire shape (info.messageId, no info.id) — normalized onto info.id for all id-based consumers"
+      ]
+    }
+  }
+]

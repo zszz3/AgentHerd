@@ -5,7 +5,7 @@
 English · [简体中文](README.zh-CN.md)
 
 [![macOS | Windows](https://img.shields.io/badge/platform-macOS%20%7C%20Windows-111)](docs/spec/02-architecture.md) [![Feishu / Lark](https://img.shields.io/badge/chat-Feishu%20%2F%20Lark-3370ff)](docs/spec/05-channels.md) [![ACP](https://img.shields.io/badge/protocol-ACP-6b5bd6)](https://agentclientprotocol.com) [![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)<br>
-[![agent: Pi](https://img.shields.io/badge/agent-Pi-444)](https://github.com/earendil-works/pi) [![agent: Codex](https://img.shields.io/badge/agent-Codex-444)](https://github.com/openai/codex) [![agent: Claude Code](https://img.shields.io/badge/agent-Claude%20Code-444)](https://github.com/anthropics/claude-code) [![agent: Antigravity](https://img.shields.io/badge/agent-Antigravity-444)](https://antigravity.google)
+[![agent: Pi](https://img.shields.io/badge/agent-Pi-444)](https://github.com/earendil-works/pi) [![agent: Codex](https://img.shields.io/badge/agent-Codex-444)](https://github.com/openai/codex) [![agent: Claude Code](https://img.shields.io/badge/agent-Claude%20Code-444)](https://github.com/anthropics/claude-code) [![agent: Antigravity](https://img.shields.io/badge/agent-Antigravity-444)](https://antigravity.google) [![agent: ZCode](https://img.shields.io/badge/agent-ZCode-444)](https://github.com/william0wang/zcode-acp)
 
 [An example](#an-example) · [What it does](#what-it-does) · [Agents](#agents) · [Get started](#get-started) · [Docs](#docs)
 
@@ -13,7 +13,7 @@ English · [简体中文](README.zh-CN.md)
 
 > **Status:** in active development. There is no release yet; run it from source.
 
-AgentHerd is a desktop app that lets agents such as Pi, Codex, Claude Code and Antigravity do work on your computer.
+AgentHerd is a desktop app that lets agents such as Pi, Codex, Claude Code, Antigravity and ZCode do work on your computer.
 
 Click the pet in the corner of your screen to tell the Herder what you want. The Herder starts tasks, follows them and tells you the result in a sentence or two. Before a push, a message to someone else or a mass delete, it asks you.
 
@@ -62,6 +62,7 @@ Click the pet in the corner of your screen to tell the Herder what you want. The
 | Claude Code | Your own `claude`, or a download on the **Agent** page | Your own Anthropic-style model service |
 | Antigravity | Your own `agy`, only when you ask for it | The models of your Google account |
 | DeepSeek Harness | Your own DSH desktop app, only when you ask for it | The models you set up in DSH |
+| ZCode | Your own `zcode-acp` bridge, only when you ask for it | The models of your ZCode account |
 
 They all run through the [Agent Client Protocol](https://agentclientprotocol.com). If a task's first turn breaks, the Herder switches to the next model.
 

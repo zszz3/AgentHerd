@@ -166,6 +166,26 @@ turns:
     ]);
   });
 
+  it("parses set_mode extensions and delays (ADR 0108)", () => {
+    const s = parseScript(
+      "set_mode: mismatch_response\nset_mode_delay_ms: 150\nset_mode_notify_delay_ms: 200\nturns: []\n",
+    );
+    expect(s.setMode).toBe("mismatch_response");
+    expect(s.setModeDelayMs).toBe(150);
+    expect(s.setModeNotifyDelayMs).toBe(200);
+    expect(parseScript("set_mode: hang\nturns: []\n").setMode).toBe("hang");
+    expect(parseScript("turns:\n  - - mode_update: yolo\n").turns[0]).toEqual([
+      { type: "mode_update", modeId: "yolo" },
+    ]);
+    expect(() => parseScript("set_mode: bad\nturns: []\n")).toThrow(/set_mode: expected/);
+    expect(() => parseScript("set_mode_delay_ms: -1\nturns: []\n")).toThrow(
+      /set_mode_delay_ms: expected ms >= 0/,
+    );
+    expect(() => parseScript("set_mode_notify_delay_ms: -1\nturns: []\n")).toThrow(
+      /set_mode_notify_delay_ms: expected ms >= 0/,
+    );
+  });
+
   it("parses multiple turns", () => {
     const script = parseScript(`
 name: demo

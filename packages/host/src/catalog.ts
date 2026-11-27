@@ -48,6 +48,11 @@ export interface AgentDef {
   homeBins?: readonly string[];
   /** Signs in and picks models itself (AgentProfile.ownModels, ADR 0104). */
   ownModels?: boolean;
+  /**
+   * The permission mode AgentHerd establishes and verifies before the first prompt of a new or
+   * restored session (ZCode, ADR 0108). The task does not start without that confirmation.
+   */
+  mode?: string;
 }
 
 /**
@@ -284,6 +289,23 @@ export const AGENTS: AgentDef[] = [
     env: { DSH_PERMISSION_MODE: "read-only" },
     ownModels: true,
   },
+  {
+    id: "zcode",
+    name: "ZCode",
+    envVar: "AGENTHERD_ZCODE",
+    // The owner's own zcode-acp bridge (npm zcode-acp-server, ADR 0108): it speaks ACP over
+    // stdio with the explicit `server` argument and drives the owner's own ZCode backend and
+    // account. Not shipped or downloaded. Backend discovery is the bridge's own — an explicit
+    // ZCODE_BIN or ZCODE_NODE passes through (agentEnv), an unset one stays unset. Before the
+    // first prompt AgentHerd verifies the session's `build` mode (AgentProfile.mode): live
+    // qualification (openspec/changes/support-zcode-acp) showed `build` is the mode where
+    // writes and commands ask through ACP, while `guarded`/`edit` run them without asking.
+    systemNames: ["zcode-acp"],
+    acpArgs: ["server"],
+    env: {},
+    ownModels: true,
+    mode: "build",
+  },
 ];
 
 export function agentDef(id: string): AgentDef | undefined {
@@ -312,6 +334,7 @@ export function agentProfile(
     env: { ...(script ? nodeEnv() : {}), ...def.env, ...extraEnv },
     exporter: null,
     ...(def.ownModels === true ? { ownModels: true } : {}),
+    ...(def.mode !== undefined ? { mode: def.mode } : {}),
   };
 }
 

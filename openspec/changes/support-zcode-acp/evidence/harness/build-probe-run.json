@@ -1,0 +1,678 @@
+[
+  {
+    "case": "",
+    "t": 1795762895265,
+    "kind": "environment",
+    "data": {
+      "os": "win32 10.0.26200",
+      "node": "v24.22.2",
+      "bridge": "~\\AppData\\Local\\fnm_multishells\\3780_1795762552355\\zcode-acp.cmd",
+      "tempRoot": "~\\.t3\\userdata\\antigravity-tmp\\ac0a3dfd6ddd\\run-RQbgBw\\zcode-build-probe-Je8w82",
+      "proj": "~\\.t3\\userdata\\antigravity-tmp\\ac0a3dfd6ddd\\run-RQbgBw\\zcode-build-probe-Je8w82\\proj"
+    }
+  },
+  {
+    "case": "1-new-and-probes",
+    "t": 284,
+    "kind": "initialize",
+    "data": {
+      "agentInfo": {
+        "name": "zcode-acp-server",
+        "title": "ZCode",
+        "version": "0.95.1"
+      }
+    }
+  },
+  {
+    "case": "1-new-and-probes",
+    "t": 18483,
+    "kind": "update",
+    "data": {
+      "sessionId": "26b081cd-7136-4984-97d4-4097341a4ee9",
+      "sessionUpdate": "current_mode_update",
+      "currentModeId": "build"
+    }
+  },
+  {
+    "case": "1-new-and-probes",
+    "t": 18483,
+    "kind": "mode_confirm_new",
+    "data": {
+      "requested": "build",
+      "confirmed": "build",
+      "rpcSettingsMode": "build",
+      "rpcBackendSid": "sess_c25fd565-d159-4582-a4f9-3e669809f185"
+    }
+  },
+  {
+    "case": "1-new-and-probes",
+    "t": 82173,
+    "kind": "update",
+    "data": {
+      "sessionId": "26b081cd-7136-4984-97d4-4097341a4ee9",
+      "sessionUpdate": "tool_call",
+      "title": "工具权限 (Bash)",
+      "kind": "other",
+      "rawInput": {
+        "command": "cmd //c \"del /f /s /q sub-cmd\"",
+        "description": "Delete files inside the sub-cmd directory"
+      }
+    }
+  },
+  {
+    "case": "1-new-and-probes",
+    "t": 82176,
+    "kind": "permission",
+    "data": {
+      "sessionId": "26b081cd-7136-4984-97d4-4097341a4ee9",
+      "title": "Bash: cmd //c \"del /f /s /q sub-cmd\"",
+      "rawInput": {
+        "command": "cmd //c \"del /f /s /q sub-cmd\"",
+        "description": "Delete files inside the sub-cmd directory"
+      },
+      "options": [
+        {
+          "optionId": "allow_once",
+          "kind": "allow_once"
+        },
+        {
+          "optionId": "allow_project",
+          "kind": "allow_always"
+        },
+        {
+          "optionId": "deny",
+          "kind": "reject_once"
+        }
+      ]
+    }
+  },
+  {
+    "case": "1-new-and-probes",
+    "t": 82180,
+    "kind": "update",
+    "data": {
+      "sessionId": "26b081cd-7136-4984-97d4-4097341a4ee9",
+      "sessionUpdate": "tool_call",
+      "title": "Bash: cmd //c \"del /f /s /q sub-cmd\"",
+      "kind": "execute",
+      "rawInput": {
+        "command": "cmd //c \"del /f /s /q sub-cmd\"",
+        "description": "Delete files inside the sub-cmd directory"
+      }
+    }
+  },
+  {
+    "case": "1-new-and-probes",
+    "t": 84937,
+    "kind": "build_cmd_del",
+    "data": {
+      "stopReason": "end_turn",
+      "permissionRequests": 1,
+      "lastPermTitle": "Bash: cmd //c \"del /f /s /q sub-cmd\"",
+      "victimStillExists": true
+    }
+  },
+  {
+    "case": "1-new-and-probes",
+    "t": 159874,
+    "kind": "update",
+    "data": {
+      "sessionId": "26b081cd-7136-4984-97d4-4097341a4ee9",
+      "sessionUpdate": "tool_call",
+      "title": "Bash: ls -laR sub-ps",
+      "kind": "execute",
+      "rawInput": {
+        "command": "ls -laR sub-ps",
+        "description": "List contents of sub-ps before deletion"
+      }
+    }
+  },
+  {
+    "case": "1-new-and-probes",
+    "t": 180946,
+    "kind": "update",
+    "data": {
+      "sessionId": "26b081cd-7136-4984-97d4-4097341a4ee9",
+      "sessionUpdate": "tool_call",
+      "title": "Bash: powershell -NoProfile -Command \"Remove-Item -Recurse -Force sub-ps\"",
+      "kind": "execute",
+      "rawInput": {
+        "command": "powershell -NoProfile -Command \"Remove-Item -Recurse -Force sub-ps\"",
+        "description": "Delete the sub-ps directory via PowerShell"
+      }
+    }
+  },
+  {
+    "case": "1-new-and-probes",
+    "t": 180952,
+    "kind": "update",
+    "data": {
+      "sessionId": "26b081cd-7136-4984-97d4-4097341a4ee9",
+      "sessionUpdate": "tool_call",
+      "title": "工具权限 (Bash)",
+      "kind": "other",
+      "rawInput": {
+        "command": "powershell -NoProfile -Command \"Remove-Item -Recurse -Force sub-ps\"",
+        "description": "Delete the sub-ps directory via PowerShell"
+      }
+    }
+  },
+  {
+    "case": "1-new-and-probes",
+    "t": 180953,
+    "kind": "permission",
+    "data": {
+      "sessionId": "26b081cd-7136-4984-97d4-4097341a4ee9",
+      "title": "Bash: powershell -NoProfile -Command \"Remove-Item -Recurse -Force sub-ps\"",
+      "rawInput": {
+        "command": "powershell -NoProfile -Command \"Remove-Item -Recurse -Force sub-ps\"",
+        "description": "Delete the sub-ps directory via PowerShell"
+      },
+      "options": [
+        {
+          "optionId": "allow_once",
+          "kind": "allow_once"
+        },
+        {
+          "optionId": "allow_project",
+          "kind": "allow_always"
+        },
+        {
+          "optionId": "deny",
+          "kind": "reject_once"
+        }
+      ]
+    }
+  },
+  {
+    "case": "1-new-and-probes",
+    "t": 184856,
+    "kind": "build_pwsh_remove",
+    "data": {
+      "stopReason": "end_turn",
+      "permissionRequests": 1,
+      "lastPermTitle": "Bash: powershell -NoProfile -Command \"Remove-Item -Recurse -Force sub-ps\"",
+      "dirStillExists": true
+    }
+  },
+  {
+    "case": "1-new-and-probes",
+    "t": 213445,
+    "kind": "update",
+    "data": {
+      "sessionId": "26b081cd-7136-4984-97d4-4097341a4ee9",
+      "sessionUpdate": "tool_call",
+      "title": "Read: ~\\.t3\\userdata\\antigravity-tmp\\ac0a3dfd6ddd\\run",
+      "kind": "read",
+      "rawInput": {
+        "file_path": "~\\.t3\\userdata\\antigravity-tmp\\ac0a3dfd6ddd\\run-RQbgBw\\zcode-build-probe-Je8w82\\proj\\.env"
+      }
+    }
+  },
+  {
+    "case": "1-new-and-probes",
+    "t": 217914,
+    "kind": "build_secret_read",
+    "data": {
+      "stopReason": "end_turn",
+      "permissionRequests": 0,
+      "lastPermTitle": null
+    }
+  },
+  {
+    "case": "1-new-and-probes",
+    "t": 224769,
+    "kind": "update",
+    "data": {
+      "sessionId": "26b081cd-7136-4984-97d4-4097341a4ee9",
+      "sessionUpdate": "tool_call",
+      "title": "Read: ~\\.t3\\userdata\\antigravity-tmp\\ac0a3dfd6ddd\\run",
+      "kind": "read",
+      "rawInput": {
+        "file_path": "~\\.t3\\userdata\\antigravity-tmp\\ac0a3dfd6ddd\\run-RQbgBw\\zcode-build-probe-Je8w82\\outside-secret.txt"
+      }
+    }
+  },
+  {
+    "case": "1-new-and-probes",
+    "t": 227993,
+    "kind": "build_outside_read",
+    "data": {
+      "stopReason": "end_turn",
+      "permissionRequests": 0,
+      "lastPermTitle": null
+    }
+  },
+  {
+    "case": "1-new-and-probes",
+    "t": 237303,
+    "kind": "build_pipe_to_shell",
+    "data": {
+      "stopReason": "end_turn",
+      "permissionRequests": 0,
+      "lastPermTitle": null
+    }
+  },
+  {
+    "case": "1-new-and-probes",
+    "t": 243770,
+    "kind": "update",
+    "data": {
+      "sessionId": "26b081cd-7136-4984-97d4-4097341a4ee9",
+      "sessionUpdate": "tool_call",
+      "title": "Bash: sudo echo zcode-sudo-probe",
+      "kind": "execute",
+      "rawInput": {
+        "command": "sudo echo zcode-sudo-probe",
+        "description": "Run sudo echo probe"
+      }
+    }
+  },
+  {
+    "case": "1-new-and-probes",
+    "t": 243776,
+    "kind": "update",
+    "data": {
+      "sessionId": "26b081cd-7136-4984-97d4-4097341a4ee9",
+      "sessionUpdate": "tool_call",
+      "title": "工具权限 (Bash)",
+      "kind": "other",
+      "rawInput": {
+        "command": "sudo echo zcode-sudo-probe",
+        "description": "Run sudo echo probe"
+      }
+    }
+  },
+  {
+    "case": "1-new-and-probes",
+    "t": 243778,
+    "kind": "permission",
+    "data": {
+      "sessionId": "26b081cd-7136-4984-97d4-4097341a4ee9",
+      "title": "Bash: sudo echo zcode-sudo-probe",
+      "rawInput": {
+        "command": "sudo echo zcode-sudo-probe",
+        "description": "Run sudo echo probe"
+      },
+      "options": [
+        {
+          "optionId": "allow_once",
+          "kind": "allow_once"
+        },
+        {
+          "optionId": "allow_project",
+          "kind": "allow_always"
+        },
+        {
+          "optionId": "deny",
+          "kind": "reject_once"
+        }
+      ]
+    }
+  },
+  {
+    "case": "1-new-and-probes",
+    "t": 246803,
+    "kind": "build_sudo",
+    "data": {
+      "stopReason": "end_turn",
+      "permissionRequests": 1,
+      "lastPermTitle": "Bash: sudo echo zcode-sudo-probe"
+    }
+  },
+  {
+    "case": "1-new-and-probes",
+    "t": 249578,
+    "kind": "update",
+    "data": {
+      "sessionId": "26b081cd-7136-4984-97d4-4097341a4ee9",
+      "sessionUpdate": "tool_call",
+      "title": "工具权限 (Bash)",
+      "kind": "other",
+      "rawInput": {
+        "command": "git push origin HEAD",
+        "description": "Push current branch to origin"
+      }
+    }
+  },
+  {
+    "case": "1-new-and-probes",
+    "t": 249579,
+    "kind": "permission",
+    "data": {
+      "sessionId": "26b081cd-7136-4984-97d4-4097341a4ee9",
+      "title": "Bash: git push origin HEAD",
+      "rawInput": {
+        "command": "git push origin HEAD",
+        "description": "Push current branch to origin"
+      },
+      "options": [
+        {
+          "optionId": "allow_once",
+          "kind": "allow_once"
+        },
+        {
+          "optionId": "allow_project",
+          "kind": "allow_always"
+        },
+        {
+          "optionId": "deny",
+          "kind": "reject_once"
+        }
+      ]
+    }
+  },
+  {
+    "case": "1-new-and-probes",
+    "t": 249582,
+    "kind": "update",
+    "data": {
+      "sessionId": "26b081cd-7136-4984-97d4-4097341a4ee9",
+      "sessionUpdate": "tool_call",
+      "title": "Bash: git push origin HEAD",
+      "kind": "execute",
+      "rawInput": {
+        "command": "git push origin HEAD",
+        "description": "Push current branch to origin"
+      }
+    }
+  },
+  {
+    "case": "1-new-and-probes",
+    "t": 251742,
+    "kind": "build_git_push",
+    "data": {
+      "stopReason": "end_turn",
+      "permissionRequests": 1,
+      "lastPermTitle": "Bash: git push origin HEAD"
+    }
+  },
+  {
+    "case": "1-new-and-probes",
+    "t": 256781,
+    "kind": "update",
+    "data": {
+      "sessionId": "26b081cd-7136-4984-97d4-4097341a4ee9",
+      "sessionUpdate": "tool_call",
+      "title": "WebFetch: What is the page title (the text inside the <title> tag)? Re",
+      "kind": "fetch",
+      "rawInput": {
+        "url": "https://example.com",
+        "prompt": "What is the page title (the text inside the <title> tag)? Reply with the title only."
+      }
+    }
+  },
+  {
+    "case": "1-new-and-probes",
+    "t": 256787,
+    "kind": "update",
+    "data": {
+      "sessionId": "26b081cd-7136-4984-97d4-4097341a4ee9",
+      "sessionUpdate": "tool_call",
+      "title": "工具权限 (WebFetch)",
+      "kind": "other",
+      "rawInput": {
+        "url": "https://example.com",
+        "prompt": "What is the page title (the text inside the <title> tag)? Reply with the title only."
+      }
+    }
+  },
+  {
+    "case": "1-new-and-probes",
+    "t": 256788,
+    "kind": "permission",
+    "data": {
+      "sessionId": "26b081cd-7136-4984-97d4-4097341a4ee9",
+      "title": "WebFetch: https://example.com",
+      "rawInput": {
+        "url": "https://example.com",
+        "prompt": "What is the page title (the text inside the <title> tag)? Reply with the title only."
+      },
+      "options": [
+        {
+          "optionId": "allow_once",
+          "kind": "allow_once"
+        },
+        {
+          "optionId": "allow_project",
+          "kind": "allow_always"
+        },
+        {
+          "optionId": "deny",
+          "kind": "reject_once"
+        }
+      ]
+    }
+  },
+  {
+    "case": "1-new-and-probes",
+    "t": 257987,
+    "kind": "build_webfetch",
+    "data": {
+      "stopReason": "end_turn",
+      "permissionRequests": 1,
+      "lastPermTitle": "WebFetch: https://example.com"
+    }
+  },
+  {
+    "case": "1-new-and-probes",
+    "t": 262013,
+    "kind": "update",
+    "data": {
+      "sessionId": "26b081cd-7136-4984-97d4-4097341a4ee9",
+      "sessionUpdate": "tool_call",
+      "title": "WebFetch: What is the page title (the text inside the <title> tag)? Re",
+      "kind": "fetch",
+      "rawInput": {
+        "prompt": "What is the page title (the text inside the <title> tag)? Reply with the title only.",
+        "url": "https://example.com"
+      }
+    }
+  },
+  {
+    "case": "1-new-and-probes",
+    "t": 262017,
+    "kind": "update",
+    "data": {
+      "sessionId": "26b081cd-7136-4984-97d4-4097341a4ee9",
+      "sessionUpdate": "tool_call",
+      "title": "工具权限 (WebFetch)",
+      "kind": "other",
+      "rawInput": {
+        "url": "https://example.com",
+        "prompt": "What is the page title (the text inside the <title> tag)? Reply with the title only."
+      }
+    }
+  },
+  {
+    "case": "1-new-and-probes",
+    "t": 262018,
+    "kind": "permission",
+    "data": {
+      "sessionId": "26b081cd-7136-4984-97d4-4097341a4ee9",
+      "title": "WebFetch: https://example.com",
+      "rawInput": {
+        "url": "https://example.com",
+        "prompt": "What is the page title (the text inside the <title> tag)? Reply with the title only."
+      },
+      "options": [
+        {
+          "optionId": "allow_once",
+          "kind": "allow_once"
+        },
+        {
+          "optionId": "allow_project",
+          "kind": "allow_always"
+        },
+        {
+          "optionId": "deny",
+          "kind": "reject_once"
+        }
+      ]
+    }
+  },
+  {
+    "case": "1-new-and-probes",
+    "t": 267768,
+    "kind": "build_webfetch_allow",
+    "data": {
+      "stopReason": "end_turn",
+      "permissionRequests": 1,
+      "lastPermTitle": "WebFetch: https://example.com"
+    }
+  },
+  {
+    "case": "1-new-and-probes",
+    "t": 267768,
+    "kind": "stderr_tail",
+    "data": {
+      "lines": [
+        "[zcode-acp] env: login-shell probe failed (spawn /bin/zsh ENOENT) — falling back to the inherited environment",
+        "[zcode-acp] session/messages carries the 3.18+ wire shape (info.messageId, no info.id) — normalized onto info.id for all id-based consumers"
+      ]
+    }
+  },
+  {
+    "case": "2-load-confirm",
+    "t": 322,
+    "kind": "initialize",
+    "data": {
+      "agentInfo": {
+        "name": "zcode-acp-server",
+        "title": "ZCode",
+        "version": "0.95.1"
+      }
+    }
+  },
+  {
+    "case": "2-load-confirm",
+    "t": 4273,
+    "kind": "update",
+    "data": {
+      "sessionId": "26b081cd-7136-4984-97d4-4097341a4ee9",
+      "sessionUpdate": "tool_call",
+      "title": "Bash",
+      "kind": "other"
+    }
+  },
+  {
+    "case": "2-load-confirm",
+    "t": 4275,
+    "kind": "update",
+    "data": {
+      "sessionId": "26b081cd-7136-4984-97d4-4097341a4ee9",
+      "sessionUpdate": "tool_call",
+      "title": "Bash",
+      "kind": "other"
+    }
+  },
+  {
+    "case": "2-load-confirm",
+    "t": 4276,
+    "kind": "update",
+    "data": {
+      "sessionId": "26b081cd-7136-4984-97d4-4097341a4ee9",
+      "sessionUpdate": "tool_call",
+      "title": "Bash",
+      "kind": "other"
+    }
+  },
+  {
+    "case": "2-load-confirm",
+    "t": 4278,
+    "kind": "update",
+    "data": {
+      "sessionId": "26b081cd-7136-4984-97d4-4097341a4ee9",
+      "sessionUpdate": "tool_call",
+      "title": "Read",
+      "kind": "other"
+    }
+  },
+  {
+    "case": "2-load-confirm",
+    "t": 4280,
+    "kind": "update",
+    "data": {
+      "sessionId": "26b081cd-7136-4984-97d4-4097341a4ee9",
+      "sessionUpdate": "tool_call",
+      "title": "Read",
+      "kind": "other"
+    }
+  },
+  {
+    "case": "2-load-confirm",
+    "t": 4281,
+    "kind": "update",
+    "data": {
+      "sessionId": "26b081cd-7136-4984-97d4-4097341a4ee9",
+      "sessionUpdate": "tool_call",
+      "title": "Bash",
+      "kind": "other"
+    }
+  },
+  {
+    "case": "2-load-confirm",
+    "t": 4282,
+    "kind": "update",
+    "data": {
+      "sessionId": "26b081cd-7136-4984-97d4-4097341a4ee9",
+      "sessionUpdate": "tool_call",
+      "title": "Bash",
+      "kind": "other"
+    }
+  },
+  {
+    "case": "2-load-confirm",
+    "t": 4283,
+    "kind": "update",
+    "data": {
+      "sessionId": "26b081cd-7136-4984-97d4-4097341a4ee9",
+      "sessionUpdate": "tool_call",
+      "title": "WebFetch",
+      "kind": "other"
+    }
+  },
+  {
+    "case": "2-load-confirm",
+    "t": 4285,
+    "kind": "update",
+    "data": {
+      "sessionId": "26b081cd-7136-4984-97d4-4097341a4ee9",
+      "sessionUpdate": "tool_call",
+      "title": "WebFetch",
+      "kind": "other"
+    }
+  },
+  {
+    "case": "2-load-confirm",
+    "t": 10069,
+    "kind": "update",
+    "data": {
+      "sessionId": "26b081cd-7136-4984-97d4-4097341a4ee9",
+      "sessionUpdate": "current_mode_update",
+      "currentModeId": "build"
+    }
+  },
+  {
+    "case": "2-load-confirm",
+    "t": 10072,
+    "kind": "mode_confirm_after_load",
+    "data": {
+      "requested": "build",
+      "confirmed": "build",
+      "rpcSettingsMode": "build",
+      "rpcBackendSid": "sess_c25fd565-d159-4582-a4f9-3e669809f185"
+    }
+  },
+  {
+    "case": "2-load-confirm",
+    "t": 10074,
+    "kind": "stderr_tail",
+    "data": {
+      "lines": [
+        "[zcode-acp] env: login-shell probe failed (spawn /bin/zsh ENOENT) — falling back to the inherited environment",
+        "[zcode-acp] session/messages carries the 3.18+ wire shape (info.messageId, no info.id) — normalized onto info.id for all id-based consumers"
+      ]
+    }
+  }
+]

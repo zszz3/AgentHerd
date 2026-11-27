@@ -53,7 +53,14 @@ export async function verifyProfile(
     const starting = (opts.start ?? startAgent)(profile, { cwd: dir, signal: abort.signal });
     starting.catch(() => {});
     connection = await Promise.race([starting, timeout]);
-    await Promise.race([connection.newSession(dir), timeout]);
+    const sessionId = await Promise.race([connection.newSession(dir), timeout]);
+    // A profile with a required permission mode (ZCode, ADR 0108) is only verified through the
+    // same preparation a task uses: set the mode and wait for the session's own confirmation.
+    // This is also where a missing backend or an unusable sign-in shows, because the bridge
+    // starts the backend session on this call.
+    if (profile.mode !== undefined) {
+      await Promise.race([connection.prepareSession(sessionId, profile.mode), timeout]);
+    }
     return result({ ok: true });
   } catch (error) {
     const message = (error as Error).message;

@@ -7,7 +7,7 @@ import { chmodSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "
 import { createServer, type Server } from "node:http";
 import type { AddressInfo } from "node:net";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, win32 } from "node:path";
 import { fileURLToPath } from "node:url";
 import { FakeChannel } from "@agentherd/channel-fake";
 import { afterEach, describe, expect, it } from "vitest";
@@ -26,11 +26,12 @@ import {
 } from "../src/catalog.ts";
 import { writeConfig } from "../src/config.ts";
 import { Host } from "../src/host.ts";
-import { DSH_MAC_BIN, dshAppBins, dshInstallDirs } from "../src/profiles.ts";
+import { agentEnv, DSH_MAC_BIN, dshAppBins, dshInstallDirs } from "../src/profiles.ts";
 import { type ArchiveRelease, type Release, RuntimeStore, windowsTar } from "../src/runtimes.ts";
 import { verifyProfile } from "../src/verify.ts";
 
 const SCRIPT = fileURLToPath(new URL("../../mock-agent/scripts/approve.yaml", import.meta.url));
+const MOCK_BIN = fileURLToPath(new URL("../../mock-agent/bin/mock-agent.ts", import.meta.url));
 const servers: Server[] = [];
 afterEach(() => {
   for (const s of servers.splice(0)) s.close();
@@ -212,6 +213,8 @@ describe("catalog", () => {
       ["antigravity", undefined],
       // The owner's own DeepSeek Harness desktop app (ADR 0106).
       ["dsh", undefined],
+      // The owner's own zcode-acp bridge (ADR 0108): no version of AgentHerd's.
+      ["zcode", undefined],
     ]);
     // Claude Code is never in the app (ADR 0069).
     expect(AGENTS.filter((a) => a.onRequest === true).map((a) => a.id)).toEqual(["claude"]);
@@ -242,6 +245,7 @@ describe("catalog", () => {
       PI_VERSION,
       CODEX_ACP_VERSION,
       CLAUDE_ACP_VERSION,
+      undefined,
       undefined,
       undefined,
     ]);
@@ -399,6 +403,7 @@ describe("Agents (ADR 0067)", () => {
       ["claude", undefined, undefined, CLAUDE_ACP_VERSION, false],
       ["antigravity", undefined, undefined, undefined, false],
       ["dsh", undefined, undefined, undefined, false],
+      ["zcode", undefined, undefined, undefined, false],
     ]);
     agents.remove("codex");
     expect(agents.find("codex")).toMatchObject({ source: "system" });
@@ -407,6 +412,7 @@ describe("Agents (ADR 0067)", () => {
     expect(() => agents.remove("pi")).toThrow(/not downloaded/);
     const none = new Agents({ env: { PATH: "" }, exists: () => false, onChange() {} });
     expect(none.views([], {}).map((v) => v.state)).toEqual([
+      "missing",
       "missing",
       "missing",
       "missing",
@@ -474,6 +480,7 @@ describe("Host agents", () => {
         ["claude", "missing", undefined, undefined],
         ["antigravity", "missing", undefined, undefined],
         ["dsh", "missing", undefined, undefined],
+        ["zcode", "missing", undefined, undefined],
       ]);
       expect(host.status().profiles).toEqual(["pi"]);
       expect(() => host.removeAgent("pi")).toThrow(/not downloaded/);
@@ -484,6 +491,7 @@ describe("Host agents", () => {
         ["claude", true],
         ["antigravity", false],
         ["dsh", false],
+        ["zcode", false],
       ]);
       expect(() => host.installAgent("codex")).toThrow(/comes with the app/);
     } finally {
@@ -531,6 +539,46 @@ describe("verifyProfile", () => {
       { timeoutMs: 300 },
     );
     expect(check).toMatchObject({ ok: false, error: expect.stringMatching(/no answer within/) });
+  });
+
+  it("verifies a profile with a required mode through the same preparation (ADR 0108)", async () => {
+    const scripts = mkdtempSync(join(tmpdir(), "ah-check-"));
+    const scriptOf = (body: string) => {
+      const file = join(scripts, `${Math.random().toString(36).slice(2)}.yaml`);
+      writeFileSync(file, body);
+      return file;
+    };
+    const check = await verifyProfile(
+      {
+        id: "zcode-mock",
+        name: "ZCode mock",
+        command: [
+          process.execPath,
+          MOCK_BIN,
+          "--script",
+          scriptOf("set_mode: confirm\nturns: []\n"),
+        ],
+        env: {},
+        exporter: null,
+        mode: "build",
+      },
+      { timeoutMs: 20_000 },
+    );
+    expect(check).toMatchObject({ id: "zcode-mock", ok: true, needsLogin: false });
+    // A session that refuses the mode fails the check with the agent's own log.
+    const refused = await verifyProfile(
+      {
+        id: "zcode-mock",
+        name: "ZCode mock",
+        command: [process.execPath, MOCK_BIN, "--script", scriptOf("set_mode: error\nturns: []\n")],
+        env: {},
+        exporter: null,
+        mode: "build",
+      },
+      { timeoutMs: 20_000 },
+    );
+    expect(refused.ok).toBe(false);
+    expect(refused.error).toMatch(/set_mode refused/);
   });
 });
 
@@ -622,5 +670,65 @@ describe("DeepSeek Harness (ADR 0106)", () => {
     expect(p.command).toEqual([WIN_BIN, "acp"]);
     expect(p.env).toEqual({ DSH_PERMISSION_MODE: "read-only" });
     expect(p.ownModels).toBe(true);
+  });
+});
+
+describe("ZCode (ADR 0108)", () => {
+  it("runs the owner's own bridge with the explicit server argument and its own account", () => {
+    // npm's global shim: a `.cmd` on Windows (PATHEXT lookup), a plain executable elsewhere.
+    // The win32 lookup joins with backslashes (path.win32 inside commandCandidates), so the
+    // simulated folder must be built with the same joiner the lookup itself uses — otherwise
+    // `exists` compares a posix-shaped path against a win32-shaped one (what CI showed).
+    const win = process.platform === "win32";
+    const home = mkdtempSync(join(tmpdir(), "ah-zcode-"));
+    const npmBin = join(home, "AppData", "Roaming", "npm");
+    const bin = join(npmBin, win ? "zcode-acp.cmd" : "zcode-acp");
+    const agents = new Agents({
+      env: { PATH: npmBin },
+      exists: (p) => p === bin,
+      userHome: home,
+      onChange() {},
+    });
+    expect(agents.find("zcode")).toEqual({ path: bin, source: "system" });
+    // The Windows shim resolution, pinned on every runner: the simulated folder is a literal
+    // win32 path, so the lookup's own win32 joiner produces matching strings on any host OS.
+    const winNpm = win32.join("C:", "Users", "me", "AppData", "Roaming", "npm");
+    const onWin = new Agents({
+      env: { PATH: winNpm },
+      exists: (p) => p === win32.join(winNpm, "zcode-acp.cmd"),
+      platform: "win32",
+      userHome: "C:\\Users\\me",
+      onChange() {},
+    });
+    expect(onWin.find("zcode")).toEqual({
+      path: win32.join(winNpm, "zcode-acp.cmd"),
+      source: "system",
+    });
+    const def = AGENTS.find((d) => d.id === "zcode");
+    if (def === undefined) throw new Error("no zcode");
+    const p = agentProfile(def, bin);
+    expect(p.command).toEqual([bin, "server"]);
+    expect(p.ownModels).toBe(true);
+    expect(p.mode).toBe("build");
+    // No AgentHerd model credentials: the bridge and backend use the owner's own account.
+    expect(Object.keys(p.env)).toEqual([]);
+  });
+
+  it("passes an explicit backend override through and leaves an unset one to the bridge", () => {
+    const exists = () => false;
+    expect(
+      agentEnv(
+        "zcode",
+        { ZCODE_BIN: "D:\\app\\resources\\glm\\zcode.cjs", ZCODE_NODE: "node.exe" },
+        exists,
+        "win32",
+        () => [],
+      ),
+    ).toEqual({ ZCODE_BIN: "D:\\app\\resources\\glm\\zcode.cjs", ZCODE_NODE: "node.exe" });
+    // Unset, or set empty: the bridge discovers the backend on its own.
+    expect(agentEnv("zcode", {}, exists, "win32", () => [])).toEqual({});
+    expect(agentEnv("zcode", { ZCODE_BIN: "" }, exists, "win32", () => [])).toEqual({});
+    // No other agent receives these variables.
+    expect(agentEnv("codex", { ZCODE_BIN: "x" }, exists, "win32", () => [])).toEqual({});
   });
 });

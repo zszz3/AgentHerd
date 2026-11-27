@@ -315,3 +315,100 @@ describe("setModel (ADR 0104)", () => {
     );
   });
 });
+
+describe("prepareSession (ADR 0108)", () => {
+  it("counts the mode as established when the session confirms it after the request", async () => {
+    const { conn, sessionId } = await start("set_mode: confirm\nturns: []\n");
+    await conn.prepareSession(sessionId, "guarded");
+    const log = conn.stderr().join("\n");
+    expect(log).toContain("mode guarded");
+    // The confirmation came before any work: there is no prompt line yet.
+    expect(log).not.toContain("prompt ");
+  });
+
+  it("fails when the session reports another mode than the one it asked for", async () => {
+    const { conn, sessionId } = await start("set_mode: wrong\nturns: []\n");
+    await expect(conn.prepareSession(sessionId, "guarded")).rejects.toThrow(
+      /reported mode "yolo" instead of "guarded"/,
+    );
+  });
+
+  it("fails when the agent refuses the mode, with the agent's own log", async () => {
+    const { conn, sessionId } = await start("set_mode: error\nturns: []\n");
+    await expect(conn.prepareSession(sessionId, "guarded")).rejects.toThrow(
+      /set_mode refused: not supported/,
+    );
+  });
+
+  it("fails when the agent answers without the session reporting the mode", async () => {
+    const { conn, sessionId } = await start("set_mode: silent\nturns: []\n");
+    await expect(conn.prepareSession(sessionId, "guarded", 300)).rejects.toThrow(
+      /did not confirm mode "guarded"/,
+    );
+  });
+
+  it("a mode the agent reports on its own is not a confirmation", async () => {
+    const { conn, sessionId } = await start("mode_report: guarded\nset_mode: silent\nturns: []\n");
+    await expect(conn.prepareSession(sessionId, "guarded", 300)).rejects.toThrow(
+      /did not confirm mode "guarded"/,
+    );
+  });
+
+  it("fails for an agent that does not take session/set_mode at all", async () => {
+    const { conn, sessionId } = await start("turns: []\n");
+    // The ACP SDK answers an unknown method with a bare "Internal error".
+    await expect(conn.prepareSession(sessionId, "guarded")).rejects.toThrow(/Internal error/);
+  });
+
+  it("fails when the agent exits before confirming", async () => {
+    const { conn, sessionId } = await start("set_mode: silent\nturns:\n  - - crash: 7\n");
+    const prepared = conn.prepareSession(sessionId, "guarded", 10_000);
+    const turn = conn.prompt(sessionId, "go").catch((e: Error) => e);
+    await expect(prepared).rejects.toThrow(/exited \(code 7/);
+    await turn;
+  });
+
+  it("open/load sessions and set a model still work", async () => {
+    const conn = await startAgent(profile("load_session: true\nset_mode: confirm\nturns: []\n"), {
+      cwd: dir,
+    });
+    open.push(conn);
+    const id = await conn.newSession(dir);
+    await conn.prepareSession(id, "guarded");
+    await conn.loadSession(id, dir);
+    await conn.prepareSession(id, "guarded");
+    await conn.setModel(id, "glm-5.3");
+    expect(conn.stderr().join("\n")).toContain("config model=glm-5.3");
+  });
+
+  it("times out within timeoutMs when session/set_mode RPC hangs", async () => {
+    const { conn, sessionId } = await start("set_mode: hang\nturns: []\n");
+    const started = Date.now();
+    await expect(conn.prepareSession(sessionId, "guarded", 250)).rejects.toThrow(
+      /did not confirm mode "guarded"/,
+    );
+    expect(Date.now() - started).toBeLessThan(2000);
+  });
+
+  it("applies one shared timeout across set_mode RPC and confirmation notification", async () => {
+    const { conn, sessionId } = await start(
+      "set_mode: confirm\nset_mode_delay_ms: 150\nset_mode_notify_delay_ms: 200\nturns: []\n",
+    );
+    await expect(conn.prepareSession(sessionId, "guarded", 250)).rejects.toThrow(
+      /did not confirm mode "guarded"/,
+    );
+    const second = await start(
+      "set_mode: confirm\nset_mode_delay_ms: 150\nset_mode_notify_delay_ms: 200\nturns: []\n",
+    );
+    await expect(
+      second.conn.prepareSession(second.sessionId, "guarded", 2000),
+    ).resolves.toBeUndefined();
+  });
+
+  it("fails when set_mode RPC response disagrees with current_mode_update", async () => {
+    const { conn, sessionId } = await start("set_mode: mismatch_response\nturns: []\n");
+    await expect(conn.prepareSession(sessionId, "guarded")).rejects.toThrow(
+      /reported mode "yolo" instead of "guarded"/,
+    );
+  });
+});

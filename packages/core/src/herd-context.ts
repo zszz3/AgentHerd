@@ -79,6 +79,8 @@ export interface HerdOptions {
   sessionIdleMinutes?: number;
   /** Minutes before an agent with work running in the background is asked about it. */
   backgroundCheckMinutes?: number;
+  /** How long session mode confirmation may take (ms); default `MODE_CONFIRM_TIMEOUT_MS`. */
+  modeConfirmTimeoutMs?: number;
   /** Language of the texts the owner reads. Default: Chinese. */
   locale?: Locale;
   /** Creates the Herder. Without it, plain messages get the list of commands. */

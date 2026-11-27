@@ -1114,3 +1114,58 @@ describe("task_read (ADR 0062)", () => {
     ]);
   });
 });
+
+describe("ZCode runs when the owner names it (ADR 0108)", () => {
+  const dir = tmpdir();
+  const base = (ownerText: string, name: string) => ({ name, project: dir, ownerText });
+
+  it("starts ZCode by name on its own default model, even with an empty model-service list", async () => {
+    const { call, rec } = tools(
+      { ownerText: "用 ZCode 修一下构建" },
+      { models: [], profiles: [{ id: "zcode", name: "ZCode", ownModels: true }] },
+    );
+    const out = await call("session_start", {
+      ...base("用 ZCode 修一下构建", "zcode 修构建"),
+      profile: "zcode",
+    });
+    expect(out).toContain("with zcode");
+    expect(out).toContain("its own default model");
+    expect(rec.started).toHaveLength(1);
+    expect(rec.started[0]).toMatchObject({ profileId: "zcode", cwd: dir });
+    expect(rec.started[0]?.model).toBeUndefined();
+    // A model the owner names goes through by ZCode's own name, without a service lookup.
+    await call("session_start", {
+      ...base("用 ZCode 修一下构建", "zcode 修构建"),
+      profile: "zcode",
+      model: "glm-5.3",
+    });
+    expect(rec.started[1]?.model).toBe("glm-5.3");
+  });
+
+  it("never picks ZCode for a task that does not name it, even when it is the only agent", async () => {
+    const { call, rec } = tools(
+      { ownerText: "修一下构建" },
+      { models: [], profiles: [{ id: "zcode", name: "ZCode", ownModels: true }] },
+    );
+    // An unnamed task has no agent and no model: it fails instead of starting ZCode.
+    await expect(call("session_start", base("修一下构建", "修构建"))).rejects.toThrow(
+      /no configured model can run this task/,
+    );
+    expect(rec.started).toEqual([]);
+  });
+
+  it("lists ZCode as an agent the owner must name", async () => {
+    const { call } = tools(
+      {},
+      {
+        models: [{ ref: "site/default", agents: ["mock"] }],
+        profiles: [
+          { id: "mock", name: "Mock" },
+          { id: "zcode", name: "ZCode", ownModels: true },
+        ],
+      },
+    );
+    const listed = await call("session_list", {});
+    expect(listed).toContain("zcode (ZCode, own sign-in and models; only when the owner names it)");
+  });
+});

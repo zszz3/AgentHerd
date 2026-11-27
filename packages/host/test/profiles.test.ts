@@ -77,7 +77,7 @@ describe("resolveProfile", () => {
   });
   it("lists known profiles for an unknown id", () => {
     expect(() => resolveProfile("nope", { configured: [] })).toThrow(
-      /known: mock, pi, codex, claude, antigravity, dsh\)/,
+      /known: mock, pi, codex, claude, antigravity, dsh, zcode\)/,
     );
   });
 });

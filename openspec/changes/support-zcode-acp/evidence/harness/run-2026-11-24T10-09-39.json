@@ -1,0 +1,7341 @@
+[
+  {
+    "case": "",
+    "t": 1795514979103,
+    "kind": "environment",
+    "data": {
+      "os": "win32 10.0.26200",
+      "node": "v24.22.2",
+      "bridgeCommand": "~\\AppData\\Roaming\\fnm\\aliases\\default\\zcode-acp.cmd",
+      "bridgeVersion": "0.88.0",
+      "zcodeBinInUserEnv": "%ZCODE_DESKTOP%\\resources\\glm\\zcode.cjs",
+      "zcodeNodeInUserEnv": "~\\AppData\\Roaming\\fnm\\node-versions\\v22.23.2\\installation\\node.exe",
+      "zcodeAcpModeInUserEnv": null,
+      "tempRoot": "~\\AppData\\Local\\Temp\\zcode-qual-lPFjje",
+      "proj": "~\\AppData\\Local\\Temp\\zcode-qual-lPFjje\\proj"
+    }
+  },
+  {
+    "case": "A-auto",
+    "t": 346,
+    "kind": "initialize",
+    "data": {
+      "agentVersion": "0.88.0",
+      "authMethods": [
+        {
+          "id": "zcode-credentials",
+          "name": "ZCode built-in credentials",
+          "description": "Reads the GLM API key from the ZCode desktop app's credential files (~/.zcode/v2) or a saved zcode-acp account. No editor-side credentials required."
+        }
+      ],
+      "capabilityKeys": [
+        "loadSession",
+        "promptCapabilities",
+        "mcpCapabilities",
+        "sessionCapabilities",
+        "_meta"
+      ]
+    }
+  },
+  {
+    "case": "A-auto",
+    "t": 6033,
+    "kind": "session_new",
+    "data": {
+      "sessionId": "7bc57fca-a96d-41ac-bbdf-5cbfc0bb7523",
+      "modes": {
+        "currentModeId": "yolo",
+        "availableModes": [
+          {
+            "id": "plan",
+            "name": "Plan"
+          },
+          {
+            "id": "build",
+            "name": "Build"
+          },
+          {
+            "id": "edit",
+            "name": "Edit"
+          },
+          {
+            "id": "guarded",
+            "name": "Guarded"
+          },
+          {
+            "id": "yolo",
+            "name": "Yolo"
+          }
+        ]
+      },
+      "reportedMode": "yolo",
+      "configOptionIds": ["model", "mode", "thought"],
+      "meta": {
+        "zcode": {
+          "providers": [
+            {
+              "id": "new-provider",
+              "name": "transwarp",
+              "selectable": true,
+              "defaultModel": "openai/glm-5.3"
+            },
+            {
+              "id": "deepseek",
+              "name": "DeepSeek",
+              "selectable": true
+            },
+            {
+              "id": "new-provider-2",
+              "name": "Step",
+              "selectable": false,
+              "unselectableReason": "disabled"
+            },
+            {
+              "id": "new-provider-3",
+              "name": "Agentrouter",
+              "selectable": false,
+              "unselectableReason": "disabled"
+            }
+          ],
+          "currentProviderId": "new-provider"
+        }
+      }
+    }
+  },
+  {
+    "case": "A-auto",
+    "t": 6274,
+    "kind": "update",
+    "data": {
+      "sessionId": "7bc57fca-a96d-41ac-bbdf-5cbfc0bb7523",
+      "sessionUpdate": "available_commands_update"
+    }
+  },
+  {
+    "case": "A-auto",
+    "t": 6335,
+    "kind": "update",
+    "data": {
+      "sessionId": "7bc57fca-a96d-41ac-bbdf-5cbfc0bb7523",
+      "sessionUpdate": "available_commands_update"
+    }
+  },
+  {
+    "case": "A-auto",
+    "t": 8667,
+    "kind": "update",
+    "data": {
+      "sessionId": "7bc57fca-a96d-41ac-bbdf-5cbfc0bb7523",
+      "sessionUpdate": "available_commands_update"
+    }
+  },
+  {
+    "case": "A-auto",
+    "t": 9766,
+    "kind": "update",
+    "data": {
+      "sessionId": "7bc57fca-a96d-41ac-bbdf-5cbfc0bb7523",
+      "sessionUpdate": "available_commands_update"
+    }
+  },
+  {
+    "case": "A-auto",
+    "t": 10019,
+    "kind": "update",
+    "data": {
+      "sessionId": "7bc57fca-a96d-41ac-bbdf-5cbfc0bb7523",
+      "sessionUpdate": "available_commands_update"
+    }
+  },
+  {
+    "case": "A-auto",
+    "t": 10723,
+    "kind": "update",
+    "data": {
+      "sessionId": "7bc57fca-a96d-41ac-bbdf-5cbfc0bb7523",
+      "sessionUpdate": "available_commands_update"
+    }
+  },
+  {
+    "case": "A-auto",
+    "t": 14336,
+    "kind": "update",
+    "data": {
+      "sessionId": "7bc57fca-a96d-41ac-bbdf-5cbfc0bb7523",
+      "sessionUpdate": "config_option_update",
+      "options": [
+        {
+          "id": "model",
+          "currentValue": "new-provider\\openai/glm-5.3"
+        },
+        {
+          "id": "mode",
+          "currentValue": "guarded"
+        },
+        {
+          "id": "thought",
+          "currentValue": "max"
+        }
+      ]
+    }
+  },
+  {
+    "case": "A-auto",
+    "t": 14438,
+    "kind": "update",
+    "data": {
+      "sessionId": "7bc57fca-a96d-41ac-bbdf-5cbfc0bb7523",
+      "sessionUpdate": "current_mode_update",
+      "currentModeId": "guarded"
+    }
+  },
+  {
+    "case": "A-auto",
+    "t": 14439,
+    "kind": "set_mode_response",
+    "data": {
+      "messages": [],
+      "projection": {
+        "activeToolCalls": [],
+        "backgroundJobs": [],
+        "contextUsed": 0,
+        "contextWindow": 200000,
+        "mode": "guarded",
+        "pendingPermissions": [],
+        "sessionId": "sess_2948e4b3-7e84-44ce-b502-4a19e0ff0eca",
+        "status": "idle",
+        "target": null,
+        "totalTokenCount": 0,
+        "turnCount": 0
+      },
+      "protocol": {
+        "name": "ZCode Protocol",
+        "version": 1
+      },
+      "runtime": {
+        "eventSeq": 1,
+        "pendingRequestIds": [],
+        "goalVerifications": [],
+        "goalVerificationTimeline": [],
+        "stateRevision": 2
+      },
+      "session": {
+        "createdAt": 1795514988019,
+        "mode": "guarded",
+        "model": {
+          "providerId": "new-provider",
+          "modelId": "openai/glm-5.3"
+        },
+        "traceId": "9a3763ad-2fc9-4de4-9cbb-22fb6ea7b91e",
+        "sessionId": "sess_2948e4b3-7e84-44ce-b502-4a19e0ff0eca",
+        "sessionKind": "interactive",
+        "status": "idle",
+        "target": null,
+        "title": "",
+        "updatedAt": 1795514988019,
+        "workspace": {
+          "workspacePath": "~\\AppData\\Local\\Temp\\zcode-qual-lPFjje\\proj",
+          "workspaceKey": "~\\AppData\\Local\\Temp\\zcode-qual-lPFjje\\proj"
+        }
+      },
+      "settings": {
+        "mode": {
+          "current": "guarded"
+        },
+        "model": {
+          "available": [
+            {
+              "ref": {
+                "providerId": "new-provider",
+                "modelId": "openai/glm-5.3"
+              },
+              "label": "openai/glm-5.3",
+              "providerLabel": "transwarp",
+              "contextWindow": 200000,
+              "maxOutputTokens": 128000,
+              "reasoning": {
+                "levels": [
+                  {
+                    "value": "none",
+                    "label": "none"
+                  },
+                  {
+                    "value": "low",
+                    "label": "low"
+                  },
+                  {
+                    "value": "high",
+                    "label": "high"
+                  },
+                  {
+                    "value": "max",
+                    "label": "max"
+                  }
+                ],
+                "defaultLevel": "max"
+              },
+              "properties": {
+                "inputFormat": {
+                  "supportsText": true,
+                  "supportsImage": false,
+                  "supportsVideo": false,
+                  "supportsAudio": false,
+                  "supportsPdf": false
+                },
+                "outputFormat": {
+                  "supportsText": true
+                }
+              }
+            }
+          ],
+          "current": {
+            "providerId": "new-provider",
+            "modelId": "openai/glm-5.3",
+            "options": {
+              "reasoningLevel": "max"
+            }
+          },
+          "lastUsed": {
+            "providerId": "new-provider",
+            "modelId": "openai/glm-5.3"
+          }
+        },
+        "permission": {
+          "mode": "guarded"
+        },
+        "thoughtLevel": {
+          "available": [
+            {
+              "label": "none",
+              "value": "none"
+            },
+            {
+              "label": "low",
+              "value": "low"
+            },
+            {
+              "label": "high",
+              "value": "high"
+            },
+            {
+              "label": "max",
+              "value": "max"
+            }
+          ],
+          "current": "max",
+          "enabled": true
+        }
+      },
+      "slashCommands": [
+        {
+          "description": "Show or set the current session goal.",
+          "inputHint": "/goal [pause|resume|clear|replace <objective>|<objective>]",
+          "name": "goal",
+          "source": "builtin"
+        },
+        {
+          "description": "Design and launch a dynamic workflow for a task.",
+          "inputHint": "/workflow [what the workflow should accomplish]",
+          "name": "workflow",
+          "source": "builtin"
+        },
+        {
+          "description": "Compact the current conversation with optional instructions.",
+          "inputHint": "/compact [instructions]",
+          "name": "compact",
+          "source": "builtin"
+        },
+        {
+          "description": "Create or update workspace AGENTS.md instructions.",
+          "inputHint": "/init [notes]",
+          "name": "init",
+          "source": "builtin"
+        },
+        {
+          "description": "Show visit analytics of a ZCode Sites site.",
+          "inputHint": "/site-analytics [site id] [24h|7d|30d]",
+          "name": "site-analytics",
+          "source": "custom"
+        },
+        {
+          "description": "Hide or show the ZCode badge on the linked ZCode Sites site.",
+          "inputHint": "/site-badge hide | show",
+          "name": "site-badge",
+          "source": "custom"
+        },
+        {
+          "description": "Deploy this project to ZCode Sites, or redeploy the linked site.",
+          "inputHint": "/site-deploy [site id or notes]",
+          "name": "site-deploy",
+          "source": "custom"
+        },
+        {
+          "description": "Show the logs of a ZCode Sites deployment and explain any failure.",
+          "inputHint": "/site-logs [deployment id]",
+          "name": "site-logs",
+          "source": "custom"
+        },
+        {
+          "description": "Take the linked ZCode Sites site offline.",
+          "inputHint": "/site-offline [site id]",
+          "name": "site-offline",
+          "source": "custom"
+        },
+        {
+          "description": "Bring the linked ZCode Sites site back online.",
+          "inputHint": "/site-online [site id]",
+          "name": "site-online",
+          "source": "custom"
+        },
+        {
+          "description": "Show the ZCode Sites site linked to this project.",
+          "inputHint": "/site-status [site id]",
+          "name": "site-status",
+          "source": "custom"
+        },
+        {
+          "description": "Show ZCode Sites usage and plan limits.",
+          "inputHint": "/site-usage",
+          "name": "site-usage",
+          "source": "custom"
+        }
+      ],
+      "todos": [],
+      "todoGroups": []
+    }
+  },
+  {
+    "case": "A-auto",
+    "t": 14498,
+    "kind": "mode_confirmation",
+    "data": {
+      "requested": "guarded",
+      "confirmed": "guarded"
+    }
+  },
+  {
+    "case": "A-auto",
+    "t": 14512,
+    "kind": "update",
+    "data": {
+      "sessionId": "7bc57fca-a96d-41ac-bbdf-5cbfc0bb7523",
+      "sessionUpdate": "session_info_update"
+    }
+  },
+  {
+    "case": "A-auto",
+    "t": 16686,
+    "kind": "update",
+    "data": {
+      "sessionId": "7bc57fca-a96d-41ac-bbdf-5cbfc0bb7523",
+      "sessionUpdate": "config_option_update",
+      "options": [
+        {
+          "id": "model",
+          "currentValue": "new-provider\\openai/glm-5.3"
+        },
+        {
+          "id": "mode",
+          "currentValue": "guarded"
+        },
+        {
+          "id": "thought",
+          "currentValue": "max"
+        }
+      ]
+    }
+  },
+  {
+    "case": "A-auto",
+    "t": 18222,
+    "kind": "update",
+    "data": {
+      "sessionId": "7bc57fca-a96d-41ac-bbdf-5cbfc0bb7523",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "A-auto",
+    "t": 22711,
+    "kind": "update",
+    "data": {
+      "sessionId": "7bc57fca-a96d-41ac-bbdf-5cbfc0bb7523",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "A-auto",
+    "t": 22975,
+    "kind": "update",
+    "data": {
+      "sessionId": "7bc57fca-a96d-41ac-bbdf-5cbfc0bb7523",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "A-auto",
+    "t": 23242,
+    "kind": "update",
+    "data": {
+      "sessionId": "7bc57fca-a96d-41ac-bbdf-5cbfc0bb7523",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "A-auto",
+    "t": 23517,
+    "kind": "update",
+    "data": {
+      "sessionId": "7bc57fca-a96d-41ac-bbdf-5cbfc0bb7523",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "A-auto",
+    "t": 23779,
+    "kind": "update",
+    "data": {
+      "sessionId": "7bc57fca-a96d-41ac-bbdf-5cbfc0bb7523",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "A-auto",
+    "t": 24120,
+    "kind": "update",
+    "data": {
+      "sessionId": "7bc57fca-a96d-41ac-bbdf-5cbfc0bb7523",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "A-auto",
+    "t": 24409,
+    "kind": "update",
+    "data": {
+      "sessionId": "7bc57fca-a96d-41ac-bbdf-5cbfc0bb7523",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "A-auto",
+    "t": 25197,
+    "kind": "update",
+    "data": {
+      "sessionId": "7bc57fca-a96d-41ac-bbdf-5cbfc0bb7523",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "A-auto",
+    "t": 25458,
+    "kind": "update",
+    "data": {
+      "sessionId": "7bc57fca-a96d-41ac-bbdf-5cbfc0bb7523",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "A-auto",
+    "t": 25559,
+    "kind": "update",
+    "data": {
+      "sessionId": "7bc57fca-a96d-41ac-bbdf-5cbfc0bb7523",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "A-auto",
+    "t": 26399,
+    "kind": "update",
+    "data": {
+      "sessionId": "7bc57fca-a96d-41ac-bbdf-5cbfc0bb7523",
+      "sessionUpdate": "usage_update"
+    }
+  },
+  {
+    "case": "A-auto",
+    "t": 26400,
+    "kind": "update",
+    "data": {
+      "sessionId": "7bc57fca-a96d-41ac-bbdf-5cbfc0bb7523",
+      "sessionUpdate": "usage_update"
+    }
+  },
+  {
+    "case": "A-auto",
+    "t": 26402,
+    "kind": "update",
+    "data": {
+      "sessionId": "7bc57fca-a96d-41ac-bbdf-5cbfc0bb7523",
+      "sessionUpdate": "tool_call",
+      "toolCallId": "call_6e9583862b8c491184f38985",
+      "title": "Write: ~\\AppData\\Local\\Temp\\zcode-qual-lPFjje\\proj\\zc-",
+      "kind": "edit",
+      "status": "pending",
+      "rawInput": {
+        "file_path": "~\\AppData\\Local\\Temp\\zcode-qual-lPFjje\\proj\\zc-a.txt",
+        "content": "hello"
+      }
+    }
+  },
+  {
+    "case": "A-auto",
+    "t": 26403,
+    "kind": "update",
+    "data": {
+      "sessionId": "7bc57fca-a96d-41ac-bbdf-5cbfc0bb7523",
+      "sessionUpdate": "tool_call_update",
+      "toolCallId": "call_6e9583862b8c491184f38985",
+      "status": "in_progress"
+    }
+  },
+  {
+    "case": "A-auto",
+    "t": 26404,
+    "kind": "update",
+    "data": {
+      "sessionId": "7bc57fca-a96d-41ac-bbdf-5cbfc0bb7523",
+      "sessionUpdate": "tool_call_update",
+      "toolCallId": "call_6e9583862b8c491184f38985",
+      "status": "completed"
+    }
+  },
+  {
+    "case": "A-auto",
+    "t": 26419,
+    "kind": "update",
+    "data": {
+      "sessionId": "7bc57fca-a96d-41ac-bbdf-5cbfc0bb7523",
+      "sessionUpdate": "tool_call_update",
+      "toolCallId": "call_6e9583862b8c491184f38985",
+      "status": "completed"
+    }
+  },
+  {
+    "case": "A-auto",
+    "t": 26493,
+    "kind": "update",
+    "data": {
+      "sessionId": "7bc57fca-a96d-41ac-bbdf-5cbfc0bb7523",
+      "sessionUpdate": "plan"
+    }
+  },
+  {
+    "case": "A-auto",
+    "t": 33020,
+    "kind": "update",
+    "data": {
+      "sessionId": "7bc57fca-a96d-41ac-bbdf-5cbfc0bb7523",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "A-auto",
+    "t": 33283,
+    "kind": "update",
+    "data": {
+      "sessionId": "7bc57fca-a96d-41ac-bbdf-5cbfc0bb7523",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "A-auto",
+    "t": 33530,
+    "kind": "update",
+    "data": {
+      "sessionId": "7bc57fca-a96d-41ac-bbdf-5cbfc0bb7523",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "A-auto",
+    "t": 33533,
+    "kind": "update",
+    "data": {
+      "sessionId": "7bc57fca-a96d-41ac-bbdf-5cbfc0bb7523",
+      "sessionUpdate": "agent_message_chunk",
+      "text": "DONE"
+    }
+  },
+  {
+    "case": "A-auto",
+    "t": 33575,
+    "kind": "update",
+    "data": {
+      "sessionId": "7bc57fca-a96d-41ac-bbdf-5cbfc0bb7523",
+      "sessionUpdate": "usage_update"
+    }
+  },
+  {
+    "case": "A-auto",
+    "t": 33585,
+    "kind": "update",
+    "data": {
+      "sessionId": "7bc57fca-a96d-41ac-bbdf-5cbfc0bb7523",
+      "sessionUpdate": "usage_update"
+    }
+  },
+  {
+    "case": "A-auto",
+    "t": 33735,
+    "kind": "update",
+    "data": {
+      "sessionId": "7bc57fca-a96d-41ac-bbdf-5cbfc0bb7523",
+      "sessionUpdate": "usage_update"
+    }
+  },
+  {
+    "case": "A-auto",
+    "t": 33826,
+    "kind": "turn_file_in_workspace",
+    "data": {
+      "stopReason": "end_turn",
+      "fileExists": true,
+      "content": "hello"
+    }
+  },
+  {
+    "case": "A-auto",
+    "t": 33844,
+    "kind": "stderr_tail",
+    "data": {
+      "lines": [
+        "[zcode-acp]   ⚠ orphaned interaction/requestOfficialMcpAuthHeaders with no answerable session — declining with offline push",
+        "[zcode-acp]   ⚠ unhandled server→client request: interaction/requestOfficialMcpAuthHeaders (id=server-3)",
+        "[zcode-acp]   ⚠ unhandled server→client request: interaction/requestOfficialMcpAuthHeaders (id=server-5)",
+        "[zcode-acp]   ⚠ unhandled server→client request: session/readReplyLanguage (id=server-6)",
+        "[zcode-acp]   ⚠ unhandled server→client request: interaction/requestOfficialMcpAuthHeaders (id=server-7)",
+        "[zcode-acp]   ⚠ unhandled server→client request: session/readReplyLanguage (id=server-8)",
+        "[zcode-acp] session/messages carries the 3.18+ wire shape (info.messageId, no info.id) — normalized onto info.id for all id-based consumers"
+      ]
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 319,
+    "kind": "initialize",
+    "data": {
+      "agentVersion": "0.88.0",
+      "authMethods": [
+        {
+          "id": "zcode-credentials",
+          "name": "ZCode built-in credentials",
+          "description": "Reads the GLM API key from the ZCode desktop app's credential files (~/.zcode/v2) or a saved zcode-acp account. No editor-side credentials required."
+        }
+      ],
+      "capabilityKeys": [
+        "loadSession",
+        "promptCapabilities",
+        "mcpCapabilities",
+        "sessionCapabilities",
+        "_meta"
+      ]
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 354,
+    "kind": "session_new",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "modes": {
+        "currentModeId": "yolo",
+        "availableModes": [
+          {
+            "id": "plan",
+            "name": "Plan"
+          },
+          {
+            "id": "build",
+            "name": "Build"
+          },
+          {
+            "id": "edit",
+            "name": "Edit"
+          },
+          {
+            "id": "guarded",
+            "name": "Guarded"
+          },
+          {
+            "id": "yolo",
+            "name": "Yolo"
+          }
+        ]
+      },
+      "reportedMode": "yolo",
+      "configOptionIds": ["model", "mode", "thought"],
+      "meta": {
+        "zcode": {
+          "providers": [
+            {
+              "id": "new-provider",
+              "name": "transwarp",
+              "selectable": true,
+              "defaultModel": "openai/glm-5.3"
+            },
+            {
+              "id": "deepseek",
+              "name": "DeepSeek",
+              "selectable": true
+            },
+            {
+              "id": "new-provider-2",
+              "name": "Step",
+              "selectable": false,
+              "unselectableReason": "disabled"
+            },
+            {
+              "id": "new-provider-3",
+              "name": "Agentrouter",
+              "selectable": false,
+              "unselectableReason": "disabled"
+            }
+          ],
+          "currentProviderId": "new-provider"
+        }
+      }
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 480,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "available_commands_update"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 661,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "available_commands_update"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 1358,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "available_commands_update"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 3224,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "available_commands_update"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 3449,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "config_option_update",
+      "options": [
+        {
+          "id": "model",
+          "currentValue": "new-provider\\openai/glm-5.3"
+        },
+        {
+          "id": "mode",
+          "currentValue": "guarded"
+        },
+        {
+          "id": "thought",
+          "currentValue": "max"
+        }
+      ]
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 3472,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "available_commands_update"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 3573,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "current_mode_update",
+      "currentModeId": "guarded"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 3574,
+    "kind": "set_mode_response",
+    "data": {
+      "messages": [],
+      "projection": {
+        "activeToolCalls": [],
+        "backgroundJobs": [],
+        "contextUsed": 0,
+        "contextWindow": 200000,
+        "mode": "guarded",
+        "pendingPermissions": [],
+        "sessionId": "sess_144f8d0b-8479-4862-a7f6-cb2262bf776e",
+        "status": "idle",
+        "target": null,
+        "totalTokenCount": 0,
+        "turnCount": 0
+      },
+      "protocol": {
+        "name": "ZCode Protocol",
+        "version": 1
+      },
+      "runtime": {
+        "eventSeq": 1,
+        "pendingRequestIds": [],
+        "goalVerifications": [],
+        "goalVerificationTimeline": [],
+        "stateRevision": 2
+      },
+      "session": {
+        "createdAt": 1795515015665,
+        "mode": "guarded",
+        "model": {
+          "providerId": "new-provider",
+          "modelId": "openai/glm-5.3"
+        },
+        "traceId": "c43aa55b-8e80-4a8a-b8f8-49faf75bb709",
+        "sessionId": "sess_144f8d0b-8479-4862-a7f6-cb2262bf776e",
+        "sessionKind": "interactive",
+        "status": "idle",
+        "target": null,
+        "title": "",
+        "updatedAt": 1795515015665,
+        "workspace": {
+          "workspacePath": "~\\AppData\\Local\\Temp\\zcode-qual-lPFjje\\proj",
+          "workspaceKey": "~\\AppData\\Local\\Temp\\zcode-qual-lPFjje\\proj"
+        }
+      },
+      "settings": {
+        "mode": {
+          "current": "guarded"
+        },
+        "model": {
+          "available": [
+            {
+              "ref": {
+                "providerId": "new-provider",
+                "modelId": "openai/glm-5.3"
+              },
+              "label": "openai/glm-5.3",
+              "providerLabel": "transwarp",
+              "contextWindow": 200000,
+              "maxOutputTokens": 128000,
+              "reasoning": {
+                "levels": [
+                  {
+                    "value": "none",
+                    "label": "none"
+                  },
+                  {
+                    "value": "low",
+                    "label": "low"
+                  },
+                  {
+                    "value": "high",
+                    "label": "high"
+                  },
+                  {
+                    "value": "max",
+                    "label": "max"
+                  }
+                ],
+                "defaultLevel": "max"
+              },
+              "properties": {
+                "inputFormat": {
+                  "supportsText": true,
+                  "supportsImage": false,
+                  "supportsVideo": false,
+                  "supportsAudio": false,
+                  "supportsPdf": false
+                },
+                "outputFormat": {
+                  "supportsText": true
+                }
+              }
+            }
+          ],
+          "current": {
+            "providerId": "new-provider",
+            "modelId": "openai/glm-5.3",
+            "options": {
+              "reasoningLevel": "max"
+            }
+          },
+          "lastUsed": {
+            "providerId": "new-provider",
+            "modelId": "openai/glm-5.3"
+          }
+        },
+        "permission": {
+          "mode": "guarded"
+        },
+        "thoughtLevel": {
+          "available": [
+            {
+              "label": "none",
+              "value": "none"
+            },
+            {
+              "label": "low",
+              "value": "low"
+            },
+            {
+              "label": "high",
+              "value": "high"
+            },
+            {
+              "label": "max",
+              "value": "max"
+            }
+          ],
+          "current": "max",
+          "enabled": true
+        }
+      },
+      "slashCommands": [
+        {
+          "description": "Show or set the current session goal.",
+          "inputHint": "/goal [pause|resume|clear|replace <objective>|<objective>]",
+          "name": "goal",
+          "source": "builtin"
+        },
+        {
+          "description": "Design and launch a dynamic workflow for a task.",
+          "inputHint": "/workflow [what the workflow should accomplish]",
+          "name": "workflow",
+          "source": "builtin"
+        },
+        {
+          "description": "Compact the current conversation with optional instructions.",
+          "inputHint": "/compact [instructions]",
+          "name": "compact",
+          "source": "builtin"
+        },
+        {
+          "description": "Create or update workspace AGENTS.md instructions.",
+          "inputHint": "/init [notes]",
+          "name": "init",
+          "source": "builtin"
+        },
+        {
+          "description": "Show visit analytics of a ZCode Sites site.",
+          "inputHint": "/site-analytics [site id] [24h|7d|30d]",
+          "name": "site-analytics",
+          "source": "custom"
+        },
+        {
+          "description": "Hide or show the ZCode badge on the linked ZCode Sites site.",
+          "inputHint": "/site-badge hide | show",
+          "name": "site-badge",
+          "source": "custom"
+        },
+        {
+          "description": "Deploy this project to ZCode Sites, or redeploy the linked site.",
+          "inputHint": "/site-deploy [site id or notes]",
+          "name": "site-deploy",
+          "source": "custom"
+        },
+        {
+          "description": "Show the logs of a ZCode Sites deployment and explain any failure.",
+          "inputHint": "/site-logs [deployment id]",
+          "name": "site-logs",
+          "source": "custom"
+        },
+        {
+          "description": "Take the linked ZCode Sites site offline.",
+          "inputHint": "/site-offline [site id]",
+          "name": "site-offline",
+          "source": "custom"
+        },
+        {
+          "description": "Bring the linked ZCode Sites site back online.",
+          "inputHint": "/site-online [site id]",
+          "name": "site-online",
+          "source": "custom"
+        },
+        {
+          "description": "Show the ZCode Sites site linked to this project.",
+          "inputHint": "/site-status [site id]",
+          "name": "site-status",
+          "source": "custom"
+        },
+        {
+          "description": "Show ZCode Sites usage and plan limits.",
+          "inputHint": "/site-usage",
+          "name": "site-usage",
+          "source": "custom"
+        }
+      ],
+      "todos": [],
+      "todoGroups": []
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 3627,
+    "kind": "mode_confirmation",
+    "data": {
+      "requested": "guarded",
+      "confirmed": "guarded"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 3645,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "session_info_update"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 3829,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "config_option_update",
+      "options": [
+        {
+          "id": "model",
+          "currentValue": "new-provider\\openai/glm-5.3"
+        },
+        {
+          "id": "mode",
+          "currentValue": "guarded"
+        },
+        {
+          "id": "thought",
+          "currentValue": "max"
+        }
+      ]
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 4169,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "available_commands_update"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 5413,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 8031,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 8308,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 8565,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 8836,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 9245,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 9496,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 9820,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 10431,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 10714,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 11066,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 11331,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 11692,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 11941,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 12271,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 12763,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 13015,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 13764,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 14406,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 14662,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 14932,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 15201,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 15480,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 16084,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 16159,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 17374,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "usage_update"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 17375,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "usage_update"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 17377,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "tool_call",
+      "toolCallId": "call_3e8d1a311a934c7ba9aaddbb",
+      "title": "Write: ~\\AppData\\Local\\Temp\\zcode-qual-lPFjje\\zc-outsi",
+      "kind": "edit",
+      "status": "pending",
+      "rawInput": {
+        "file_path": "~\\AppData\\Local\\Temp\\zcode-qual-lPFjje\\zc-outside1.txt",
+        "content": "outside"
+      }
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 17378,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "tool_call_update",
+      "toolCallId": "call_3e8d1a311a934c7ba9aaddbb",
+      "status": "in_progress"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 17379,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "tool_call_update",
+      "toolCallId": "call_3e8d1a311a934c7ba9aaddbb",
+      "status": "completed"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 17399,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "tool_call_update",
+      "toolCallId": "call_3e8d1a311a934c7ba9aaddbb",
+      "status": "completed"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 17477,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "plan"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 21246,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 21530,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 21714,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 21715,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_message_chunk",
+      "text": "DONE"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 21755,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "usage_update"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 21765,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "usage_update"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 21936,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "usage_update"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 22027,
+    "kind": "after_outside_deny",
+    "data": {
+      "fileExists": true
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 22150,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "config_option_update",
+      "options": [
+        {
+          "id": "model",
+          "currentValue": "new-provider\\openai/glm-5.3"
+        },
+        {
+          "id": "mode",
+          "currentValue": "guarded"
+        },
+        {
+          "id": "thought",
+          "currentValue": "max"
+        }
+      ]
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 22892,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 23158,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 23247,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 24770,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "usage_update"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 24778,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "usage_update"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 24783,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "tool_call",
+      "toolCallId": "call_821913d467b04e5e99d12a42",
+      "title": "Write: ~\\AppData\\Local\\Temp\\zcode-qual-lPFjje\\zc-outsi",
+      "kind": "edit",
+      "status": "pending",
+      "rawInput": {
+        "file_path": "~\\AppData\\Local\\Temp\\zcode-qual-lPFjje\\zc-outside2.txt",
+        "content": "outside"
+      }
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 24789,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "tool_call_update",
+      "toolCallId": "call_821913d467b04e5e99d12a42",
+      "status": "in_progress"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 24800,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "tool_call_update",
+      "toolCallId": "call_821913d467b04e5e99d12a42",
+      "status": "completed"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 24804,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "tool_call_update",
+      "toolCallId": "call_821913d467b04e5e99d12a42",
+      "status": "completed"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 26887,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "session_info_update"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 27516,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_message_chunk",
+      "text": "DONE"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 27656,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "usage_update"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 27662,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "usage_update"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 27797,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "usage_update"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 27892,
+    "kind": "after_outside_allow",
+    "data": {
+      "fileExists": true,
+      "content": "outside"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 27996,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "config_option_update",
+      "options": [
+        {
+          "id": "model",
+          "currentValue": "new-provider\\openai/glm-5.3"
+        },
+        {
+          "id": "mode",
+          "currentValue": "guarded"
+        },
+        {
+          "id": "thought",
+          "currentValue": "max"
+        }
+      ]
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 29546,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 30047,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 30385,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 30653,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 30905,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 31161,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 31425,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 31695,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 31948,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 32212,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 32542,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 33021,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 33273,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 33529,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 33828,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 34158,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 34408,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 34661,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 34917,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 35181,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 35443,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 35725,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 35986,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 36236,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 36562,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 36824,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 37104,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 37400,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 37652,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 37915,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 38183,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 38545,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 38972,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 39248,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 39732,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 40009,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 40371,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 40766,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 41187,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 41515,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 41778,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 42032,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 42292,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 42543,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 42871,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 43130,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 43400,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 43654,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 43957,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 46826,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 47235,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 47632,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 47899,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 48151,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 48603,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 48966,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 49229,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 49485,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 49747,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 49997,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 50279,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 50537,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 50960,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 51270,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 51521,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 51773,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 52031,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 52419,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 52685,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 53911,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "usage_update"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 53917,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "usage_update"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 53923,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "tool_call",
+      "toolCallId": "call_6df4ad5755274a21a2891c85",
+      "title": "Bash: cmd /c del /f /s /q zc-sub",
+      "kind": "execute",
+      "status": "pending",
+      "rawInput": {
+        "command": "cmd /c del /f /s /q zc-sub",
+        "description": "Delete files named zc-sub recursively"
+      }
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 53930,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "tool_call_update",
+      "toolCallId": "call_6df4ad5755274a21a2891c85",
+      "status": "in_progress"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 67596,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "tool_call_update",
+      "toolCallId": "call_6df4ad5755274a21a2891c85",
+      "status": "in_progress"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 68602,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "tool_call_update",
+      "toolCallId": "call_6df4ad5755274a21a2891c85",
+      "status": "in_progress"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 69613,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "tool_call_update",
+      "toolCallId": "call_6df4ad5755274a21a2891c85",
+      "status": "in_progress"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 70629,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "tool_call_update",
+      "toolCallId": "call_6df4ad5755274a21a2891c85",
+      "status": "in_progress"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 71346,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "tool_call_update",
+      "toolCallId": "call_6df4ad5755274a21a2891c85",
+      "status": "completed"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 72200,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 72451,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 72705,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 73076,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 73329,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 73587,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 73981,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 74239,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 74999,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 75330,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 75635,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 75907,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 76418,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 78837,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 79100,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 79361,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 79616,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 79912,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 80162,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 80429,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 80682,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 80990,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 81267,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 81665,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 82542,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 83579,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 83830,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 84102,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 84370,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 84625,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 85012,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 85345,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 85596,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 85846,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 86161,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 86424,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 86686,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 86943,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 87206,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 87585,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 88066,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 88334,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 88590,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 88855,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 89104,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 89437,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 89688,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 90032,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 90286,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 90724,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 92856,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 93117,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 93394,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 93656,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 93933,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 94191,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 94444,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 94818,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 95543,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 100122,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 100446,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 100697,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 100997,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 101338,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 101688,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 101937,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 102227,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 102685,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 102942,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 103226,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 103506,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 103762,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 104108,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 104374,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 104705,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 104960,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 105345,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 105728,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 106211,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 106577,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 106964,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 107420,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 107671,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 107935,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 108230,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 108485,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 109122,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 109371,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 109627,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 109881,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 110144,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 110399,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 110650,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 111362,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 114065,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 114437,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 114826,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 115086,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 118050,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 118306,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 118578,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 118974,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 119237,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 119523,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 119780,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 120186,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 120441,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 120693,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 121036,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 121318,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 121921,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 122206,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 123156,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "usage_update"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 123169,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "usage_update"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 123187,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "tool_call",
+      "toolCallId": "call_4071c02c82fa437484bdfec5",
+      "title": "Bash: ls -d zc-sub 2>/dev/null && echo \"--- exists before\" || echo \"--- missing before\"",
+      "kind": "execute",
+      "status": "pending",
+      "rawInput": {
+        "command": "ls -d zc-sub 2>/dev/null && echo \"--- exists before\" || echo \"--- missing before\"",
+        "description": "Check whether zc-sub exists"
+      }
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 123193,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "tool_call_update",
+      "toolCallId": "call_4071c02c82fa437484bdfec5",
+      "status": "in_progress"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 126420,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "tool_call_update",
+      "toolCallId": "call_4071c02c82fa437484bdfec5",
+      "status": "in_progress"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 127432,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "tool_call_update",
+      "toolCallId": "call_4071c02c82fa437484bdfec5",
+      "status": "in_progress"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 128440,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "tool_call_update",
+      "toolCallId": "call_4071c02c82fa437484bdfec5",
+      "status": "in_progress"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 129449,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "tool_call_update",
+      "toolCallId": "call_4071c02c82fa437484bdfec5",
+      "status": "in_progress"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 130351,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "tool_call_update",
+      "toolCallId": "call_4071c02c82fa437484bdfec5",
+      "status": "completed"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 140543,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 140807,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 141174,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 141515,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 141771,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 142389,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 142785,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 143043,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 143316,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 143566,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 143820,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 144086,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 144352,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 144609,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 144868,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 145128,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 145476,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 145734,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 146066,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 146355,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 146724,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 146998,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 147044,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 147048,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_message_chunk",
+      "text": "The"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 147297,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_message_chunk",
+      "text": " verbatim command didn't actually delete anything — Git Bash mangled"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 147579,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_message_chunk",
+      "text": " the `/c` switch, so cmd just opened and exited without running `del`. `zc"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 147871,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_message_chunk",
+      "text": "-sub` still exists. Running the equivalent with proper escaping so the deletion"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 147906,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_message_chunk",
+      "text": " actually happens:"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 149931,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "usage_update"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 149946,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "usage_update"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 149950,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "tool_call",
+      "toolCallId": "call_3c214680346f49a2be477c8c",
+      "title": "Bash: cmd //c \"del /f /s /q zc-sub\"; echo \"exit=$?\"; ls -d zc-sub 2>/dev/null && echo \"--- still exists\" || echo \"--- gone\"",
+      "kind": "execute",
+      "status": "pending",
+      "rawInput": {
+        "command": "cmd //c \"del /f /s /q zc-sub\"; echo \"exit=$?\"; ls -d zc-sub 2>/dev/null && echo \"--- still exists\" || echo \"--- gone\"",
+        "description": "Delete zc-sub via cmd and verify result"
+      }
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 149955,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "tool_call_update",
+      "toolCallId": "call_3c214680346f49a2be477c8c",
+      "status": "in_progress"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 153107,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "tool_call_update",
+      "toolCallId": "call_3c214680346f49a2be477c8c",
+      "status": "in_progress"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 154117,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "tool_call_update",
+      "toolCallId": "call_3c214680346f49a2be477c8c",
+      "status": "in_progress"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 155133,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "tool_call_update",
+      "toolCallId": "call_3c214680346f49a2be477c8c",
+      "status": "in_progress"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 156141,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "tool_call_update",
+      "toolCallId": "call_3c214680346f49a2be477c8c",
+      "status": "in_progress"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 156817,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "tool_call_update",
+      "toolCallId": "call_3c214680346f49a2be477c8c",
+      "status": "completed"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 169848,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 173868,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 174123,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 174394,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 174755,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 175014,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 175279,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 175650,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 175905,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 176254,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 176505,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 176603,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 176609,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_message_chunk",
+      "text": "DONE"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 176865,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_message_chunk",
+      "text": " — with a faithful account:\n\n- The verbatim `cmd /c del /f"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 177120,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_message_chunk",
+      "text": " /s /q zc-sub` was run first, but in Git Bash"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 177375,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_message_chunk",
+      "text": " the `/c` switch gets path-mangled, so cmd"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 177700,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_message_chunk",
+      "text": " just opened and closed without executing the deletion. I re-ran it as"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 177953,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_message_chunk",
+      "text": " `cmd //c \"del /f /s /q zc-sub\"` (same command, properly escaped), which is what"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 178217,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_message_chunk",
+      "text": " actually executed.\n- Result: the file inside was deleted (`zc-sub\\zc-inside"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 178485,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_message_chunk",
+      "text": ".txt`), exit code 0. The now-empty `zc-sub` directory"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 178750,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_message_chunk",
+      "text": " itself remains, since `del` only removes files, not"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 179012,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_message_chunk",
+      "text": " directories — I left it as is"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 179043,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_message_chunk",
+      "text": ", per \"nothing else\"."
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 179054,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "usage_update"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 179063,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "usage_update"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 179250,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "usage_update"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 179328,
+    "kind": "after_command_deny",
+    "data": {
+      "dirStillExists": true
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 179429,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "config_option_update",
+      "options": [
+        {
+          "id": "model",
+          "currentValue": "new-provider\\openai/glm-5.3"
+        },
+        {
+          "id": "mode",
+          "currentValue": "guarded"
+        },
+        {
+          "id": "thought",
+          "currentValue": "max"
+        }
+      ]
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 180022,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 180421,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 180672,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 180927,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 181191,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 181499,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 181753,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 182169,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 182526,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 182884,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 183148,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 183400,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 183655,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 184081,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 188816,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 189067,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 189333,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 189594,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 189849,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 190127,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 190461,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 190716,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 190981,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 191255,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 191524,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 191811,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 192071,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 192380,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 192643,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 195301,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 195613,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 198158,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 198421,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 198808,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 199117,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 199485,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 199941,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 200195,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 200884,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "usage_update"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 200897,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "usage_update"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 200902,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "tool_call",
+      "toolCallId": "call_ab4b1f62d3e0497f8a206cd4",
+      "title": "Bash: cmd /c del /f /s /q zc-sub2",
+      "kind": "execute",
+      "status": "pending",
+      "rawInput": {
+        "command": "cmd /c del /f /s /q zc-sub2",
+        "description": "Delete files named zc-sub2 recursively"
+      }
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 200907,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "tool_call_update",
+      "toolCallId": "call_ab4b1f62d3e0497f8a206cd4",
+      "status": "in_progress"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 204061,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "tool_call_update",
+      "toolCallId": "call_ab4b1f62d3e0497f8a206cd4",
+      "status": "in_progress"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 205060,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "tool_call_update",
+      "toolCallId": "call_ab4b1f62d3e0497f8a206cd4",
+      "status": "in_progress"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 206068,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "tool_call_update",
+      "toolCallId": "call_ab4b1f62d3e0497f8a206cd4",
+      "status": "in_progress"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 207078,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "tool_call_update",
+      "toolCallId": "call_ab4b1f62d3e0497f8a206cd4",
+      "status": "in_progress"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 207772,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "tool_call_update",
+      "toolCallId": "call_ab4b1f62d3e0497f8a206cd4",
+      "status": "completed"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 212449,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 217280,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 217541,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 217798,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 218822,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "usage_update"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 218829,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "usage_update"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 218835,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "tool_call",
+      "toolCallId": "call_2e0e2a0fae824afd9232893d",
+      "title": "Bash: cmd //c \"del /f /s /q zc-sub2\"",
+      "kind": "execute",
+      "status": "pending",
+      "rawInput": {
+        "command": "cmd //c \"del /f /s /q zc-sub2\"",
+        "description": "Delete files named zc-sub2 via cmd, escaped"
+      }
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 218840,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "tool_call_update",
+      "toolCallId": "call_2e0e2a0fae824afd9232893d",
+      "status": "in_progress"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 221921,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "tool_call_update",
+      "toolCallId": "call_2e0e2a0fae824afd9232893d",
+      "status": "in_progress"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 222932,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "tool_call_update",
+      "toolCallId": "call_2e0e2a0fae824afd9232893d",
+      "status": "in_progress"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 223950,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "tool_call_update",
+      "toolCallId": "call_2e0e2a0fae824afd9232893d",
+      "status": "in_progress"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 224962,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "tool_call_update",
+      "toolCallId": "call_2e0e2a0fae824afd9232893d",
+      "status": "in_progress"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 225831,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "tool_call_update",
+      "toolCallId": "call_2e0e2a0fae824afd9232893d",
+      "status": "completed"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 227155,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_message_chunk",
+      "text": "DONE"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 227411,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_message_chunk",
+      "text": " — same as last time: the verbatim `cmd /c ...`"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 227677,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_message_chunk",
+      "text": " was a no-op due to Git Bash switch-mangling, so I also ran the properly escaped"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 227937,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_message_chunk",
+      "text": " equivalent `cmd //c \"del /"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 228205,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_message_chunk",
+      "text": "f /s /q zc-sub2\"`, which deleted `zc"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 228371,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_message_chunk",
+      "text": "-sub2\\zc-inside2.txt`."
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 228376,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "usage_update"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 228384,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "usage_update"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 228552,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "usage_update"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 228643,
+    "kind": "after_command_allow",
+    "data": {
+      "dirDeleted": false
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 228756,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "config_option_update",
+      "options": [
+        {
+          "id": "model",
+          "currentValue": "new-provider\\openai/glm-5.3"
+        },
+        {
+          "id": "mode",
+          "currentValue": "guarded"
+        },
+        {
+          "id": "thought",
+          "currentValue": "max"
+        }
+      ]
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 230305,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 238571,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 238577,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 238624,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "usage_update"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 238630,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "usage_update"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 238638,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "tool_call",
+      "toolCallId": "call_3261f81b366a4e83aa32f70f",
+      "title": "WebFetch: What is the page title (the contents of the <title> tag)? Re",
+      "kind": "fetch",
+      "status": "pending",
+      "rawInput": {
+        "prompt": "What is the page title (the contents of the <title> tag)? Reply with only the title text.",
+        "url": "https://example.com"
+      }
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 238644,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "tool_call_update",
+      "toolCallId": "call_3261f81b366a4e83aa32f70f",
+      "status": "in_progress"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 251493,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "usage_update"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 251497,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "tool_call_update",
+      "toolCallId": "call_3261f81b366a4e83aa32f70f",
+      "status": "completed"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 252191,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_message_chunk",
+      "text": "Example"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 252222,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "agent_message_chunk",
+      "text": " Domain"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 252226,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "usage_update"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 252233,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "usage_update"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 252488,
+    "kind": "update",
+    "data": {
+      "sessionId": "072af471-7e6a-4b2a-9176-4a8867b6c1bd",
+      "sessionUpdate": "usage_update"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 252587,
+    "kind": "turn_external_tool",
+    "data": {
+      "stopReason": "end_turn"
+    }
+  },
+  {
+    "case": "B-override",
+    "t": 252601,
+    "kind": "stderr_tail",
+    "data": {
+      "lines": [
+        "[zcode-acp]   ⚠ unhandled server→client request: interaction/requestOfficialMcpAuthHeaders (id=server-2)",
+        "[zcode-acp]   ⚠ unhandled server→client request: session/readReplyLanguage (id=server-4)",
+        "[zcode-acp]   ⚠ unhandled server→client request: interaction/requestOfficialMcpAuthHeaders (id=server-5)",
+        "[zcode-acp]   ⚠ unhandled server→client request: interaction/requestOfficialMcpAuthHeaders (id=server-6)",
+        "[zcode-acp]   ⚠ unhandled server→client request: interaction/requestOfficialMcpAuthHeaders (id=server-7)",
+        "[zcode-acp]   ⚠ unhandled server→client request: session/readReplyLanguage (id=server-8)",
+        "[zcode-acp] session/messages carries the 3.18+ wire shape (info.messageId, no info.id) — normalized onto info.id for all id-based consumers",
+        "[zcode-acp]   ⚠ unhandled server→client request: session/readReplyLanguage (id=server-9)",
+        "[zcode-acp]   ⚠ unhandled server→client request: session/readReplyLanguage (id=server-10)",
+        "[zcode-acp]   ⚠ unhandled server→client request: session/readReplyLanguage (id=server-11)",
+        "[zcode-acp]   ⚠ unhandled server→client request: session/readReplyLanguage (id=server-12)",
+        "[zcode-acp]   ⚠ unhandled server→client request: session/readReplyLanguage (id=server-13)",
+        "[zcode-acp]   ⚠ unhandled server→client request: session/readReplyLanguage (id=server-14)",
+        "[zcode-acp]   ⚠ unhandled server→client request: session/readReplyLanguage (id=server-15)",
+        "[zcode-acp]   ⚠ unhandled server→client request: session/readReplyLanguage (id=server-16)",
+        "[zcode-acp]   ⚠ unhandled server→client request: session/readReplyLanguage (id=server-17)",
+        "[zcode-acp]   ⚠ unhandled server→client request: session/readReplyLanguage (id=server-18)",
+        "[zcode-acp]   ⚠ unhandled server→client request: session/readReplyLanguage (id=server-19)"
+      ]
+    }
+  },
+  {
+    "case": "C-load",
+    "t": 343,
+    "kind": "initialize",
+    "data": {
+      "agentVersion": "0.88.0",
+      "authMethods": [
+        {
+          "id": "zcode-credentials",
+          "name": "ZCode built-in credentials",
+          "description": "Reads the GLM API key from the ZCode desktop app's credential files (~/.zcode/v2) or a saved zcode-acp account. No editor-side credentials required."
+        }
+      ],
+      "capabilityKeys": [
+        "loadSession",
+        "promptCapabilities",
+        "mcpCapabilities",
+        "sessionCapabilities",
+        "_meta"
+      ]
+    }
+  },
+  {
+    "case": "C-load",
+    "t": 377,
+    "kind": "session_new",
+    "data": {
+      "sessionId": "df396c68-ef73-4f0e-adab-c95c11cc0a69",
+      "modes": {
+        "currentModeId": "yolo",
+        "availableModes": [
+          {
+            "id": "plan",
+            "name": "Plan"
+          },
+          {
+            "id": "build",
+            "name": "Build"
+          },
+          {
+            "id": "edit",
+            "name": "Edit"
+          },
+          {
+            "id": "guarded",
+            "name": "Guarded"
+          },
+          {
+            "id": "yolo",
+            "name": "Yolo"
+          }
+        ]
+      },
+      "reportedMode": "yolo",
+      "configOptionIds": ["model", "mode", "thought"],
+      "meta": {
+        "zcode": {
+          "providers": [
+            {
+              "id": "new-provider",
+              "name": "transwarp",
+              "selectable": true,
+              "defaultModel": "openai/glm-5.3"
+            },
+            {
+              "id": "deepseek",
+              "name": "DeepSeek",
+              "selectable": true
+            },
+            {
+              "id": "new-provider-2",
+              "name": "Step",
+              "selectable": false,
+              "unselectableReason": "disabled"
+            },
+            {
+              "id": "new-provider-3",
+              "name": "Agentrouter",
+              "selectable": false,
+              "unselectableReason": "disabled"
+            }
+          ],
+          "currentProviderId": "new-provider"
+        }
+      }
+    }
+  },
+  {
+    "case": "C-load",
+    "t": 510,
+    "kind": "update",
+    "data": {
+      "sessionId": "df396c68-ef73-4f0e-adab-c95c11cc0a69",
+      "sessionUpdate": "available_commands_update"
+    }
+  },
+  {
+    "case": "C-load",
+    "t": 681,
+    "kind": "update",
+    "data": {
+      "sessionId": "df396c68-ef73-4f0e-adab-c95c11cc0a69",
+      "sessionUpdate": "available_commands_update"
+    }
+  },
+  {
+    "case": "C-load",
+    "t": 1382,
+    "kind": "update",
+    "data": {
+      "sessionId": "df396c68-ef73-4f0e-adab-c95c11cc0a69",
+      "sessionUpdate": "available_commands_update"
+    }
+  },
+  {
+    "case": "C-load",
+    "t": 3182,
+    "kind": "update",
+    "data": {
+      "sessionId": "df396c68-ef73-4f0e-adab-c95c11cc0a69",
+      "sessionUpdate": "available_commands_update"
+    }
+  },
+  {
+    "case": "C-load",
+    "t": 3418,
+    "kind": "update",
+    "data": {
+      "sessionId": "df396c68-ef73-4f0e-adab-c95c11cc0a69",
+      "sessionUpdate": "config_option_update",
+      "options": [
+        {
+          "id": "model",
+          "currentValue": "new-provider\\openai/glm-5.3"
+        },
+        {
+          "id": "mode",
+          "currentValue": "guarded"
+        },
+        {
+          "id": "thought",
+          "currentValue": "max"
+        }
+      ]
+    }
+  },
+  {
+    "case": "C-load",
+    "t": 3429,
+    "kind": "update",
+    "data": {
+      "sessionId": "df396c68-ef73-4f0e-adab-c95c11cc0a69",
+      "sessionUpdate": "available_commands_update"
+    }
+  },
+  {
+    "case": "C-load",
+    "t": 3540,
+    "kind": "update",
+    "data": {
+      "sessionId": "df396c68-ef73-4f0e-adab-c95c11cc0a69",
+      "sessionUpdate": "current_mode_update",
+      "currentModeId": "guarded"
+    }
+  },
+  {
+    "case": "C-load",
+    "t": 3543,
+    "kind": "set_mode_response",
+    "data": {
+      "messages": [],
+      "projection": {
+        "activeToolCalls": [],
+        "backgroundJobs": [],
+        "contextUsed": 0,
+        "contextWindow": 200000,
+        "mode": "guarded",
+        "pendingPermissions": [],
+        "sessionId": "sess_d7bdd74c-3d31-4602-a1cf-98d709a76254",
+        "status": "idle",
+        "target": null,
+        "totalTokenCount": 0,
+        "turnCount": 0
+      },
+      "protocol": {
+        "name": "ZCode Protocol",
+        "version": 1
+      },
+      "runtime": {
+        "eventSeq": 1,
+        "pendingRequestIds": [],
+        "goalVerifications": [],
+        "goalVerificationTimeline": [],
+        "stateRevision": 2
+      },
+      "session": {
+        "createdAt": 1795515268227,
+        "mode": "guarded",
+        "model": {
+          "providerId": "new-provider",
+          "modelId": "openai/glm-5.3"
+        },
+        "traceId": "761a3f21-b27b-4793-a3f9-d0d508e436b3",
+        "sessionId": "sess_d7bdd74c-3d31-4602-a1cf-98d709a76254",
+        "sessionKind": "interactive",
+        "status": "idle",
+        "target": null,
+        "title": "",
+        "updatedAt": 1795515268227,
+        "workspace": {
+          "workspacePath": "~\\AppData\\Local\\Temp\\zcode-qual-lPFjje\\proj",
+          "workspaceKey": "~\\AppData\\Local\\Temp\\zcode-qual-lPFjje\\proj"
+        }
+      },
+      "settings": {
+        "mode": {
+          "current": "guarded"
+        },
+        "model": {
+          "available": [
+            {
+              "ref": {
+                "providerId": "new-provider",
+                "modelId": "openai/glm-5.3"
+              },
+              "label": "openai/glm-5.3",
+              "providerLabel": "transwarp",
+              "contextWindow": 200000,
+              "maxOutputTokens": 128000,
+              "reasoning": {
+                "levels": [
+                  {
+                    "value": "none",
+                    "label": "none"
+                  },
+                  {
+                    "value": "low",
+                    "label": "low"
+                  },
+                  {
+                    "value": "high",
+                    "label": "high"
+                  },
+                  {
+                    "value": "max",
+                    "label": "max"
+                  }
+                ],
+                "defaultLevel": "max"
+              },
+              "properties": {
+                "inputFormat": {
+                  "supportsText": true,
+                  "supportsImage": false,
+                  "supportsVideo": false,
+                  "supportsAudio": false,
+                  "supportsPdf": false
+                },
+                "outputFormat": {
+                  "supportsText": true
+                }
+              }
+            }
+          ],
+          "current": {
+            "providerId": "new-provider",
+            "modelId": "openai/glm-5.3",
+            "options": {
+              "reasoningLevel": "max"
+            }
+          },
+          "lastUsed": {
+            "providerId": "new-provider",
+            "modelId": "openai/glm-5.3"
+          }
+        },
+        "permission": {
+          "mode": "guarded"
+        },
+        "thoughtLevel": {
+          "available": [
+            {
+              "label": "none",
+              "value": "none"
+            },
+            {
+              "label": "low",
+              "value": "low"
+            },
+            {
+              "label": "high",
+              "value": "high"
+            },
+            {
+              "label": "max",
+              "value": "max"
+            }
+          ],
+          "current": "max",
+          "enabled": true
+        }
+      },
+      "slashCommands": [
+        {
+          "description": "Show or set the current session goal.",
+          "inputHint": "/goal [pause|resume|clear|replace <objective>|<objective>]",
+          "name": "goal",
+          "source": "builtin"
+        },
+        {
+          "description": "Design and launch a dynamic workflow for a task.",
+          "inputHint": "/workflow [what the workflow should accomplish]",
+          "name": "workflow",
+          "source": "builtin"
+        },
+        {
+          "description": "Compact the current conversation with optional instructions.",
+          "inputHint": "/compact [instructions]",
+          "name": "compact",
+          "source": "builtin"
+        },
+        {
+          "description": "Create or update workspace AGENTS.md instructions.",
+          "inputHint": "/init [notes]",
+          "name": "init",
+          "source": "builtin"
+        },
+        {
+          "description": "Show visit analytics of a ZCode Sites site.",
+          "inputHint": "/site-analytics [site id] [24h|7d|30d]",
+          "name": "site-analytics",
+          "source": "custom"
+        },
+        {
+          "description": "Hide or show the ZCode badge on the linked ZCode Sites site.",
+          "inputHint": "/site-badge hide | show",
+          "name": "site-badge",
+          "source": "custom"
+        },
+        {
+          "description": "Deploy this project to ZCode Sites, or redeploy the linked site.",
+          "inputHint": "/site-deploy [site id or notes]",
+          "name": "site-deploy",
+          "source": "custom"
+        },
+        {
+          "description": "Show the logs of a ZCode Sites deployment and explain any failure.",
+          "inputHint": "/site-logs [deployment id]",
+          "name": "site-logs",
+          "source": "custom"
+        },
+        {
+          "description": "Take the linked ZCode Sites site offline.",
+          "inputHint": "/site-offline [site id]",
+          "name": "site-offline",
+          "source": "custom"
+        },
+        {
+          "description": "Bring the linked ZCode Sites site back online.",
+          "inputHint": "/site-online [site id]",
+          "name": "site-online",
+          "source": "custom"
+        },
+        {
+          "description": "Show the ZCode Sites site linked to this project.",
+          "inputHint": "/site-status [site id]",
+          "name": "site-status",
+          "source": "custom"
+        },
+        {
+          "description": "Show ZCode Sites usage and plan limits.",
+          "inputHint": "/site-usage",
+          "name": "site-usage",
+          "source": "custom"
+        }
+      ],
+      "todos": [],
+      "todoGroups": []
+    }
+  },
+  {
+    "case": "C-load",
+    "t": 3601,
+    "kind": "mode_confirmation",
+    "data": {
+      "requested": "guarded",
+      "confirmed": "guarded"
+    }
+  },
+  {
+    "case": "C-load",
+    "t": 3617,
+    "kind": "update",
+    "data": {
+      "sessionId": "df396c68-ef73-4f0e-adab-c95c11cc0a69",
+      "sessionUpdate": "session_info_update"
+    }
+  },
+  {
+    "case": "C-load",
+    "t": 3802,
+    "kind": "update",
+    "data": {
+      "sessionId": "df396c68-ef73-4f0e-adab-c95c11cc0a69",
+      "sessionUpdate": "config_option_update",
+      "options": [
+        {
+          "id": "model",
+          "currentValue": "new-provider\\openai/glm-5.3"
+        },
+        {
+          "id": "mode",
+          "currentValue": "guarded"
+        },
+        {
+          "id": "thought",
+          "currentValue": "max"
+        }
+      ]
+    }
+  },
+  {
+    "case": "C-load",
+    "t": 4143,
+    "kind": "update",
+    "data": {
+      "sessionId": "df396c68-ef73-4f0e-adab-c95c11cc0a69",
+      "sessionUpdate": "available_commands_update"
+    }
+  },
+  {
+    "case": "C-load",
+    "t": 5374,
+    "kind": "update",
+    "data": {
+      "sessionId": "df396c68-ef73-4f0e-adab-c95c11cc0a69",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "C-load",
+    "t": 13822,
+    "kind": "update",
+    "data": {
+      "sessionId": "df396c68-ef73-4f0e-adab-c95c11cc0a69",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "C-load",
+    "t": 14085,
+    "kind": "update",
+    "data": {
+      "sessionId": "df396c68-ef73-4f0e-adab-c95c11cc0a69",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "C-load",
+    "t": 14222,
+    "kind": "update",
+    "data": {
+      "sessionId": "df396c68-ef73-4f0e-adab-c95c11cc0a69",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "C-load",
+    "t": 14226,
+    "kind": "update",
+    "data": {
+      "sessionId": "df396c68-ef73-4f0e-adab-c95c11cc0a69",
+      "sessionUpdate": "agent_message_chunk",
+      "text": "OK"
+    }
+  },
+  {
+    "case": "C-load",
+    "t": 14476,
+    "kind": "update",
+    "data": {
+      "sessionId": "df396c68-ef73-4f0e-adab-c95c11cc0a69",
+      "sessionUpdate": "usage_update"
+    }
+  },
+  {
+    "case": "C-load",
+    "t": 14479,
+    "kind": "update",
+    "data": {
+      "sessionId": "df396c68-ef73-4f0e-adab-c95c11cc0a69",
+      "sessionUpdate": "usage_update"
+    }
+  },
+  {
+    "case": "C-load",
+    "t": 14560,
+    "kind": "update",
+    "data": {
+      "sessionId": "df396c68-ef73-4f0e-adab-c95c11cc0a69",
+      "sessionUpdate": "usage_update"
+    }
+  },
+  {
+    "case": "C-load",
+    "t": 14563,
+    "kind": "update",
+    "data": {
+      "sessionId": "df396c68-ef73-4f0e-adab-c95c11cc0a69",
+      "sessionUpdate": "plan"
+    }
+  },
+  {
+    "case": "C-load",
+    "t": 14639,
+    "kind": "saved_session_id",
+    "data": {
+      "sessionId": "df396c68-ef73-4f0e-adab-c95c11cc0a69"
+    }
+  },
+  {
+    "case": "C-load",
+    "t": 14653,
+    "kind": "stderr_tail",
+    "data": {
+      "lines": [
+        "[zcode-acp]   ⚠ unhandled server→client request: interaction/requestOfficialMcpAuthHeaders (id=server-2)",
+        "[zcode-acp]   ⚠ unhandled server→client request: session/readReplyLanguage (id=server-4)",
+        "[zcode-acp]   ⚠ unhandled server→client request: interaction/requestOfficialMcpAuthHeaders (id=server-5)",
+        "[zcode-acp]   ⚠ unhandled server→client request: interaction/requestOfficialMcpAuthHeaders (id=server-6)",
+        "[zcode-acp]   ⚠ unhandled server→client request: interaction/requestOfficialMcpAuthHeaders (id=server-7)",
+        "[zcode-acp] session/messages carries the 3.18+ wire shape (info.messageId, no info.id) — normalized onto info.id for all id-based consumers"
+      ]
+    }
+  },
+  {
+    "case": "C-load",
+    "t": 14979,
+    "kind": "initialize",
+    "data": {
+      "agentVersion": "0.88.0",
+      "authMethods": [
+        {
+          "id": "zcode-credentials",
+          "name": "ZCode built-in credentials",
+          "description": "Reads the GLM API key from the ZCode desktop app's credential files (~/.zcode/v2) or a saved zcode-acp account. No editor-side credentials required."
+        }
+      ],
+      "capabilityKeys": [
+        "loadSession",
+        "promptCapabilities",
+        "mcpCapabilities",
+        "sessionCapabilities",
+        "_meta"
+      ]
+    }
+  },
+  {
+    "case": "C-load",
+    "t": 15049,
+    "kind": "update",
+    "data": {
+      "sessionId": "df396c68-ef73-4f0e-adab-c95c11cc0a69",
+      "sessionUpdate": "available_commands_update"
+    }
+  },
+  {
+    "case": "C-load",
+    "t": 15296,
+    "kind": "update",
+    "data": {
+      "sessionId": "df396c68-ef73-4f0e-adab-c95c11cc0a69",
+      "sessionUpdate": "available_commands_update"
+    }
+  },
+  {
+    "case": "C-load",
+    "t": 15997,
+    "kind": "update",
+    "data": {
+      "sessionId": "df396c68-ef73-4f0e-adab-c95c11cc0a69",
+      "sessionUpdate": "available_commands_update"
+    }
+  },
+  {
+    "case": "C-load",
+    "t": 18417,
+    "kind": "update",
+    "data": {
+      "sessionId": "df396c68-ef73-4f0e-adab-c95c11cc0a69",
+      "sessionUpdate": "user_message_chunk"
+    }
+  },
+  {
+    "case": "C-load",
+    "t": 18421,
+    "kind": "update",
+    "data": {
+      "sessionId": "df396c68-ef73-4f0e-adab-c95c11cc0a69",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "C-load",
+    "t": 18425,
+    "kind": "update",
+    "data": {
+      "sessionId": "df396c68-ef73-4f0e-adab-c95c11cc0a69",
+      "sessionUpdate": "agent_message_chunk",
+      "text": "OK"
+    }
+  },
+  {
+    "case": "C-load",
+    "t": 18514,
+    "kind": "update",
+    "data": {
+      "sessionId": "df396c68-ef73-4f0e-adab-c95c11cc0a69",
+      "sessionUpdate": "plan"
+    }
+  },
+  {
+    "case": "C-load",
+    "t": 18769,
+    "kind": "load_response",
+    "data": {
+      "modes": {
+        "currentModeId": "guarded",
+        "availableModes": [
+          {
+            "id": "plan",
+            "name": "Plan"
+          },
+          {
+            "id": "build",
+            "name": "Build"
+          },
+          {
+            "id": "edit",
+            "name": "Edit"
+          },
+          {
+            "id": "guarded",
+            "name": "Guarded"
+          },
+          {
+            "id": "yolo",
+            "name": "Yolo"
+          }
+        ]
+      },
+      "configOptions": [
+        {
+          "id": "model",
+          "name": "Model",
+          "category": "model",
+          "type": "select",
+          "currentValue": "new-provider\\openai/glm-5.3",
+          "options": [
+            {
+              "value": "new-provider\\openai/glm-5.3",
+              "name": "transwarp › openai/glm-5.3"
+            },
+            {
+              "value": "new-provider\\openai/deepseek-v4.1-flash",
+              "name": "transwarp › openai/deepseek-v4.1-flash"
+            },
+            {
+              "value": "new-provider\\openai/glm5.3-flash",
+              "name": "transwarp › openai/glm5.3-flash"
+            },
+            {
+              "value": "deepseek\\deepseek-flash",
+              "name": "deepseek › deepseek-flash"
+            },
+            {
+              "value": "deepseek\\deepseek-v4-pro",
+              "name": "deepseek › deepseek-v4-pro"
+            }
+          ],
+          "_meta": {
+            "zcode": {
+              "providers": [
+                {
+                  "id": "new-provider",
+                  "name": "transwarp",
+                  "selectable": true,
+                  "defaultModel": "openai/glm-5.3"
+                },
+                {
+                  "id": "deepseek",
+                  "name": "DeepSeek",
+                  "selectable": true
+                },
+                {
+                  "id": "new-provider-2",
+                  "name": "Step",
+                  "selectable": false,
+                  "unselectableReason": "disabled"
+                },
+                {
+                  "id": "new-provider-3",
+                  "name": "Agentrouter",
+                  "selectable": false,
+                  "unselectableReason": "disabled"
+                }
+              ],
+              "currentProviderId": "new-provider"
+            }
+          }
+        },
+        {
+          "id": "mode",
+          "name": "Mode",
+          "category": "mode",
+          "type": "select",
+          "currentValue": "guarded",
+          "options": [
+            {
+              "value": "plan",
+              "name": "plan"
+            },
+            {
+              "value": "build",
+              "name": "build"
+            },
+            {
+              "value": "edit",
+              "name": "edit"
+            },
+            {
+              "value": "guarded",
+              "name": "guarded"
+            },
+            {
+              "value": "yolo",
+              "name": "yolo"
+            }
+          ]
+        },
+        {
+          "id": "thought",
+          "name": "Thought Level",
+          "category": "thought_level",
+          "type": "select",
+          "currentValue": "max",
+          "options": [
+            {
+              "value": "none",
+              "name": "none"
+            },
+            {
+              "value": "low",
+              "name": "low"
+            },
+            {
+              "value": "high",
+              "name": "high"
+            },
+            {
+              "value": "max",
+              "name": "max"
+            }
+          ]
+        }
+      ],
+      "replayMeta": {
+        "cursor": "eyJ2IjoxLCJpbmRleCI6MCwidG90YWxUdXJucyI6MSwiaWQiOiJtc2dfbXd1amZraGNfMzFiNWVkZWItZTE5OC00YTllLWE5MzItZDNlYmZjOTg2MzQxIn0",
+        "hasMore": false,
+        "replayedMessages": 7,
+        "replayedTurns": 1,
+        "totalMessages": 7,
+        "totalTurns": 1,
+        "lastMessageId": "msg_mwujfkln_cdb4054d-81fb-4d68-9504-db59fa19281b",
+        "turnActive": false
+      }
+    }
+  },
+  {
+    "case": "C-load",
+    "t": 18824,
+    "kind": "update",
+    "data": {
+      "sessionId": "df396c68-ef73-4f0e-adab-c95c11cc0a69",
+      "sessionUpdate": "available_commands_update"
+    }
+  },
+  {
+    "case": "C-load",
+    "t": 19074,
+    "kind": "update",
+    "data": {
+      "sessionId": "df396c68-ef73-4f0e-adab-c95c11cc0a69",
+      "sessionUpdate": "available_commands_update"
+    }
+  },
+  {
+    "case": "C-load",
+    "t": 19774,
+    "kind": "update",
+    "data": {
+      "sessionId": "df396c68-ef73-4f0e-adab-c95c11cc0a69",
+      "sessionUpdate": "available_commands_update"
+    }
+  },
+  {
+    "case": "C-load",
+    "t": 35038,
+    "kind": "load_reported_mode",
+    "data": {
+      "mode": null
+    }
+  },
+  {
+    "case": "C-load",
+    "t": 35242,
+    "kind": "update",
+    "data": {
+      "sessionId": "df396c68-ef73-4f0e-adab-c95c11cc0a69",
+      "sessionUpdate": "config_option_update",
+      "options": [
+        {
+          "id": "model",
+          "currentValue": "new-provider\\openai/glm-5.3"
+        },
+        {
+          "id": "mode",
+          "currentValue": "guarded"
+        },
+        {
+          "id": "thought",
+          "currentValue": "max"
+        }
+      ]
+    }
+  },
+  {
+    "case": "C-load",
+    "t": 35323,
+    "kind": "update",
+    "data": {
+      "sessionId": "df396c68-ef73-4f0e-adab-c95c11cc0a69",
+      "sessionUpdate": "current_mode_update",
+      "currentModeId": "guarded"
+    }
+  },
+  {
+    "case": "C-load",
+    "t": 35326,
+    "kind": "set_mode_response_after_load",
+    "data": {
+      "messages": [
+        {
+          "info": {
+            "agent": "zcode-agent",
+            "messageId": "msg_mwujfkhc_31b5edeb-e198-4a9e-a932-d3ebfc986341",
+            "model": {
+              "providerId": "new-provider",
+              "modelId": "openai/glm-5.3",
+              "options": {
+                "reasoningLevel": "max"
+              }
+            },
+            "role": "user",
+            "semantics": {
+              "origin": "real_user",
+              "kind": "user_prompt",
+              "uiVisibility": "visible",
+              "providerVisibility": "visible",
+              "transcriptVisibility": "visible"
+            },
+            "sessionId": "sess_d7bdd74c-3d31-4602-a1cf-98d709a76254",
+            "time": {
+              "created": 1795515269240
+            },
+            "tools": {
+              "Agent": true,
+              "AskUserQuestion": true,
+              "Bash": true,
+              "Edit": true,
+              "EnterPlanMode": true,
+              "ExitPlanMode": true,
+              "Read": true,
+              "SendMessage": true,
+              "Skill": true,
+              "TaskOutput": true,
+              "TaskStop": true,
+              "TodoRead": true,
+              "TodoWrite": true,
+              "ToolSearch": true,
+              "WebFetch": true,
+              "WebSearch": true,
+              "Write": true,
+              "SearchPlugins": true,
+              "SuggestPluginInstall": true,
+              "DeferredToolCall": true,
+              "ReadTopicResource": true
+            }
+          },
+          "parts": [
+            {
+              "messageId": "msg_mwujfkhc_31b5edeb-e198-4a9e-a932-d3ebfc986341",
+              "partId": "part_mwujfkhk_8f6f666a-bd50-4739-bb4b-fa86a085a964",
+              "sessionId": "sess_d7bdd74c-3d31-4602-a1cf-98d709a76254",
+              "text": "Reply with exactly: OK",
+              "type": "text"
+            }
+          ]
+        },
+        {
+          "info": {
+            "agent": "zcode-agent",
+            "messageId": "msg_mwujfkkz_bbdb17e2-9ec0-4cdd-b9dc-23e6aab67965",
+            "model": {
+              "providerId": "new-provider",
+              "modelId": "openai/glm-5.3"
+            },
+            "metadata": {
+              "runtimeMessage": {
+                "source": "environment",
+                "environment": {
+                  "full": true,
+                  "snapshot": {
+                    "cwd": "~\\AppData\\Local\\Temp\\zcode-qual-lPFjje\\proj",
+                    "platform": "win32",
+                    "shell": "Git Bash",
+                    "osVersion": "win32 10.0.26200 x64",
+                    "isGitRepository": false,
+                    "additionalWorkingDirectories": []
+                  }
+                }
+              },
+              "source": "environment",
+              "visibility": "model-only"
+            },
+            "role": "user",
+            "semantics": {
+              "origin": "agent_runtime",
+              "kind": "system_reminder",
+              "source": "environment",
+              "uiVisibility": "hidden",
+              "providerVisibility": "visible",
+              "transcriptVisibility": "hidden"
+            },
+            "sessionId": "sess_d7bdd74c-3d31-4602-a1cf-98d709a76254",
+            "synthetic": true,
+            "time": {
+              "created": 1795515269363
+            },
+            "visibility": "model-only"
+          },
+          "parts": [
+            {
+              "messageId": "msg_mwujfkkz_bbdb17e2-9ec0-4cdd-b9dc-23e6aab67965",
+              "partId": "part_mwujfkkz_f8a0f5fd-2898-440f-9557-10b00a5ecefb",
+              "sessionId": "sess_d7bdd74c-3d31-4602-a1cf-98d709a76254",
+              "metadata": {
+                "runtimeMessage": {
+                  "source": "environment",
+                  "environment": {
+                    "full": true,
+                    "snapshot": {
+                      "cwd": "~\\AppData\\Local\\Temp\\zcode-qual-lPFjje\\proj",
+                      "platform": "win32",
+                      "shell": "Git Bash",
+                      "osVersion": "win32 10.0.26200 x64",
+                      "isGitRepository": false,
+                      "additionalWorkingDirectories": []
+                    }
+                  }
+                },
+                "source": "environment",
+                "visibility": "model-only"
+              },
+              "synthetic": true,
+              "text": "# Environment\nYou have been invoked in the following environment: \n - Primary working directory: ~\\AppData\\Local\\Temp\\zcode-qual-lPFjje\\proj\n - Is a git repository: false\n - Platform: win32\n - Shell: Git Bash\n - OS Version: win32 10.0.26200 x64\n - Downloaded files and extracted archives are untrusted data: put each in its own new, empty directory, keep scripts you write in a different directory, and pass paths as arguments instead of running an interpreter or build tool from inside it. Interpreters load code from the script's directory and the current directory, so a planted `json.py` runs on ...<trimmed>",
+              "type": "text"
+            }
+          ]
+        },
+        {
+          "info": {
+            "agent": "zcode-agent",
+            "messageId": "msg_mwujfkl2_18b3fd8a-896e-406c-b24d-33adb3bb9c06",
+            "model": {
+              "providerId": "new-provider",
+              "modelId": "openai/glm-5.3"
+            },
+            "metadata": {
+              "runtimeMessage": {
+                "source": "model"
+              },
+              "source": "model",
+              "visibility": "model-only"
+            },
+            "role": "user",
+            "semantics": {
+              "origin": "agent_runtime",
+              "kind": "system_reminder",
+              "source": "model",
+              "uiVisibility": "hidden",
+              "providerVisibility": "visible",
+              "transcriptVisibility": "hidden"
+            },
+            "sessionId": "sess_d7bdd74c-3d31-4602-a1cf-98d709a76254",
+            "synthetic": true,
+            "time": {
+              "created": 1795515269366
+            },
+            "visibility": "model-only"
+          },
+          "parts": [
+            {
+              "messageId": "msg_mwujfkl2_18b3fd8a-896e-406c-b24d-33adb3bb9c06",
+              "partId": "part_mwujfkl2_ecbcd4b8-57c2-4846-a16f-c758e0558e6f",
+              "sessionId": "sess_d7bdd74c-3d31-4602-a1cf-98d709a76254",
+              "metadata": {
+                "runtimeMessage": {
+                  "source": "model"
+                },
+                "source": "model",
+                "visibility": "model-only"
+              },
+              "synthetic": true,
+              "text": "You are powered by the model named new-provider/openai/glm-5.3.",
+              "type": "text"
+            }
+          ]
+        },
+        {
+          "info": {
+            "agent": "zcode-agent",
+            "messageId": "msg_mwujfkl5_b8c451cf-d8ec-47b6-a1cd-29339d2bc087",
+            "model": {
+              "providerId": "new-provider",
+              "modelId": "openai/glm-5.3",
+              "options": {
+                "reasoningLevel": "max"
+              }
+            },
+            "metadata": {
+              "source": "agent_listing_delta",
+              "visibility": "model-only"
+            },
+            "role": "user",
+            "semantics": {
+              "origin": "agent_runtime",
+              "kind": "system_reminder",
+              "source": "agent_listing_delta",
+              "uiVisibility": "hidden",
+              "providerVisibility": "visible",
+              "transcriptVisibility": "hidden"
+            },
+            "sessionId": "sess_d7bdd74c-3d31-4602-a1cf-98d709a76254",
+            "source": "agent_listing_delta",
+            "synthetic": true,
+            "time": {
+              "created": 1795515269369
+            },
+            "visibility": "model-only"
+          },
+          "parts": [
+            {
+              "messageId": "msg_mwujfkl5_b8c451cf-d8ec-47b6-a1cd-29339d2bc087",
+              "partId": "part_mwujfkl5_07f4a17e-f192-48d0-9eec-0ee3b60bbe27",
+              "sessionId": "sess_d7bdd74c-3d31-4602-a1cf-98d709a76254",
+              "metadata": {
+                "runtimeMessage": {
+                  "source": "agent_listing_delta",
+                  "agentListingDelta": {
+                    "addedTypes": ["Explore", "general-purpose"],
+                    "addedLines": [
+                      "- Explore: Read-only search agent for broad fan-out searches — when answering means sweeping many files, directories, or naming conventions and you only need the conclusion, not the file dumps. It reads excerpts rather than whole files, so it locates code; it doesn't review or audit it. Specify search breadth: \"medium\" for moderate exploration, \"very thorough\" for multiple locations and naming conventions. (Tools: Read, Bash, WebFetch, WebSearch, TodoWrite)",
+                      "- general-purpose: General-purpose agent for researching complex questions, searching for code, and executing multi-step tasks. When you are searching for a keyword or file and are not confident that you will find the right match in the first few tries use this agent to perform the search for you. (Tools: *)"
+                    ],
+                    "removedTypes": [],
+                    "isInitial": true,
+                    "showConcurrencyNote": true
+                  }
+                },
+                "source": "agent_listing_delta",
+                "visibility": "model-only"
+              },
+              "synthetic": true,
+              "text": "Available agent types for the Agent tool:\n- Explore: Read-only search agent for broad fan-out searches — when answering means sweeping many files, directories, or naming conventions and you only need the conclusion, not the file dumps. It reads excerpts rather than whole files, so it locates code; it doesn't review or audit it. Specify search breadth: \"medium\" for moderate exploration, \"very thorough\" for multiple locations and naming conventions. (Tools: Read, Bash, WebFetch, WebSearch, TodoWrite)\n- general-purpose: General-purpose agent for researching complex questions, searching for code, ...<trimmed>",
+              "type": "text"
+            }
+          ]
+        },
+        {
+          "info": {
+            "agent": "zcode-agent",
+            "messageId": "msg_mwujfkla_52fc0dc5-6973-4103-8ea3-d696a0cd4f51",
+            "model": {
+              "providerId": "new-provider",
+              "modelId": "openai/glm-5.3"
+            },
+            "metadata": {
+              "runtimeMessage": {
+                "source": "skills_listing",
+                "skillsListingDelta": {
+                  "names": [
+                    "architect",
+                    "browser-use:control-browser",
+                    "browser-use:web-gui-tester",
+                    "deploy-to-vercel",
+                    "documents:docx",
+                    "documents:docx-viewer",
+                    "dynamic-workflows",
+                    "find-skills",
+                    "frontend-design",
+                    "github:codespace",
+                    "github:commit",
+                    "github:gist",
+                    "github:issue",
+                    "github:pr",
+                    "github:release",
+                    "github:repo",
+                    "github:secret",
+                    "github:setup",
+                    "github:workflow-run",
+                    "grill",
+                    "pdf:pdf",
+                    "pdf:pdf-viewer",
+                    "plugin-creator:plugin-creator",
+                    "presentations:pptx",
+                    "presentations:pptx-viewer",
+                    "prove-it",
+                    "skill-creator:skill-creator",
+                    "spreadsheets:xlsx",
+                    "spreadsheets:xlsx-viewer",
+                    "ssh-mcp-helper",
+                    "ssh-mcp-helper",
+                    "vercel-cli-with-tokens",
+                    "vercel-optimize",
+                    "vercel-react-best-practices",
+                    "vercel-react-view-transitions",
+                    "web-design-guidelines",
+                    "writing-guidelines",
+                    "zcode-guide:diagnosing-commands",
+                    "zcode-guide:diagnosing-hooks",
+                    "zcode-guide:diagnosing-mcp",
+                    "zcode-guide:diagnosing-plugins",
+                    "zcode-guide:diagnosing-skills",
+                    "zcode-guide:zcode-configuration-guide",
+                    "zcode-site:site-deploy"
+                  ],
+                  "fingerprints": [
+                    "7c4aa2022cea06e9",
+                    "c8e5224ee5c18c89",
+                    "1c1a74061e73e7fa",
+                    "2550f35062f498bc",
+                    "ffdbbe012fe3d6fd",
+                    "acf78ecdfbc10ab1",
+                    "a9ea754172c57e7d",
+                    "a5cfb0cb11a30b00",
+                    "5aa8f22511bea97e",
+                    "bfae874fd59d9094",
+                    "5acb28a20908f1ed",
+                    "836c0e1be8ac346e",
+                    "f6d250a9a2ceeaec",
+                    "bdc31ff1a501bdbe",
+                    "34d0edd4f1b5d40d",
+                    "c14a0d7a723b83c4",
+                    "4f4d66aed9d5ad0a",
+                    "d891e51dd0a24d31",
+                    "3de06a0d44f0b0ca",
+                    "73b25bbdb0928502",
+                    "32fed5160a11fc1f",
+                    "155dfdefbda43c05",
+                    "2432545ef8e8820b",
+                    "987d41b1154e27b8",
+                    "03d227baf980ae32",
+                    "45ed564c2b0f62ef",
+                    "af62f85815cd0979",
+                    "b78b863faccccd51",
+                    "69d75619898033fd",
+                    "26dafbb3a78aaabf",
+                    "deb3eaf3d136bad7",
+                    "e18347f907286763",
+                    "a0d35b1bb57d28df",
+                    "0296f7783056bad9",
+                    "916e9d4ec0c2115d",
+                    "c1914f0b5dcced52",
+                    "38f276830f125e70",
+                    "c15df8d2cad342b0",
+                    "ea7dd1511487da01",
+                    "f809b65214c58d70",
+                    "4a7224c4c5c8c565",
+                    "55af9c9e680d1e5e",
+                    "333e5dbde7fb171f",
+                    "6c90b7305d7282f0"
+                  ]
+                }
+              },
+              "source": "skills_listing",
+              "visibility": "model-only"
+            },
+            "role": "user",
+            "semantics": {
+              "origin": "agent_runtime",
+              "kind": "system_reminder",
+              "source": "skills_listing",
+              "uiVisibility": "hidden",
+              "providerVisibility": "visible",
+              "transcriptVisibility": "hidden"
+            },
+            "sessionId": "sess_d7bdd74c-3d31-4602-a1cf-98d709a76254",
+            "synthetic": true,
+            "time": {
+              "created": 1795515269374
+            },
+            "visibility": "model-only"
+          },
+          "parts": [
+            {
+              "messageId": "msg_mwujfkla_52fc0dc5-6973-4103-8ea3-d696a0cd4f51",
+              "partId": "part_mwujfkla_828df17d-4353-4040-b1df-ece74e703b1f",
+              "sessionId": "sess_d7bdd74c-3d31-4602-a1cf-98d709a76254",
+              "metadata": {
+                "runtimeMessage": {
+                  "source": "skills_listing",
+                  "skillsListingDelta": {
+                    "names": [
+                      "architect",
+                      "browser-use:control-browser",
+                      "browser-use:web-gui-tester",
+                      "deploy-to-vercel",
+                      "documents:docx",
+                      "documents:docx-viewer",
+                      "dynamic-workflows",
+                      "find-skills",
+                      "frontend-design",
+                      "github:codespace",
+                      "github:commit",
+                      "github:gist",
+                      "github:issue",
+                      "github:pr",
+                      "github:release",
+                      "github:repo",
+                      "github:secret",
+                      "github:setup",
+                      "github:workflow-run",
+                      "grill",
+                      "pdf:pdf",
+                      "pdf:pdf-viewer",
+                      "plugin-creator:plugin-creator",
+                      "presentations:pptx",
+                      "presentations:pptx-viewer",
+                      "prove-it",
+                      "skill-creator:skill-creator",
+                      "spreadsheets:xlsx",
+                      "spreadsheets:xlsx-viewer",
+                      "ssh-mcp-helper",
+                      "ssh-mcp-helper",
+                      "vercel-cli-with-tokens",
+                      "vercel-optimize",
+                      "vercel-react-best-practices",
+                      "vercel-react-view-transitions",
+                      "web-design-guidelines",
+                      "writing-guidelines",
+                      "zcode-guide:diagnosing-commands",
+                      "zcode-guide:diagnosing-hooks",
+                      "zcode-guide:diagnosing-mcp",
+                      "zcode-guide:diagnosing-plugins",
+                      "zcode-guide:diagnosing-skills",
+                      "zcode-guide:zcode-configuration-guide",
+                      "zcode-site:site-deploy"
+                    ],
+                    "fingerprints": [
+                      "7c4aa2022cea06e9",
+                      "c8e5224ee5c18c89",
+                      "1c1a74061e73e7fa",
+                      "2550f35062f498bc",
+                      "ffdbbe012fe3d6fd",
+                      "acf78ecdfbc10ab1",
+                      "a9ea754172c57e7d",
+                      "a5cfb0cb11a30b00",
+                      "5aa8f22511bea97e",
+                      "bfae874fd59d9094",
+                      "5acb28a20908f1ed",
+                      "836c0e1be8ac346e",
+                      "f6d250a9a2ceeaec",
+                      "bdc31ff1a501bdbe",
+                      "34d0edd4f1b5d40d",
+                      "c14a0d7a723b83c4",
+                      "4f4d66aed9d5ad0a",
+                      "d891e51dd0a24d31",
+                      "3de06a0d44f0b0ca",
+                      "73b25bbdb0928502",
+                      "32fed5160a11fc1f",
+                      "155dfdefbda43c05",
+                      "2432545ef8e8820b",
+                      "987d41b1154e27b8",
+                      "03d227baf980ae32",
+                      "45ed564c2b0f62ef",
+                      "af62f85815cd0979",
+                      "b78b863faccccd51",
+                      "69d75619898033fd",
+                      "26dafbb3a78aaabf",
+                      "deb3eaf3d136bad7",
+                      "e18347f907286763",
+                      "a0d35b1bb57d28df",
+                      "0296f7783056bad9",
+                      "916e9d4ec0c2115d",
+                      "c1914f0b5dcced52",
+                      "38f276830f125e70",
+                      "c15df8d2cad342b0",
+                      "ea7dd1511487da01",
+                      "f809b65214c58d70",
+                      "4a7224c4c5c8c565",
+                      "55af9c9e680d1e5e",
+                      "333e5dbde7fb171f",
+                      "6c90b7305d7282f0"
+                    ]
+                  }
+                },
+                "source": "skills_listing",
+                "visibility": "model-only"
+              },
+              "synthetic": true,
+              "text": "The following skills are available for use with the Skill tool:\n\n- architect: 技术选型（tech stack）：需求清楚之后，比较两三套方案并推荐一套。用于新项目选框架、数据库、托管和部署方式，或用户问「用什么技术做」「怎么部署」、which stack、how to host。 (file: ~\\.agents\\skills\\architect\\SKILL.md)\n- browser-use:control-browser: Use when opening, navigating, inspecting, testing, clicking, typing, filling, screenshotting, or verifying web pages and local HTTP targets (localhost, 127.0.0.1, ::1) inside ZCode, including browser/web-UI automation, rendered-page scraping, fronte... (also loadable as control-browser) (file: ~\\.zcode\\cli\\plugins\\cache\\zcode-plugins-official\\...<trimmed>",
+              "type": "text"
+            }
+          ]
+        },
+        {
+          "info": {
+            "agent": "zcode-agent",
+            "messageId": "msg_mwujfklg_4b704b46-1389-4701-abf8-fed12cdbb795",
+            "model": {
+              "providerId": "new-provider",
+              "modelId": "openai/glm-5.3"
+            },
+            "metadata": {
+              "runtimeMessage": {
+                "source": "date"
+              },
+              "source": "date",
+              "visibility": "model-only"
+            },
+            "role": "user",
+            "semantics": {
+              "origin": "agent_runtime",
+              "kind": "system_reminder",
+              "source": "date",
+              "uiVisibility": "hidden",
+              "providerVisibility": "visible",
+              "transcriptVisibility": "hidden"
+            },
+            "sessionId": "sess_d7bdd74c-3d31-4602-a1cf-98d709a76254",
+            "synthetic": true,
+            "time": {
+              "created": 1795515269380
+            },
+            "visibility": "model-only"
+          },
+          "parts": [
+            {
+              "messageId": "msg_mwujfklg_4b704b46-1389-4701-abf8-fed12cdbb795",
+              "partId": "part_mwujfklg_2ea09898-a660-4544-9d88-b92d8f427342",
+              "sessionId": "sess_d7bdd74c-3d31-4602-a1cf-98d709a76254",
+              "metadata": {
+                "runtimeMessage": {
+                  "source": "date"
+                },
+                "source": "date",
+                "visibility": "model-only"
+              },
+              "synthetic": true,
+              "text": "Today's date is 2026-11-24.",
+              "type": "text"
+            }
+          ]
+        },
+        {
+          "info": {
+            "agent": "zcode-agent",
+            "cost": 0,
+            "finish": "stop",
+            "messageId": "msg_mwujfkln_cdb4054d-81fb-4d68-9504-db59fa19281b",
+            "model": {
+              "providerId": "new-provider",
+              "modelId": "openai/glm-5.3"
+            },
+            "parentMessageId": "msg_mwujfkhc_31b5edeb-e198-4a9e-a932-d3ebfc986341",
+            "path": {
+              "cwd": "~\\AppData\\Local\\Temp\\zcode-qual-lPFjje\\proj",
+              "root": "~\\AppData\\Local\\Temp\\zcode-qual-lPFjje\\proj"
+            },
+            "role": "assistant",
+            "semantics": {
+              "origin": "agent_runtime",
+              "kind": "assistant_response",
+              "uiVisibility": "visible",
+              "providerVisibility": "visible",
+              "transcriptVisibility": "visible"
+            },
+            "sessionId": "sess_d7bdd74c-3d31-4602-a1cf-98d709a76254",
+            "time": {
+              "created": 1795515269388,
+              "completed": 1795515279845
+            },
+            "tokens": {
+              "total": 13275,
+              "input": 13244,
+              "output": 31,
+              "reasoning": 29,
+              "cache": {
+                "read": 0,
+                "write": 0
+              }
+            }
+          },
+          "parts": [
+            {
+              "messageId": "msg_mwujfkln_cdb4054d-81fb-4d68-9504-db59fa19281b",
+              "partId": "part_mwujfklq_4b1b4d72-4fed-45d4-bb9e-3735220fa373",
+              "sessionId": "sess_d7bdd74c-3d31-4602-a1cf-98d709a76254",
+              "type": "step-start"
+            },
+            {
+              "messageId": "msg_mwujfkln_cdb4054d-81fb-4d68-9504-db59fa19281b",
+              "partId": "part_mwujfsnr_d4783db2-0760-46bb-9340-2c14c58dc8ec",
+              "sessionId": "sess_d7bdd74c-3d31-4602-a1cf-98d709a76254",
+              "text": "The user has sent a message that ends with \"Reply with exactly: OK\". This is a simple instruction to respond with exactly \"OK\".",
+              "type": "reasoning"
+            },
+            {
+              "messageId": "msg_mwujfkln_cdb4054d-81fb-4d68-9504-db59fa19281b",
+              "partId": "part_mwujfsnt_8b441176-66ed-45eb-b6f7-f1debf780bba",
+              "sessionId": "sess_d7bdd74c-3d31-4602-a1cf-98d709a76254",
+              "text": "OK",
+              "type": "text"
+            },
+            {
+              "messageId": "msg_mwujfkln_cdb4054d-81fb-4d68-9504-db59fa19281b",
+              "partId": "part_mwujfso4_d60238e2-70a9-4358-8486-a774f3257322",
+              "sessionId": "sess_d7bdd74c-3d31-4602-a1cf-98d709a76254",
+              "cost": 0,
+              "reason": "stop",
+              "tokens": {
+                "total": 13275,
+                "input": 13244,
+                "output": 31,
+                "reasoning": 29,
+                "cache": {
+                  "read": 0,
+                  "write": 0
+                }
+              },
+              "type": "step-finish"
+            }
+          ]
+        }
+      ],
+      "projection": {
+        "activeToolCalls": [],
+        "backgroundJobs": [],
+        "contextUsed": 0,
+        "contextWindow": 200000,
+        "mode": "build",
+        "pendingPermissions": [],
+        "sessionId": "sess_d7bdd74c-3d31-4602-a1cf-98d709a76254",
+        "status": "idle",
+        "target": null,
+        "totalTokenCount": 0,
+        "turnCount": 0
+      },
+      "protocol": {
+        "name": "ZCode Protocol",
+        "version": 1
+      },
+      "runtime": {
+        "eventSeq": 3,
+        "pendingRequestIds": [],
+        "contextUsage": {
+          "cache": {
+            "inputTokens": 13244,
+            "cacheReadTokens": 0,
+            "cacheWriteTokens": 0,
+            "latestHitRate": 0,
+            "hitRate": 0,
+            "hitRateRequestCount": 1,
+            "totalInputTokens": 13244,
+            "totalCacheReadTokens": 0,
+            "totalCacheWriteTokens": 0
+          },
+          "cost": null,
+          "size": 200000,
+          "used": 13275
+        },
+        "goalVerifications": [],
+        "goalVerificationTimeline": [],
+        "stateRevision": 2
+      },
+      "session": {
+        "createdAt": 1795515269225,
+        "mode": "build",
+        "model": {
+          "providerId": "new-provider",
+          "modelId": "openai/glm-5.3"
+        },
+        "traceId": "761a3f21-b27b-4793-a3f9-d0d508e436b3",
+        "sessionId": "sess_d7bdd74c-3d31-4602-a1cf-98d709a76254",
+        "sessionKind": "interactive",
+        "status": "idle",
+        "target": null,
+        "title": "Reply with exactly: OK",
+        "titleSource": "first_input",
+        "updatedAt": 1795515279852,
+        "workspace": {
+          "workspacePath": "~\\AppData\\Local\\Temp\\zcode-qual-lPFjje\\proj",
+          "workspaceKey": "~\\AppData\\Local\\Temp\\zcode-qual-lPFjje\\proj"
+        }
+      },
+      "settings": {
+        "mode": {
+          "current": "guarded"
+        },
+        "model": {
+          "available": [
+            {
+              "ref": {
+                "providerId": "new-provider",
+                "modelId": "openai/glm-5.3"
+              },
+              "label": "openai/glm-5.3",
+              "providerLabel": "transwarp",
+              "contextWindow": 200000,
+              "maxOutputTokens": 128000,
+              "reasoning": {
+                "levels": [
+                  {
+                    "value": "none",
+                    "label": "none"
+                  },
+                  {
+                    "value": "low",
+                    "label": "low"
+                  },
+                  {
+                    "value": "high",
+                    "label": "high"
+                  },
+                  {
+                    "value": "max",
+                    "label": "max"
+                  }
+                ],
+                "defaultLevel": "max"
+              },
+              "properties": {
+                "inputFormat": {
+                  "supportsText": true,
+                  "supportsImage": false,
+                  "supportsVideo": false,
+                  "supportsAudio": false,
+                  "supportsPdf": false
+                },
+                "outputFormat": {
+                  "supportsText": true
+                }
+              }
+            }
+          ],
+          "current": {
+            "providerId": "new-provider",
+            "modelId": "openai/glm-5.3",
+            "options": {
+              "reasoningLevel": "max"
+            }
+          },
+          "lastUsed": {
+            "providerId": "new-provider",
+            "modelId": "openai/glm-5.3"
+          }
+        },
+        "permission": {
+          "mode": "guarded"
+        },
+        "thoughtLevel": {
+          "available": [
+            {
+              "label": "none",
+              "value": "none"
+            },
+            {
+              "label": "low",
+              "value": "low"
+            },
+            {
+              "label": "high",
+              "value": "high"
+            },
+            {
+              "label": "max",
+              "value": "max"
+            }
+          ],
+          "current": "max",
+          "enabled": true
+        }
+      },
+      "slashCommands": [
+        {
+          "description": "Show or set the current session goal.",
+          "inputHint": "/goal [pause|resume|clear|replace <objective>|<objective>]",
+          "name": "goal",
+          "source": "builtin"
+        },
+        {
+          "description": "Design and launch a dynamic workflow for a task.",
+          "inputHint": "/workflow [what the workflow should accomplish]",
+          "name": "workflow",
+          "source": "builtin"
+        },
+        {
+          "description": "Compact the current conversation with optional instructions.",
+          "inputHint": "/compact [instructions]",
+          "name": "compact",
+          "source": "builtin"
+        },
+        {
+          "description": "Create or update workspace AGENTS.md instructions.",
+          "inputHint": "/init [notes]",
+          "name": "init",
+          "source": "builtin"
+        },
+        {
+          "description": "Show visit analytics of a ZCode Sites site.",
+          "inputHint": "/site-analytics [site id] [24h|7d|30d]",
+          "name": "site-analytics",
+          "source": "custom"
+        },
+        {
+          "description": "Hide or show the ZCode badge on the linked ZCode Sites site.",
+          "inputHint": "/site-badge hide | show",
+          "name": "site-badge",
+          "source": "custom"
+        },
+        {
+          "description": "Deploy this project to ZCode Sites, or redeploy the linked site.",
+          "inputHint": "/site-deploy [site id or notes]",
+          "name": "site-deploy",
+          "source": "custom"
+        },
+        {
+          "description": "Show the logs of a ZCode Sites deployment and explain any failure.",
+          "inputHint": "/site-logs [deployment id]",
+          "name": "site-logs",
+          "source": "custom"
+        },
+        {
+          "description": "Take the linked ZCode Sites site offline.",
+          "inputHint": "/site-offline [site id]",
+          "name": "site-offline",
+          "source": "custom"
+        },
+        {
+          "description": "Bring the linked ZCode Sites site back online.",
+          "inputHint": "/site-online [site id]",
+          "name": "site-online",
+          "source": "custom"
+        },
+        {
+          "description": "Show the ZCode Sites site linked to this project.",
+          "inputHint": "/site-status [site id]",
+          "name": "site-status",
+          "source": "custom"
+        },
+        {
+          "description": "Show ZCode Sites usage and plan limits.",
+          "inputHint": "/site-usage",
+          "name": "site-usage",
+          "source": "custom"
+        }
+      ],
+      "todos": [],
+      "todoGroups": []
+    }
+  },
+  {
+    "case": "C-load",
+    "t": 55331,
+    "kind": "mode_confirmation_after_load",
+    "data": {
+      "requested": "guarded",
+      "confirmed": null
+    }
+  },
+  {
+    "case": "C-load",
+    "t": 55488,
+    "kind": "update",
+    "data": {
+      "sessionId": "df396c68-ef73-4f0e-adab-c95c11cc0a69",
+      "sessionUpdate": "config_option_update",
+      "options": [
+        {
+          "id": "model",
+          "currentValue": "new-provider\\openai/glm-5.3"
+        },
+        {
+          "id": "mode",
+          "currentValue": "guarded"
+        },
+        {
+          "id": "thought",
+          "currentValue": "max"
+        }
+      ]
+    }
+  },
+  {
+    "case": "C-load",
+    "t": 57056,
+    "kind": "update",
+    "data": {
+      "sessionId": "df396c68-ef73-4f0e-adab-c95c11cc0a69",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "C-load",
+    "t": 60663,
+    "kind": "update",
+    "data": {
+      "sessionId": "df396c68-ef73-4f0e-adab-c95c11cc0a69",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "C-load",
+    "t": 60928,
+    "kind": "update",
+    "data": {
+      "sessionId": "df396c68-ef73-4f0e-adab-c95c11cc0a69",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "C-load",
+    "t": 60972,
+    "kind": "update",
+    "data": {
+      "sessionId": "df396c68-ef73-4f0e-adab-c95c11cc0a69",
+      "sessionUpdate": "agent_thought_chunk"
+    }
+  },
+  {
+    "case": "C-load",
+    "t": 60979,
+    "kind": "update",
+    "data": {
+      "sessionId": "df396c68-ef73-4f0e-adab-c95c11cc0a69",
+      "sessionUpdate": "agent_message_chunk",
+      "text": "OK"
+    }
+  },
+  {
+    "case": "C-load",
+    "t": 61205,
+    "kind": "update",
+    "data": {
+      "sessionId": "df396c68-ef73-4f0e-adab-c95c11cc0a69",
+      "sessionUpdate": "usage_update"
+    }
+  },
+  {
+    "case": "C-load",
+    "t": 61210,
+    "kind": "update",
+    "data": {
+      "sessionId": "df396c68-ef73-4f0e-adab-c95c11cc0a69",
+      "sessionUpdate": "usage_update"
+    }
+  },
+  {
+    "case": "C-load",
+    "t": 61290,
+    "kind": "update",
+    "data": {
+      "sessionId": "df396c68-ef73-4f0e-adab-c95c11cc0a69",
+      "sessionUpdate": "usage_update"
+    }
+  },
+  {
+    "case": "C-load",
+    "t": 61364,
+    "kind": "turn_after_load",
+    "data": {
+      "stopReason": "end_turn"
+    }
+  },
+  {
+    "case": "C-load",
+    "t": 61379,
+    "kind": "stderr_tail",
+    "data": {
+      "lines": [
+        "[zcode-acp] session/messages carries the 3.18+ wire shape (info.messageId, no info.id) — normalized onto info.id for all id-based consumers",
+        "[zcode-acp]   ⚠ orphaned interaction/requestOfficialMcpAuthHeaders with no answerable session — declining with offline push",
+        "[zcode-acp]   ⚠ orphaned interaction/requestOfficialMcpAuthHeaders with no answerable session — declining with offline push",
+        "[zcode-acp]   ⚠ orphaned interaction/requestOfficialMcpAuthHeaders with no answerable session — declining with offline push",
+        "[zcode-acp]   ⚠ orphaned interaction/requestOfficialMcpAuthHeaders with no answerable session — declining with offline push",
+        "[zcode-acp]   ⚠ unhandled server→client request: session/readReplyLanguage (id=server-7)"
+      ]
+    }
+  },
+  {
+    "case": "C-load",
+    "t": 61704,
+    "kind": "initialize",
+    "data": {
+      "agentVersion": "0.88.0",
+      "authMethods": [
+        {
+          "id": "zcode-credentials",
+          "name": "ZCode built-in credentials",
+          "description": "Reads the GLM API key from the ZCode desktop app's credential files (~/.zcode/v2) or a saved zcode-acp account. No editor-side credentials required."
+        }
+      ],
+      "capabilityKeys": [
+        "loadSession",
+        "promptCapabilities",
+        "mcpCapabilities",
+        "sessionCapabilities",
+        "_meta"
+      ]
+    }
+  },
+  {
+    "case": "C-load",
+    "t": 63542,
+    "kind": "load_missing_failed",
+    "data": {
+      "message": "Internal error"
+    }
+  },
+  {
+    "case": "C-load",
+    "t": 63568,
+    "kind": "session_new",
+    "data": {
+      "sessionId": "d59fa9a2-ca45-4ee2-bf86-51ad3261d543",
+      "modes": {
+        "currentModeId": "yolo",
+        "availableModes": [
+          {
+            "id": "plan",
+            "name": "Plan"
+          },
+          {
+            "id": "build",
+            "name": "Build"
+          },
+          {
+            "id": "edit",
+            "name": "Edit"
+          },
+          {
+            "id": "guarded",
+            "name": "Guarded"
+          },
+          {
+            "id": "yolo",
+            "name": "Yolo"
+          }
+        ]
+      },
+      "reportedMode": "yolo",
+      "configOptionIds": ["model", "mode", "thought"],
+      "meta": {
+        "zcode": {
+          "providers": [
+            {
+              "id": "new-provider",
+              "name": "transwarp",
+              "selectable": true,
+              "defaultModel": "openai/glm-5.3"
+            },
+            {
+              "id": "deepseek",
+              "name": "DeepSeek",
+              "selectable": true
+            },
+            {
+              "id": "new-provider-2",
+              "name": "Step",
+              "selectable": false,
+              "unselectableReason": "disabled"
+            },
+            {
+              "id": "new-provider-3",
+              "name": "Agentrouter",
+              "selectable": false,
+              "unselectableReason": "disabled"
+            }
+          ],
+          "currentProviderId": "new-provider"
+        }
+      }
+    }
+  },
+  {
+    "case": "C-load",
+    "t": 63697,
+    "kind": "update",
+    "data": {
+      "sessionId": "d59fa9a2-ca45-4ee2-bf86-51ad3261d543",
+      "sessionUpdate": "available_commands_update"
+    }
+  },
+  {
+    "case": "C-load",
+    "t": 63883,
+    "kind": "update",
+    "data": {
+      "sessionId": "d59fa9a2-ca45-4ee2-bf86-51ad3261d543",
+      "sessionUpdate": "available_commands_update"
+    }
+  },
+  {
+    "case": "C-load",
+    "t": 64475,
+    "kind": "update",
+    "data": {
+      "sessionId": "d59fa9a2-ca45-4ee2-bf86-51ad3261d543",
+      "sessionUpdate": "available_commands_update"
+    }
+  },
+  {
+    "case": "C-load",
+    "t": 64704,
+    "kind": "update",
+    "data": {
+      "sessionId": "d59fa9a2-ca45-4ee2-bf86-51ad3261d543",
+      "sessionUpdate": "config_option_update",
+      "options": [
+        {
+          "id": "model",
+          "currentValue": "new-provider\\openai/glm-5.3"
+        },
+        {
+          "id": "mode",
+          "currentValue": "guarded"
+        },
+        {
+          "id": "thought",
+          "currentValue": "max"
+        }
+      ]
+    }
+  },
+  {
+    "case": "C-load",
+    "t": 64724,
+    "kind": "update",
+    "data": {
+      "sessionId": "d59fa9a2-ca45-4ee2-bf86-51ad3261d543",
+      "sessionUpdate": "available_commands_update"
+    }
+  },
+  {
+    "case": "C-load",
+    "t": 64824,
+    "kind": "update",
+    "data": {
+      "sessionId": "d59fa9a2-ca45-4ee2-bf86-51ad3261d543",
+      "sessionUpdate": "current_mode_update",
+      "currentModeId": "guarded"
+    }
+  },
+  {
+    "case": "C-load",
+    "t": 64829,
+    "kind": "set_mode_response",
+    "data": {
+      "messages": [],
+      "projection": {
+        "activeToolCalls": [],
+        "backgroundJobs": [],
+        "contextUsed": 0,
+        "contextWindow": 200000,
+        "mode": "guarded",
+        "pendingPermissions": [],
+        "sessionId": "sess_8b119557-50c5-4ed0-956e-5c56ea525d83",
+        "status": "idle",
+        "target": null,
+        "totalTokenCount": 0,
+        "turnCount": 0
+      },
+      "protocol": {
+        "name": "ZCode Protocol",
+        "version": 1
+      },
+      "runtime": {
+        "eventSeq": 1,
+        "pendingRequestIds": [],
+        "goalVerifications": [],
+        "goalVerificationTimeline": [],
+        "stateRevision": 2
+      },
+      "session": {
+        "createdAt": 1795515329534,
+        "mode": "guarded",
+        "model": {
+          "providerId": "new-provider",
+          "modelId": "openai/glm-5.3"
+        },
+        "traceId": "6800492e-1c51-4e46-a5ab-887e00ce5104",
+        "sessionId": "sess_8b119557-50c5-4ed0-956e-5c56ea525d83",
+        "sessionKind": "interactive",
+        "status": "idle",
+        "target": null,
+        "title": "",
+        "updatedAt": 1795515329534,
+        "workspace": {
+          "workspacePath": "~\\AppData\\Local\\Temp\\zcode-qual-lPFjje\\proj",
+          "workspaceKey": "~\\AppData\\Local\\Temp\\zcode-qual-lPFjje\\proj"
+        }
+      },
+      "settings": {
+        "mode": {
+          "current": "guarded"
+        },
+        "model": {
+          "available": [
+            {
+              "ref": {
+                "providerId": "new-provider",
+                "modelId": "openai/glm-5.3"
+              },
+              "label": "openai/glm-5.3",
+              "providerLabel": "transwarp",
+              "contextWindow": 200000,
+              "maxOutputTokens": 128000,
+              "reasoning": {
+                "levels": [
+                  {
+                    "value": "none",
+                    "label": "none"
+                  },
+                  {
+                    "value": "low",
+                    "label": "low"
+                  },
+                  {
+                    "value": "high",
+                    "label": "high"
+                  },
+                  {
+                    "value": "max",
+                    "label": "max"
+                  }
+                ],
+                "defaultLevel": "max"
+              },
+              "properties": {
+                "inputFormat": {
+                  "supportsText": true,
+                  "supportsImage": false,
+                  "supportsVideo": false,
+                  "supportsAudio": false,
+                  "supportsPdf": false
+                },
+                "outputFormat": {
+                  "supportsText": true
+                }
+              }
+            }
+          ],
+          "current": {
+            "providerId": "new-provider",
+            "modelId": "openai/glm-5.3",
+            "options": {
+              "reasoningLevel": "max"
+            }
+          },
+          "lastUsed": {
+            "providerId": "new-provider",
+            "modelId": "openai/glm-5.3"
+          }
+        },
+        "permission": {
+          "mode": "guarded"
+        },
+        "thoughtLevel": {
+          "available": [
+            {
+              "label": "none",
+              "value": "none"
+            },
+            {
+              "label": "low",
+              "value": "low"
+            },
+            {
+              "label": "high",
+              "value": "high"
+            },
+            {
+              "label": "max",
+              "value": "max"
+            }
+          ],
+          "current": "max",
+          "enabled": true
+        }
+      },
+      "slashCommands": [
+        {
+          "description": "Show or set the current session goal.",
+          "inputHint": "/goal [pause|resume|clear|replace <objective>|<objective>]",
+          "name": "goal",
+          "source": "builtin"
+        },
+        {
+          "description": "Design and launch a dynamic workflow for a task.",
+          "inputHint": "/workflow [what the workflow should accomplish]",
+          "name": "workflow",
+          "source": "builtin"
+        },
+        {
+          "description": "Compact the current conversation with optional instructions.",
+          "inputHint": "/compact [instructions]",
+          "name": "compact",
+          "source": "builtin"
+        },
+        {
+          "description": "Create or update workspace AGENTS.md instructions.",
+          "inputHint": "/init [notes]",
+          "name": "init",
+          "source": "builtin"
+        },
+        {
+          "description": "Show visit analytics of a ZCode Sites site.",
+          "inputHint": "/site-analytics [site id] [24h|7d|30d]",
+          "name": "site-analytics",
+          "source": "custom"
+        },
+        {
+          "description": "Hide or show the ZCode badge on the linked ZCode Sites site.",
+          "inputHint": "/site-badge hide | show",
+          "name": "site-badge",
+          "source": "custom"
+        },
+        {
+          "description": "Deploy this project to ZCode Sites, or redeploy the linked site.",
+          "inputHint": "/site-deploy [site id or notes]",
+          "name": "site-deploy",
+          "source": "custom"
+        },
+        {
+          "description": "Show the logs of a ZCode Sites deployment and explain any failure.",
+          "inputHint": "/site-logs [deployment id]",
+          "name": "site-logs",
+          "source": "custom"
+        },
+        {
+          "description": "Take the linked ZCode Sites site offline.",
+          "inputHint": "/site-offline [site id]",
+          "name": "site-offline",
+          "source": "custom"
+        },
+        {
+          "description": "Bring the linked ZCode Sites site back online.",
+          "inputHint": "/site-online [site id]",
+          "name": "site-online",
+          "source": "custom"
+        },
+        {
+          "description": "Show the ZCode Sites site linked to this project.",
+          "inputHint": "/site-status [site id]",
+          "name": "site-status",
+          "source": "custom"
+        },
+        {
+          "description": "Show ZCode Sites usage and plan limits.",
+          "inputHint": "/site-usage",
+          "name": "site-usage",
+          "source": "custom"
+        }
+      ],
+      "todos": [],
+      "todoGroups": []
+    }
+  },
+  {
+    "case": "C-load",
+    "t": 64880,
+    "kind": "mode_confirmation",
+    "data": {
+      "requested": "guarded",
+      "confirmed": "guarded"
+    }
+  },
+  {
+    "case": "C-load",
+    "t": 64884,
+    "kind": "replacement_session",
+    "data": {
+      "sessionId": "d59fa9a2-ca45-4ee2-bf86-51ad3261d543"
+    }
+  },
+  {
+    "case": "C-load",
+    "t": 64900,
+    "kind": "stderr_tail",
+    "data": {
+      "lines": []
+    }
+  },
+  {
+    "case": "D-missing-backend",
+    "t": 353,
+    "kind": "initialize",
+    "data": {
+      "agentVersion": "0.88.0",
+      "authMethods": [
+        {
+          "id": "zcode-credentials",
+          "name": "ZCode built-in credentials",
+          "description": "Reads the GLM API key from the ZCode desktop app's credential files (~/.zcode/v2) or a saved zcode-acp account. No editor-side credentials required."
+        }
+      ],
+      "capabilityKeys": [
+        "loadSession",
+        "promptCapabilities",
+        "mcpCapabilities",
+        "sessionCapabilities",
+        "_meta"
+      ]
+    }
+  },
+  {
+    "case": "D-missing-backend",
+    "t": 385,
+    "kind": "session_new_lazy",
+    "data": {
+      "sessionId": "a41027ca-4b4d-485e-9687-54dd27b82a4d"
+    }
+  },
+  {
+    "case": "D-missing-backend",
+    "t": 523,
+    "kind": "update",
+    "data": {
+      "sessionId": "a41027ca-4b4d-485e-9687-54dd27b82a4d",
+      "sessionUpdate": "available_commands_update"
+    }
+  },
+  {
+    "case": "D-missing-backend",
+    "t": 700,
+    "kind": "update",
+    "data": {
+      "sessionId": "a41027ca-4b4d-485e-9687-54dd27b82a4d",
+      "sessionUpdate": "available_commands_update"
+    }
+  },
+  {
+    "case": "D-missing-backend",
+    "t": 1295,
+    "kind": "set_mode_failed_no_backend",
+    "data": {
+      "message": "Internal error"
+    }
+  },
+  {
+    "case": "D-missing-backend",
+    "t": 1311,
+    "kind": "stderr_tail",
+    "data": {
+      "lines": [
+        "[zcode-acp] backend: reader exited (stdout closed)",
+        "[zcode-acp] account-provider: push failed: zcode backend reader exited (backend dead)"
+      ]
+    }
+  },
+  {
+    "case": "D-missing-backend",
+    "t": 1320,
+    "kind": "run_end",
+    "data": {
+      "cases": ["", "A-auto", "B-override", "C-load", "D-missing-backend"]
+    }
+  }
+]

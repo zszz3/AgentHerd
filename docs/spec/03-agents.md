@@ -1,7 +1,8 @@
 # 03. Agents: ACP runtime and rule export
 
 Applied ADRs: [0015](../adr/0015-acp-is-the-only-runtime-protocol.md),
-[0016](../adr/0016-one-rule-source-exported-to-agents.md), [0014](../adr/0014-acp-first-real-agent.md).
+[0016](../adr/0016-one-rule-source-exported-to-agents.md), [0014](../adr/0014-acp-first-real-agent.md),
+[0108](../adr/0108-zcode-the-owners-own-account-behind-zcode-acp.md).
 
 AgentHerd reaches agents in two ways, from one rule set:
 
@@ -34,7 +35,11 @@ An agent is a profile in configuration, not a package:
 ```
 
 A profile may add `"mcp": false` to start the agent without AgentHerd's `agentherd` MCP
-server ([09-agent-tools.md](09-agent-tools.md)).
+server ([09-agent-tools.md](09-agent-tools.md)). An agent that signs in and picks models itself
+adds `"ownModels": true` (Antigravity, ADR 0104); an agent whose session must run in a verified
+permission mode adds `"mode": "<mode id>"` — before the first prompt of a new, loaded or replaced
+session, AgentHerd sends `session/set_mode` and starts work only when the running session itself
+reports that mode back (ZCode, [ADR 0108](../adr/0108-zcode-the-owners-own-account-behind-zcode-acp.md)).
 
 | Agent | Command | Status |
 | --- | --- | --- |
@@ -43,9 +48,10 @@ server ([09-agent-tools.md](09-agent-tools.md)).
 | Claude Code | `node …/claude-agent-acp/dist/index.js` (npm `@agentclientprotocol/claude-agent-acp` 0.107.2), env `NO_BROWSER=1`, the model and key in `ANTHROPIC_*`, `CLAUDE_CONFIG_DIR=<home>/run/claude` (ask before edits and commands), `CLAUDE_CODE_EXECUTABLE` = the owner's own `claude` when found ([ADR 0069](../adr/0069-claude-code-the-owners-own-or-downloaded.md)) | Not in the app; `claude` is killed by endpoint security on this Mac (exit 137), so not run end to end **(verify, Q01)** |
 | Antigravity | The owner's own `agy acp --cli_dir_name agentherd`, with `~/.gemini/antigravity-cli/agentherd/settings.json` `toolPermission: request-review` (ask before edits, commands, web and MCP); own Google sign-in and models, a named model set with `session/set_config_option` ([ADR 0104](../adr/0104-antigravity-the-owners-own-agy.md)) | Tested 2026-11-23 with `agy` 1.5.15: commands and writes ask over ACP; model switch works; used only when the owner names it |
 | DeepSeek Harness | The owner's own DSH desktop app: `dsh acp` from the installed app (before `PATH`), env `DSH_PERMISSION_MODE=read-only` (writes ask); own models, a named model matched to the session's model ids and set with `session/set_config_option` ([ADR 0106](../adr/0106-dsh-the-owners-own-desktop-app.md)) | Tested 2026-11-24 on Windows with DSH 0.2.1-rc.2: a write asked and a denial blocked it; model switch works; used only when the owner names it |
+| ZCode | The owner's own `zcode-acp server` (npm `zcode-acp-server`, community bridge over ZCode's backend); the bridge finds the backend (`ZCODE_BIN`, `zcode` on its `PATH`, or ZCode Desktop's bundle); own ZCode sign-in and models, a named model set with `session/set_config_option`; the session runs in mode `build`, set with `session/set_mode` and confirmed by the session itself before the first prompt ([ADR 0108](../adr/0108-zcode-the-owners-own-account-behind-zcode-acp.md)) | Tested 2026-11-27 on Windows with bridge 0.95.1 (and 2026-11-24/25 with 0.88.0) and the desktop backend: `0.95.1` (`#425`, `#432`) omits `current_mode_update` when materialized mode cannot be confirmed and broadcasts reload transitions; `build` confirmed on new and loaded sessions and asked for `rm -rf ./*`, outside-workspace `Write`, `cmd //c del`, `powershell Remove-Item`, `sudo`, `git push`, and `WebFetch` (deny blocked each; separately approved `rm -rf ./*` and `WebFetch` ran); `ls`, `echo`, in-workspace `Read .env`, and outside-workspace `Read` ran without asking **(verify, Q03)** |
 | Qwen Code, others | Their ACP mode, as a config.json profile | **(verify, Q02)** |
 
-The desktop app has built-in profiles for Pi, Codex, Claude Code, Antigravity and DeepSeek Harness and lets the user
+The desktop app has built-in profiles for Pi, Codex, Claude Code, Antigravity, DeepSeek Harness and ZCode and lets the user
 add any ACP command. Claude Code's CLI may not be redistributed, so it is not in the app
 ([ADR 0069](../adr/0069-claude-code-the-owners-own-or-downloaded.md)): see
 [Claude Code](#claude-code).
@@ -63,6 +69,7 @@ add any ACP command. Claude Code's CLI may not be redistributed, so it is not in
 | `session/cancel` | Interrupt |
 | Follow-up `session/prompt` | A relayed owner message, or a Herder prompt |
 | `session/load` (if supported) | Continue an ended task, also after a restart (ADR 0039); Pi supports it through pi-acp |
+| `session/set_mode`, confirmed by a `session/update` `current_mode_update` naming the requested mode | Before the first prompt of a new, loaded or replaced session of a profile with `mode`: establish the permission mode, or fail the task without sending work (ADR 0108). A mode the agent reports on its own, a pending session or a fallback default is not confirmation |
 | `_agentherd/steer` (extension; offered with `agentCapabilities._meta.agentherd.steer: true`) | The owner's or the Herder's message for a running turn; `{ delivered: true }` once the agent's model saw it, `false` when the turn ended first (then it is the next prompt). Pi supports it through pi-acp ([ADR 0063](../adr/0063-messages-reach-a-working-pi-task.md)) |
 
 Permission requests may carry a partial tool call: ACP sends a tool call once and later only
@@ -75,7 +82,11 @@ available model in the owner's tier order when none is specified. Direct starts 
 available model compatible with the requested profile. Continued legacy tasks without a model
 also select from this list; tasks with a saved model keep it only while it remains configured
 and compatible. Automatic switches cannot leave the list. An empty or unusable list stops the
-task before an agent starts, rather than using the agent's native defaults.
+task before an agent starts, rather than using the agent's native defaults. An agent with its
+own sign-in and models (`ownModels`: Antigravity, ZCode) is outside this list: it runs with the
+model its account gives, a model the owner names is set in the session by its own name, and the
+Herder only ever starts it on request — never as an automatic pick, not even when it is the only
+installed agent.
 
 ### Pi
 
@@ -179,9 +190,49 @@ a claude.ai login ([ADR 0069](../adr/0069-claude-code-the-owners-own-or-download
 - When it does not start or its first turn breaks before acting, the task moves to Pi with the same
   model.
 
-验证 starts the agent in an empty temporary folder, runs `initialize` and `session/new`, and
-reports its name and version, a needed sign-in, or the error. Local API: `agents()`,
-`installAgent(id)`, `cancelInstall(id)`, `removeAgent(id)`, `verifyAgent(id)`, event topic `agents`.
+### ZCode
+
+ZCode runs through the community bridge `zcode-acp`
+([source](https://github.com/william0wang/zcode-acp)) with the explicit `server` argument, which
+speaks ACP over stdio and starts ZCode's own backend (`zcode app-server --stdio`) itself
+([ADR 0108](../adr/0108-zcode-the-owners-own-account-behind-zcode-acp.md)). AgentHerd ships
+neither the bridge nor the backend; both update on the owner's machine.
+
+- **Which bridge.** `AGENTHERD_ZCODE`, then `zcode-acp` on `PATH` (on Windows the npm `.cmd` shim
+  runs under AgentHerd's Node). Missing shows on the **Agent** page with how to install it.
+- **Backend discovery is the bridge's own**: an explicit `ZCODE_BIN` (and `ZCODE_NODE`) in the
+  environment passes through to the bridge process; an unset one stays unset, so the bridge looks
+  for `zcode` on its own `PATH` and then for the backend bundled with ZCode Desktop (Windows
+  registry included). AgentHerd keeps no second locator. Live check (2026-11-24, Windows): with
+  both unset and no CLI on `PATH`, the bridge launched the desktop backend.
+- **Sign-in and models.** The bridge reuses the ZCode Desktop credential store (`~/.zcode`) or a
+  saved `zcode-acp` account; no editor-side credentials. The profile has `ownModels`: the task
+  runs on the account's model, and a model the owner names is set in the session with
+  `session/set_config_option` — a name the backend refuses fails the task's start with the
+  backend's own reason.
+- **Permission mode.** A `session/new` is lazy and the bridge's default mode is `yolo`
+  (unrestricted), taken from the user's `session.mode` setting before `ZCODE_ACP_MODE`. The
+  profile carries `mode: "build"`, and before the first prompt of a new, loaded or replaced
+  session — replayed history included — AgentHerd sends `session/set_mode` and starts work only
+  when the running session confirms it (`current_mode_update` naming `build`, plus matching `settings` mode fields when returned on the RPC response). Otherwise the
+  connection closes and the owner gets the reason; a session that refuses, stays silent, times out during the RPC or notification wait, reports
+  another mode, or exits dispatches nothing, and an active task ends immediately if `current_mode_update` drifts away from `build` — except a drift to `plan`, the one mode live-probed to run no mutation at all (a write and a delete attempt neither executed nor asked; `plan-probe-run.json`, 2026-11-27), so the approval property survives it. Bridge `0.95.1` (`#425`, `#432`) withholds `current_mode_update` instead of falling back to `initialSessionMode()` when materialized `session/read` fails, and broadcasts confirmed transitions on backend reload. In `build` (ZCode 4.0.0), outside-workspace writes, `WebFetch` (both deny and `allow_once` tested), and gated commands (`rm -rf ./*`, `cmd //c del`, `powershell Remove-Item`, `sudo`, `git push`) ask over ACP with
+  `rawInput` carrying the full command (`allow` picks `allow_once` only, and `cancelled` is a
+  denial for the backend), while `ls`, `echo`, and ZCode's built-in `Read` tool (both inside and outside `cwd`) run without issuing `session/request_permission` (accepted boundary for ZCode; AgentHerd's `secret-read` guard still applies to forwarded `Bash` calls).
+- **Asking.** Permission requests follow the bridge's `tool_call` update for the same
+  `toolCallId`, so the card shows the command and paths; unclear requests follow the ordinary
+  escalation policy. Only the owner answers a card.
+- **Account choice.** ZCode is never an automatic pick — see
+  [04-herder.md](04-herder.md#what-the-herder-does-with-a-direct-message) and ADR 0108 for the
+  recovery rule.
+
+验证 starts the agent in an empty temporary folder, runs `initialize`, `session/new` and — for a
+profile with `mode` — the same session preparation a task uses, then reports its name and
+version, a needed sign-in, a failing backend, or the error (credentials redacted). What passing
+it proves is bounded: the bridge and a backend session started and the mode was confirmed; it
+does not check which plan serves the task or that a particular model is billed. Local API:
+`agents()`, `installAgent(id)`, `cancelInstall(id)`, `removeAgent(id)`, `verifyAgent(id)`, event
+topic `agents`.
 
 How each agent asks the user a question over ACP (permission request, or a message that ends
 the turn) is open **(verify, Q03)**.
@@ -289,6 +340,13 @@ is a list of steps:
 A script with `steer: true` offers `_agentherd/steer`; a `read_steers: <ms>` step waits up to
 `ms` for messages sent into the running turn, reads them all and writes `Read: <text>` for each.
 Messages it never read are answered `false` when the turn ends.
+
+A script with `set_mode: confirm` answers `session/set_mode` and reports the requested mode back
+(`current_mode_update`), like ZCode (ADR 0108); `silent` answers without a report, `wrong`
+reports another mode, `error` refuses, and without the key the agent does not take the method.
+`mode_report: <id>` makes it report a mode on its own at `session/new` (never a confirmation),
+`reject_model: true` refuses every `session/set_config_option`, and `fail_load: true` refuses
+every `session/load` (a replacement session is then prepared instead).
 
 Because it speaks real ACP, E2E tests run the same client code as real agents. It is the main
 tool for development, because Claude Code and Codex cannot run on the development machine

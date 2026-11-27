@@ -3,6 +3,8 @@
 // owner's own `claude`; without one, 下载 fetches the version AgentHerd is adapted to (ADR 0069).
 // Antigravity is the owner's own `agy` with its own Google sign-in and models, used only when the
 // owner names it (ADR 0104); DeepSeek Harness is the owner's own DSH app, the same way (ADR 0106).
+// ZCode is the owner's own zcode-acp bridge with its own account and backend, also only on
+// request; AgentHerd verifies its session mode before work (ADR 0108).
 // Nothing is updated here. 验证 starts one once to prove it works.
 
 import type { AgentCheck, AgentView } from "@agentherd/host/api";
@@ -28,11 +30,15 @@ const DESCRIPTIONS: Record<string, string> = {
   antigravity:
     "Google 的 Antigravity CLI（agy）。用你 Google 账号里的模型（Gemini 等），不用模型页里的。只在你说「用 Antigravity」或「用 Gemini」时才用。",
   dsh: "DeepSeek Harness 桌面版自带的 dsh。用你在 DSH 里配好的模型和登录，不用模型页里的。只在你说「用 DSH」时才用。",
+  zcode:
+    "ZCode（GLM 编程 Agent，经社区维护的 zcode-acp 桥）。用你自己的 ZCode 账号和它的模型，不用模型页里的；只在你说「用 ZCode」时才用。任务里的写文件和命令会先来问你。",
 };
 
 /** How to sign in, for agents that use their own account. */
 const LOGIN: Record<string, string> = {
   antigravity: "在终端运行一次 agy，用 Google 账号登录。",
+  zcode:
+    "先用 ZCode 桌面版登录一次（或运行 zcode-acp setup），AgentHerd 复用它的登录，不用再填密钥。",
 };
 
 /** Where to get an agent that is not in the app and that AgentHerd does not download. */
@@ -40,6 +46,16 @@ const GET: Record<string, string> = {
   antigravity:
     "你电脑上没找到 agy。装好 Antigravity CLI（antigravity.google/download）并登录后，重开 AgentHerd 就能用。",
   dsh: "你电脑上没找到 DeepSeek Harness 桌面版。装好并在里面配好模型后，重开 AgentHerd 就能用。",
+  zcode:
+    "你电脑上没找到 zcode-acp 桥。自己安装（npm install -g zcode-acp-server）并登录后，重开 AgentHerd 就能用。它会自己找 ZCode 后端：PATH 上的 zcode，或 ZCode 桌面版自带的那个；也可以用环境变量 ZCODE_BIN 指定。",
+};
+
+/** One-line guidance when a bridge's own backend or sign-in fails (ADR 0108). */
+const BACKEND: Record<string, { test: RegExp; hint: string }> = {
+  zcode: {
+    test: /backend|ZCODE_|zcode\.cjs|ENOENT|spawn/i,
+    hint: "ZCode 后端没能启动。检查 ZCode 桌面版是否装好并登录过；必要时把环境变量 ZCODE_BIN 指到它的 zcode.cjs（ZCODE_NODE 指到一个独立的 node.exe），重开 AgentHerd 再试。",
+  },
 };
 
 const SOURCES: Record<NonNullable<AgentView["source"]>, string> = {
@@ -180,6 +196,7 @@ function CheckResult({ check, agent }: { check: AgentCheck; agent: AgentView }) 
   }
   const killed = check.error?.includes("SIGKILL") ?? false;
   const blocked = !killed && isAgentSecurityBlock(check.error);
+  const backend = !killed && !blocked && (BACKEND[agent.id]?.test.test(check.error ?? "") ?? false);
   return (
     <div className="mt-1 flex flex-col gap-0.5 text-danger-text text-sm">
       <div className="flex items-center gap-1.5">
@@ -190,7 +207,9 @@ function CheckResult({ check, agent }: { check: AgentCheck; agent: AgentView }) 
             ? "进程被系统杀掉了（SIGKILL），可能是安全软件拦截了这个程序"
             : blocked
               ? "系统拒绝运行这个程序，可能是权限不足或被安全软件拦截"
-              : "没能启动"}
+              : backend
+                ? BACKEND[agent.id]?.hint
+                : "没能启动"}
       </div>
       {check.error !== undefined && check.error !== "" && (
         <div className="selectable ml-5 line-clamp-3 whitespace-pre-wrap font-mono text-ink-muted text-xs">
@@ -258,8 +277,8 @@ export function AgentsPage() {
         title="编程 Agent"
         hint={
           ready === 0
-            ? "不用选 Agent：GPT 模型用 Codex，复杂的编程任务用 Claude Code，其余用 Pi。Pi 和 Codex 跟着 App 装好；Claude Code 用你电脑上的，没有再下载。Antigravity 用你自己装的 agy，DeepSeek Harness 用你装的 DSH 桌面版，都只在你点名时用。"
-            : `${ready} 个可以用。不用选：GPT 模型用 Codex，复杂的编程任务用 Claude Code，其余用 Pi。Pi 和 Codex 跟着 App 装好；Claude Code 用你电脑上的，没有再下载。Antigravity 用你自己装的 agy，DeepSeek Harness 用你装的 DSH 桌面版，都只在你点名时用。`
+            ? "不用选 Agent：GPT 模型用 Codex，复杂的编程任务用 Claude Code，其余用 Pi。Pi 和 Codex 跟着 App 装好；Claude Code 用你电脑上的，没有再下载。Antigravity 用你自己装的 agy，DeepSeek Harness 用你装的 DSH 桌面版，ZCode 用你自己装的 zcode-acp 桥，都只在你点名时用。"
+            : `${ready} 个可以用。不用选：GPT 模型用 Codex，复杂的编程任务用 Claude Code，其余用 Pi。Pi 和 Codex 跟着 App 装好；Claude Code 用你电脑上的，没有再下载。Antigravity 用你自己装的 agy，DeepSeek Harness 用你装的 DSH 桌面版，ZCode 用你自己装的 zcode-acp 桥，都只在你点名时用。`
         }
       >
         <Group>

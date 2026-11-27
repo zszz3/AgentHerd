@@ -5,7 +5,7 @@
 [English](README.md) · 简体中文
 
 [![macOS | Windows](https://img.shields.io/badge/platform-macOS%20%7C%20Windows-111)](docs/spec/02-architecture.md) [![Feishu / Lark](https://img.shields.io/badge/chat-Feishu%20%2F%20Lark-3370ff)](docs/spec/05-channels.md) [![ACP](https://img.shields.io/badge/protocol-ACP-6b5bd6)](https://agentclientprotocol.com) [![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)<br>
-[![agent: Pi](https://img.shields.io/badge/agent-Pi-444)](https://github.com/earendil-works/pi) [![agent: Codex](https://img.shields.io/badge/agent-Codex-444)](https://github.com/openai/codex) [![agent: Claude Code](https://img.shields.io/badge/agent-Claude%20Code-444)](https://github.com/anthropics/claude-code) [![agent: Antigravity](https://img.shields.io/badge/agent-Antigravity-444)](https://antigravity.google)
+[![agent: Pi](https://img.shields.io/badge/agent-Pi-444)](https://github.com/earendil-works/pi) [![agent: Codex](https://img.shields.io/badge/agent-Codex-444)](https://github.com/openai/codex) [![agent: Claude Code](https://img.shields.io/badge/agent-Claude%20Code-444)](https://github.com/anthropics/claude-code) [![agent: Antigravity](https://img.shields.io/badge/agent-Antigravity-444)](https://antigravity.google) [![agent: ZCode](https://img.shields.io/badge/agent-ZCode-444)](https://github.com/william0wang/zcode-acp)
 
 [一个例子](#一个例子) · [能做什么](#能做什么) · [支持的 Agent](#支持的-agent) · [开始使用](#开始使用) · [文档](#文档)
 
@@ -13,7 +13,7 @@
 
 > **状态：** 正在开发，还没有发布版本，请从源码运行。
 
-AgentHerd 是一个桌面 App，让 Pi、Codex、Claude Code 和 Antigravity 这些 Agent 在你的电脑上替你干活。
+AgentHerd 是一个桌面 App，让 Pi、Codex、Claude Code、Antigravity 和 ZCode 这些 Agent 在你的电脑上替你干活。
 
 点一下桌面角上的桌宠，就能跟「主管」说要做什么。主管开任务、盯进度，做完用一两句话告诉你；推代码、对外发消息、一次删很多文件之前，会先问你。
 
@@ -62,6 +62,7 @@ AgentHerd 是一个桌面 App，让 Pi、Codex、Claude Code 和 Antigravity 这
 | Claude Code | 用你电脑上的 `claude`；没有的话在「Agent」页下载 | 你自己的 Anthropic 接口服务 |
 | Antigravity | 用你自己装的 `agy`，你点名时才用 | 你 Google 账号里的模型 |
 | DeepSeek Harness | 用你自己装的 DSH 桌面版，你点名时才用 | 你在 DSH 里配好的模型 |
+| ZCode | 用你自己装的 `zcode-acp` 桥，你点名时才用 | 你 ZCode 账号里的模型 |
 
 它们都通过 [Agent Client Protocol](https://agentclientprotocol.com) 运行。任务第一轮就出错时，主管会自动换下一个模型。
 

@@ -392,6 +392,17 @@ export function agentEnv(
     const cli = localClaude(env, exists, platform, home);
     return cli === undefined ? {} : { [CLAUDE_EXECUTABLE_ENV]: cli };
   }
+  if (id === "zcode") {
+    // The bridge owns backend discovery (ADR 0108): an explicit ZCODE_BIN or ZCODE_NODE the
+    // owner set passes through; when one is unset it stays unset, so the bridge looks on its
+    // own (the CLI on its PATH, then the ZCode Desktop bundle).
+    const out: Record<string, string> = {};
+    const bin = envValue(env, "ZCODE_BIN");
+    if (bin !== undefined && bin !== "") out.ZCODE_BIN = bin;
+    const node = envValue(env, "ZCODE_NODE");
+    if (node !== undefined && node !== "") out.ZCODE_NODE = node;
+    return out;
+  }
   if (id !== "codex" || (envValue(env, "CODEX_PATH") ?? "") !== "") return {};
   const cli = clis().find((p) => exists(p));
   return cli === undefined ? {} : { CODEX_PATH: cli };
@@ -424,7 +435,9 @@ export function resolveProfile(id: string, opts: ResolveOptions): AgentProfile {
     const bin = (opts.find ?? ((x: string) => findAgent(x)))(id);
     if (bin === undefined) {
       throw new Error(
-        `${def.name} not found. It comes with the desktop app; otherwise install it or set ${def.envVar}.`,
+        def.ownModels === true
+          ? `${def.name} not found. AgentHerd does not ship it: install it yourself, then restart AgentHerd, or set ${def.envVar}.`
+          : `${def.name} not found. It comes with the desktop app; otherwise install it or set ${def.envVar}.`,
       );
     }
     const extra = (opts.agentEnv ?? ((x: string) => agentEnv(x)))(id);

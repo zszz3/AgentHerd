@@ -4,7 +4,8 @@ Applied ADRs: [0003](../adr/0003-herder-on-pi-agent-core.md), [0007](../adr/0007
 [0008](../adr/0008-observe-first-rollout.md), [0012](../adr/0012-channel-is-the-only-decision-surface.md),
 [0018](../adr/0018-one-herder-as-secretary-separate-approvals.md), [0019](../adr/0019-relay-verbatim-board-and-reports.md),
 [0076](../adr/0076-westock-market-quotes-and-research-cli.md),
-[0077](../adr/0077-xueqiu-danjuan-fund-holdings.md).
+[0077](../adr/0077-xueqiu-danjuan-fund-holdings.md),
+[0108](../adr/0108-zcode-the-owners-own-account-behind-zcode-acp.md).
 
 AgentHerd has three roles:
 
@@ -57,7 +58,13 @@ Images in a message go the same way as its text; how the Herder and agents get t
    session if the owner said so.
 4. **A new task:** it resolves the project directory and the agent profile from the message,
    the owner's defaults and the last choice. If one of them stays unclear, it asks one
-   question with a suggested answer.
+   question with a suggested answer. An agent the owner must name (its own sign-in and models:
+   Antigravity, [ADR 0104](../adr/0104-antigravity-the-owners-own-agy.md); ZCode,
+   [ADR 0108](../adr/0108-zcode-the-owners-own-account-behind-zcode-acp.md)) runs only when the
+   owner's message names it: the Herder passes its profile with the owner's words, and a model
+   only when the owner named one, by that agent's own name — otherwise the Herder's configured
+   model reads the request and the agent runs on its own default. The Herder never picks such an
+   agent by itself, not even when it is the only installed one.
 5. **Capacity:** if `maxConcurrentSessions` (default 3) are running, the task is queued and
    the owner is told its place.
 6. **Start:** `session/new` in the project directory, then the prompt (below). The board gets a
@@ -105,7 +112,7 @@ The Herder may add, never rewrite.
 
 | Group | Tools |
 | --- | --- |
-| Sessions | `session_start(project, name, profile?, ownerText, addedContext, model?)` (GPT models run in Codex, the rest in Pi, [ADR 0031](../adr/0031-pick-the-agent-from-the-model.md); `hard?` sends a hard coding task to Claude Code when it is installed and an Anthropic-style model fits, [ADR 0069](../adr/0069-claude-code-the-owners-own-or-downloaded.md)) (name: the task's short name, shown on the board and every report, [ADR 0034](../adr/0034-herder-names-tasks.md)) (model: `service/model` the agent can run, picked by the Herder, [ADR 0025](../adr/0025-herder-picks-model-per-task.md)), `session_prompt(sessionId, text, name?)` (name renames the task), `session_cancel(sessionId)` (stops the running turn), `session_end(sessionId)` (closes the task when the owner says it is finished), `session_list()` (also lists models, the agents that can run each, and the owner's model guide, [ADR 0026](../adr/0026-model-guide-for-the-herder.md)) |
+| Sessions | `session_start(project, name, profile?, ownerText, addedContext, model?)` (GPT models run in Codex, the rest in Pi, [ADR 0031](../adr/0031-pick-the-agent-from-the-model.md); `hard?` sends a hard coding task to Claude Code when it is installed and an Anthropic-style model fits, [ADR 0069](../adr/0069-claude-code-the-owners-own-or-downloaded.md); an agent with its own sign-in and models runs only when the owner names it — Antigravity, [ADR 0104](../adr/0104-antigravity-the-owners-own-agy.md), ZCode, [ADR 0108](../adr/0108-zcode-the-owners-own-account-behind-zcode-acp.md)) (name: the task's short name, shown on the board and every report, [ADR 0034](../adr/0034-herder-names-tasks.md)) (model: `service/model` the agent can run, picked by the Herder, [ADR 0025](../adr/0025-herder-picks-model-per-task.md)), `session_prompt(sessionId, text, name?)` (name renames the task), `session_cancel(sessionId)` (stops the running turn), `session_end(sessionId)` (closes the task when the owner says it is finished), `session_list()` (also lists models, the agents that can run each, and the owner's model guide, [ADR 0026](../adr/0026-model-guide-for-the-herder.md)) |
 | Owner | `ask(text, options)` (AgentHerd adds 「其他」), `project_find(name)`, `notify(text)`, `relay_start(sessionId)`, `relay_end()`, `task_search(query)` (earlier tasks by title, project and last report; up to 10, [ADR 0054](../adr/0054-say-what-matters.md)), `task_read(task, replies?)` (a task's latest reply, or its last 5, whole and quoted; at most 40,000 characters, [ADR 0062](../adr/0062-restarts-lose-nothing-and-wake-ups-stop-at-three.md)), `notice_level(kind, level)` (where one kind of small news goes: push, board or off, [ADR 0061](../adr/0061-small-news-on-the-board.md)) |
 | Read | `task_get`, `task_list`, `session_transcript`, `decisions_list`, `read`, `grep`, `list`, `git_log`, `git_diff` (read tools only inside known project directories) |
 | Mailbox | `mailbox_add`, `mailbox_change`, `mailbox_try`, `mailbox_list`, `mailbox_remove`, `letters_file`: sources code looks at (repositories, GitHub work, Gmail, 小红书/知乎, feeds, Hacker News, scripts) and timers, only when the owner asks ([ADR 0099](../adr/0099-a-mailbox-for-the-herder.md), [ADR 0100](../adr/0100-every-watch-and-schedule-is-a-mailbox-source.md)) |

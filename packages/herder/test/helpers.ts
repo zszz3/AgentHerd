@@ -132,7 +132,7 @@ export function fakeHost(
 
     models?: { ref: string; agents: string[] }[];
     failing?: string[];
-    profiles?: { id: string; name: string }[];
+    profiles?: { id: string; name: string; ownModels?: boolean }[];
     memory?: MemoryStore;
     apps?: string[];
     userHome?: string;

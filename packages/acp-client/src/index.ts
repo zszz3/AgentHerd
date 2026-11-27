@@ -12,6 +12,7 @@ export {
   type AgentConnection,
   CLOSE_GRACE_MS,
   type ExitEvent,
+  MODE_CONFIRM_TIMEOUT_MS,
   type PermissionRequest,
   type PromptImage,
   type SessionUpdateEvent,

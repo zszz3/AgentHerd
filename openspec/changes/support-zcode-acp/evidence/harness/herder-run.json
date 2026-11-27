@@ -1,0 +1,114 @@
+[
+  {
+    "t": 8,
+    "kind": "profile",
+    "data": {
+      "command": ["~\\AppData\\Roaming\\fnm\\aliases\\default\\zcode-acp.cmd", "server"],
+      "mode": "build",
+      "ownModels": true,
+      "envKeys": ["ZCODE_BIN", "ZCODE_NODE"],
+      "zcodeBinSet": true
+    }
+  },
+  {
+    "t": 10,
+    "kind": "environment",
+    "data": {
+      "os": "win32",
+      "tempRoot": "~\\AppData\\Local\\Temp\\zcode-herder-qqGHEo",
+      "proj": "~\\AppData\\Local\\Temp\\zcode-herder-qqGHEo\\proj",
+      "zcodeBin": "%ZCODE_DESKTOP%\\resources\\glm\\zcode.cjs",
+      "herderModel": "scripted faux provider (registerFauxProvider), not a live model service",
+      "modelServiceList": "empty"
+    }
+  },
+  {
+    "t": 554,
+    "kind": "task_started",
+    "data": {
+      "id": "7f183b2c-fa0f-4fed-a4e1-2be0f540a97c",
+      "agent": "ZCode",
+      "title": "ZCode echo"
+    }
+  },
+  {
+    "t": 26435,
+    "kind": "after_task",
+    "data": {
+      "reports": [
+        "{\"kind\":\"report\",\"taskId\":\"7f183b2c-fa0f-4fed-a4e1-2be0f540a97c\",\"result\":\"done\",\"title\":\"ZCode echo\",\"subtitle\":\"Done · proj · ZCode · 26s\",\"body\":\"ZCode finished.\",\"summarized\":true,\"automaticDecisions\":[],\"fullReply\":\"DONE — Ran exactly `echo herd-zcode-herder` in `C:\\\\Users\\\\20236\\\\AppData\\\\Local\\\\Temp\\\\zcode-herder-qqGHEo\\\\proj`; it printed `herd-zcode-herder`. Nothing was changed on disk, an"
+      ]
+    }
+  },
+  {
+    "t": 31989,
+    "kind": "continued",
+    "data": {
+      "reports": [
+        "{\"kind\":\"report\",\"taskId\":\"7f183b2c-fa0f-4fed-a4e1-2be0f540a97c\",\"result\":\"done\",\"title\":\"ZCode echo\",\"subtitle\":\"Done · proj · ZCode · 26s\",\"body\":\"ZCode finished.\",\"summarized\":true,\"automaticDecisions\":[],\"fullReply\":\"DONE — Ran exactly `echo herd-zcode-herder` in `C:\\\\Users\\\\20236\\\\AppData\\\\Local\\\\Temp\\\\zcode-herder-qqGHEo\\\\proj`; it printed `herd-zcode-herder`. Nothing was changed on disk, an",
+        "{\"kind\":\"report\",\"taskId\":\"7f183b2c-fa0f-4fed-a4e1-2be0f540a97c\",\"result\":\"done\",\"title\":\"ZCode echo\",\"subtitle\":\"Done · proj · ZCode · 29s\",\"body\":\"ZCode replied OK.\",\"summarized\":true,\"automaticDecisions\":[],\"fullReply\":\"OK\",\"fullReplyBy\":\"ZCode\"}"
+      ],
+      "transcript": [
+        {
+          "role": "prompt",
+          "text": "[Owner's message]\nPlease use ZCode for this task: in ~\\AppData\\Local\\Temp\\zcode-herder-qqGHEo\\proj run exactly this shell comma"
+        },
+        {
+          "role": "tool",
+          "text": "echo herd-zcode-herder"
+        },
+        {
+          "role": "agent",
+          "text": "DONE — Ran exactly `echo herd-zcode-herder` in `~\\AppData\\Local\\Temp\\zcode-herder-qqGHEo\\proj`; it printed `herd-zcode-herder`."
+        },
+        {
+          "role": "prompt",
+          "text": "[Message from the Herder, not from the owner]\nReply with exactly: OK"
+        },
+        {
+          "role": "agent",
+          "text": "OK"
+        }
+      ]
+    }
+  },
+  {
+    "t": 32456,
+    "kind": "store_decisions",
+    "data": {
+      "decisions": []
+    }
+  },
+  {
+    "t": 32456,
+    "kind": "herder_audits",
+    "data": {
+      "herderAudits": [
+        {
+          "kind": "herder.turn",
+          "data_json": "{\"kind\":\"owner\"}"
+        },
+        {
+          "kind": "herder.tool",
+          "data_json": "{\"name\":\"session_start\",\"args\":{\"name\":\"ZCode echo\",\"project\":\"C:\\\\Users\\\\20236\\\\AppData\\\\Local\\\\Temp\\\\zcode-herder-qqGHEo\\\\proj\",\"profile\":\"zcode\",\"ownerText\":\"Please use ZCode for this task: in C:\\\\Users\\\\20236\\\\AppData\\\\Local\\\\Temp\\\\zcode-herder-qqGHEo\\\\proj run exactly this shell command and nothing else, then reply DONE: echo herd-zcode-herder\"}}"
+        },
+        {
+          "kind": "herder.turn",
+          "data_json": "{\"kind\":\"voice\"}"
+        },
+        {
+          "kind": "herder.turn",
+          "data_json": "{\"kind\":\"owner\"}"
+        },
+        {
+          "kind": "herder.tool",
+          "data_json": "{\"name\":\"session_prompt\",\"args\":{\"task\":\"7f183b2c-fa0f-4fed-a4e1-2be0f540a97c\",\"text\":\"Reply with exactly: OK\"}}"
+        },
+        {
+          "kind": "herder.turn",
+          "data_json": "{\"kind\":\"voice\"}"
+        }
+      ]
+    }
+  }
+]

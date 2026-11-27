@@ -400,7 +400,7 @@ const sessionStartSchema = obj({
   profile: opt(
     str({
       description:
-        "Only when the owner names an agent (pi, codex, claude for Claude Code, antigravity for Antigravity, also when they ask for Gemini or agy; dsh for DSH or DeepSeek Harness). Omit otherwise: AgentHerd picks the agent from the model and `hard`.",
+        "Only when the owner names an agent (pi, codex, claude for Claude Code, antigravity for Antigravity, also when they ask for Gemini or agy; dsh for DSH or DeepSeek Harness; zcode for ZCode). Omit otherwise: AgentHerd picks the agent from the model and `hard`.",
     }),
   ),
   name: str({
@@ -418,7 +418,7 @@ const sessionStartSchema = obj({
   model: opt(
     str({
       description:
-        "Model name from session_list (e.g. deepseek-v4-pro); AgentHerd uses the first service offering it that answers. service/model picks one service. Omit to select from AgentHerd's configured models in tier order. With an agent that has its own models (antigravity, dsh): only when the owner names one, its own name (e.g. gemini-3.8-flash, claude-opus-5-5); omit for the agent's default.",
+        "Model name from session_list (e.g. deepseek-v4-pro); AgentHerd uses the first service offering it that answers. service/model picks one service. Omit to select from AgentHerd's configured models in tier order. With an agent that has its own models (antigravity, dsh, zcode): only when the owner names one, its own name (e.g. gemini-3.8-flash, claude-opus-5-5); omit for the agent's default.",
     }),
   ),
   allowed: opt(
@@ -605,8 +605,9 @@ export function herderTools(
         if (named !== undefined && !ids.includes(named)) {
           throw new Error(`unknown profile "${named}"`);
         }
-        // An agent with its own sign-in and models (Antigravity, ADR 0104): AgentHerd's model
-        // list is not used; the model the owner named goes to the agent by its own name.
+        // An agent with its own sign-in and models (Antigravity, ADR 0104; ZCode, ADR 0108):
+        // AgentHerd's model list is not used; the model the owner named goes to the agent by
+        // its own name.
         const own =
           named !== undefined && host.profiles().find((p) => p.id === named)?.ownModels === true;
         const chosen = own
@@ -616,11 +617,17 @@ export function herderTools(
         const picked = "picked" in chosen ? chosen.picked : undefined;
         const modelText = model ?? "its own default model";
         async function chooseModel() {
+          // An agent the owner must name (own sign-in and models) is never an automatic pick:
+          // with only such agents installed, an unnamed task has no agent.
+          const pickable = host
+            .profiles()
+            .filter((p) => p.ownModels !== true)
+            .map((p) => p.id);
           const models = host
             .models()
             .filter((m) =>
               named === undefined
-                ? m.agents.includes(agentForModel(m.ref, ids, hard, m.agents))
+                ? m.agents.includes(agentForModel(m.ref, pickable, hard, m.agents))
                 : true,
             );
           const tiers = modelTiers?.() ?? placeModels(modelsByName(models).map((m) => m.name));
@@ -644,7 +651,8 @@ export function herderTools(
           const ref = picked.ref;
           return {
             profile:
-              named ?? agentForModel(ref, ids, hard, models.find((m) => m.ref === ref)?.agents),
+              named ??
+              agentForModel(ref, pickable, hard, models.find((m) => m.ref === ref)?.agents),
             model: ref as string | undefined,
             picked,
           };
